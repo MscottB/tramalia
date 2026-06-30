@@ -1,0 +1,7 @@
+# Manifiesto de skills: referencias, no copias. `tramalia skills sync` las trae
+# (git submodule o rulesync), de modo que se actualicen desde sus repos.
+
+# [[skill]]
+# name   = "ponytail"
+# source = "git+https://github.com/DietrichGebert/ponytail"
+# ref    = "main"

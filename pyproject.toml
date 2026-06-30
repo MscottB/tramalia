@@ -1,0 +1,36 @@
+[project]
+name = "tramalia-cli"
+version = "0.6.0"
+description = "Capa repo-first de gobierno y evidencia para desarrollo con múltiples agentes IA (reglas, gates, evidence pack, handoff y auditoría)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Michael Jim Scott Bravo" }]
+keywords = ["ai", "agents", "cli", "agents.md", "mise", "developer-tools"]
+dependencies = []
+
+# La CLI corre solo con la stdlib (terminal básica).
+# El "modo bonito" (interactivo + colores) se activa solo si instalas estos extras.
+[project.optional-dependencies]
+pretty = ["rich>=13", "questionary>=2"]
+mcp = ["mcp>=1.2"]
+dev = ["pytest>=8", "mcp>=1.2"]
+
+[project.scripts]
+tramalia = "tramalia.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tramalia"]
+# las plantillas son datos del paquete: deben ir dentro del wheel
+artifacts = ["tramalia/templates/**/*"]
+
+[tool.hatch.build.targets.sdist]
+include = ["tramalia", "tests", "README.md", "Tramalia_Diseno_Consolidado_v0_6.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

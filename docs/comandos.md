@@ -1,0 +1,67 @@
+# Referencia de comandos
+
+El **núcleo de gobierno** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`) es lógica propia y funciona **standalone, solo con Python**. El resto hace *shell-out* transparente a herramientas externas (interop opcional) y muestra su salida sin esconder errores.
+
+| Comando | Qué hace | Tipo |
+|---|---|---|
+| `tramalia menu` | menú interactivo | core |
+| `tramalia init` | genera la convención (idempotente) | core |
+| `tramalia doctor [--fix]` | diagnostica herramientas y cómo instalarlas | core |
+| `tramalia detect` | detecta el stack y los gates aplicables | core |
+| **`tramalia close [--task --agent --reviewer --allow-fail --engram]`** | **ritual de cierre: gates → evidence → handoff (enforcement)** | **core ★** |
+| **`tramalia log`** | **pista de auditoría de los cierres** | **core ★** |
+| `tramalia evidence [--task --engram]` | crea el evidence pack de cierre | core |
+| `tramalia handoff [--task --agent --reviewer --engram]` | traspaso multiagente | core |
+| `tramalia gates` | ejecuta los quality gates | interop (mise) |
+| `tramalia context` | genera memoria derivada (token-saver) | interop (repomix + stdlib) |
+| `tramalia sync [--to ...]` | propaga AGENTS.md a otros agentes | interop (rulesync) |
+| `tramalia skills [sync\|list]` | clona/actualiza skills desde sus repos | interop (git) |
+| `tramalia update` | actualiza todo | interop (mise + copier + skills) |
+| `tramalia mcp` | levanta la fachada MCP | core (+ SDK mcp) |
+
+## close — el ritual de gobierno
+
+Es el comando estrella. En un paso: corre cada gate (`mise run <gate>`), **escribe sus salidas dentro del evidence pack**, genera el handoff y **bloquea el cierre si un gate falla** (a menos que pases `--allow-fail` con la excepción anotada en `risks.md`).
+
+```bash
+tramalia close --task TASK-001 --agent codex --reviewer claude
+```
+
+Funciona **standalone**: si `mise` no está, no inventa un resultado — registra en el pack que los gates no se ejecutaron como **excepción documentada**, y aun así deja evidence + handoff.
+
+Cada cierre escribe **`metadata.json`** (task, agente, reviewer, timestamps, exit codes y `status` honesto: `passed` / `blocked` / `passed_with_exceptions` / `no_gates`). Los `*-output.txt` crudos son la evidencia oficial; ningún derivado (p. ej. compresión de Headroom) puede reemplazarlos.
+
+## log — la pista de auditoría
+
+Lee el `metadata.json` de cada cierre y lista los cierres (más reciente primero) con su `status` y el agente. Es el historial verificable del trabajo agéntico sobre el repo.
+
+## doctor
+
+Clasifica los requisitos en **bootstrap** (mise/git/uv), **stack** (node/dotnet…) y **feature/gate** (semgrep/sqlfluff/lighthouse…), y solo molesta con lo que aplica a tu proyecto. `--fix` delega en `mise install` cuando mise ya está.
+
+## init
+
+Genera de forma idempotente (no pisa lo existente): `AGENTS.md` único, `CLAUDE.md` (`@AGENTS.md`), `docs/ai/` con las reglas curadas (gates DB, seguridad y UX/UI), `mise.toml` a la medida del stack, `.mcp.json` con Serena y `.tramalia/` (config + skills).
+
+## evidence y handoff
+
+Las dos piezas propias de Tramalia para trazabilidad:
+
+- **`evidence`** crea `.tramalia/evidence/<fecha>-<task>/` con `summary`, `files-changed` (lee `git diff`), `commands`, las salidas de cada gate, `risks`, `rollback` y `next-steps`.
+- **`handoff`** agrega una entrada estructurada a `docs/ai/07-handoff-agentes.md`.
+
+## sync
+
+`rulesync convert --from agentsmd --to copilot,cursor,cline --features rules`. No incluye Claude/Codex (ya leen `AGENTS.md` nativamente). Configurable con `--to`.
+
+## mcp — la fachada (nivel 1)
+
+Expone la convención como herramientas MCP nativas: `project_status`, `get_agent_rules`, `get_failed_attempts`, `get_current_task`, `doctor`, `record_handoff`, `build_evidence`, `build_context`. Conéctala en `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "tramalia": { "command": "tramalia", "args": ["mcp"] }
+  }
+}
+```

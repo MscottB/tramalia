@@ -1,0 +1,34 @@
+# AGENTS.md — {{ project_name }}
+
+> Contrato único para todos los agentes IA. CLAUDE.md, .cursorrules, GEMINI.md, etc.
+> derivan de aquí (con `tramalia sync` / rulesync). No edites copias divergentes.
+
+## Objetivo del proyecto
+[Describe en 3-6 líneas qué construye {{ project_name }} y sus restricciones.]
+
+Stack detectado: {{ stack }}
+
+## Orden obligatorio antes de modificar código
+1. Leer docs/ai/00-resumen-proyecto.md
+2. Leer docs/ai/01-arquitectura.md (si existe)
+3. Leer .tramalia/current-task.md y specs/tasks.md (si existen)
+4. Si tocas base de datos → docs/ai/03-reglas-base-datos.md
+5. Si tocas seguridad → docs/ai/04-reglas-seguridad.md
+6. Si tocas interfaz → docs/ai/11-reglas-ux-ui.md
+7. Revisar docs/ai/06-intentos-fallidos.md
+
+## Reglas generales (Ponytail / YAGNI)
+- Implementa solo el alcance de la tarea vigente.
+- Prioriza la solución mínima correcta; no abstraigas de más ni dupliques lógica.
+- Antes de leer o escribir, usa el mapa (.tramalia/context) y Serena para tocar lo mínimo.
+- No introduzcas dependencias sin justificación.
+- Ejecuta `mise run gates` antes de cerrar y actualiza el handoff.
+
+## Prohibiciones
+- No exponer secretos, tokens ni credenciales; avisa antes de leer .env o certificados.
+- No ejecutar comandos destructivos sin confirmación.
+- No conectar servidores MCP remotos fuera de la allowlist.
+- No marcar una tarea como terminada sin evidence pack.
+
+## Comandos de verificación
+- Gates: `mise run gates`  ·  Cierre: `tramalia evidence` y `tramalia handoff`

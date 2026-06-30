@@ -1,0 +1,10 @@
+# Normaliza saltos de línea: LF en el repo, nativo al hacer checkout.
+* text=auto
+
+# Archivos que siempre deben ser LF (scripts, configs).
+*.py text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.json text eol=lf

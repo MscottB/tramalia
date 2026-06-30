@@ -1,0 +1,111 @@
+site_name: Tramalia
+site_description: Capa repo-first de gobierno y evidencia para desarrollo con múltiples agentes IA.
+site_url: https://MscottB.github.io/tramalia/
+repo_url: https://github.com/MscottB/tramalia
+repo_name: tramalia
+docs_dir: docs
+
+theme:
+  name: material
+  language: es
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: es
+          name: Español
+          default: true
+          build: true
+        - locale: en
+          name: English
+          build: true
+          nav_translations:
+            Inicio: Home
+            Empezar: Get started
+            Instalación: Installation
+            Flujo completo: Full workflow
+            Conceptos: Concepts
+            Arquitectura: Architecture
+            Ecosistema: Ecosystem
+            Integraciones: Integrations
+            Cómo encaja todo: How it fits together
+            Ejecución y gates: Execution & gates
+            Contexto e inteligencia de código: Context & code intelligence
+            Memoria y eficiencia: Memory & efficiency
+            Reglas, skills y agentes: Rules, skills & agents
+            Referencia: Reference
+            Comandos: Commands
+            Herramientas: Tools
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Inicio: index.md
+  - Empezar:
+      - Instalación: instalacion.md
+      - Flujo completo: flujo-completo.md
+  - Conceptos:
+      - Arquitectura: arquitectura.md
+      - Ecosistema: ecosistema.md
+  - Integraciones:
+      - Cómo encaja todo: interop.md
+      - Ejecución y gates: interop-ejecucion.md
+      - Contexto e inteligencia de código: interop-contexto.md
+      - Memoria y eficiencia: interop-memoria.md
+      - Reglas, skills y agentes: interop-agentes.md
+  - Referencia:
+      - Comandos: comandos.md
+      - Herramientas: herramientas.md
