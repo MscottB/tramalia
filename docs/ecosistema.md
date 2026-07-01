@@ -8,48 +8,32 @@ Esta página explica **cada actor del ecosistema**, su **alcance** (qué hace y 
 
 ```mermaid
 flowchart TB
-    classDef core fill:#5b4bdb,stroke:#3c3489,color:#fff;
-    classDef grp fill:#f3f4ff,stroke:#8a83e0,color:#26215c;
-    classDef ext fill:#fff,stroke:#b4b2a9,color:#444;
+    classDef core fill:#5b4bdb,stroke:#4335b0,color:#ffffff;
+    classDef sat  fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef repo fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
+    classDef agent fill:#fff3dc,stroke:#e0a44a,color:#5a3d0a;
 
-    AG["🤖 Agentes IA · Claude Code · Codex · Cursor · Antigravity · Gemini CLI"]:::ext
+    AG["🤖 Agentes IA<br/><small>Claude · Codex · Cursor · Antigravity · Gemini CLI</small>"]:::agent
 
-    subgraph SETUP["Preparación del entorno"]
-        GA["Gentle-AI"]:::ext
-    end
-    subgraph CTX["Inteligencia de código / contexto"]
-        SR["Serena"]:::ext
-        RP["Repomix"]:::ext
-        CM["codebase-memory-mcp"]:::ext
-    end
-    subgraph MEM["Memoria"]
-        EN["Engram (N2)"]:::ext
-        BM["basic-memory / mem0"]:::ext
-    end
-    subgraph EFF["Eficiencia"]
-        HR["Headroom"]:::ext
-    end
-    subgraph EXEC["Ejecución y calidad"]
-        MI["mise"]:::ext
-        SG["Semgrep · Gitleaks"]:::ext
-        SQ["SQLFluff"]:::ext
-        UX["Lighthouse · Playwright · axe"]:::ext
-    end
-    subgraph FAN["Reglas multiagente"]
-        RU["rulesync"]:::ext
+    subgraph TOOLS["Herramientas del ecosistema · interop opcional"]
+      direction LR
+      SETUP["Setup<br/><small>Gentle-AI</small>"]:::sat
+      CTX["Contexto<br/><small>Serena · Repomix<br/>codebase-memory-mcp</small>"]:::sat
+      MEM["Memoria<br/><small>Engram · basic-memory · mem0</small>"]:::sat
+      EFF["Eficiencia<br/><small>Headroom</small>"]:::sat
+      EXEC["Ejecución y calidad<br/><small>mise · Semgrep · Gitleaks<br/>SQLFluff · Lighthouse · Playwright</small>"]:::sat
+      FAN["Reglas<br/><small>rulesync</small>"]:::sat
     end
 
-    T["🧩 TRAMALIA · GOBIERNO REPO-FIRST<br/>reglas · gates · evidence · handoff · auditoría"]:::core
+    T["🧩 TRAMALIA · gobierno repo-first<br/><small>reglas · gates · evidence · handoff · auditoría</small>"]:::core
+    R["📁 Repo<br/><small>AGENTS.md · docs/ai · .tramalia/evidence</small>"]:::repo
 
-    AG --> T
-    SETUP --> T
-    CTX --> T
-    MEM --> T
-    EFF --> T
-    EXEC --> T
-    FAN --> T
-    T ==> R["📁 Repo: AGENTS.md · docs/ai · .tramalia/evidence"]:::grp
+    TOOLS -. orquesta .-> T
+    T ==>|gobierna| R
+    AG -->|leen / escriben| R
 ```
+
+<small>**Leyenda:** 🟪 Tramalia (núcleo) · 🟦 herramientas por rol (interop opcional) · 🟨 agentes IA · 🟩 el repositorio.</small>
 
 ## Los actores y sus alcances
 

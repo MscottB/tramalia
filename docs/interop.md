@@ -41,8 +41,8 @@ La mayoría se instala de **dos formas equivalentes**: directa (su instalador of
 
 ```mermaid
 flowchart TB
-    classDef core fill:#5b4bdb,stroke:#3c3489,color:#fff;
-    classDef ext fill:#fff,stroke:#b4b2a9,color:#444;
+    classDef core fill:#5b4bdb,stroke:#4335b0,color:#ffffff;
+    classDef ext fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
 
     AG["🤖 Agente IA"]:::ext
     SR["Serena<br/><small>decide qué leer</small>"]:::ext

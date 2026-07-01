@@ -12,9 +12,9 @@ Por eso `tramalia init` lo deja escrito en el `AGENTS.md` de tu proyecto (secci�
 
 ```mermaid
 flowchart TB
-    classDef core fill:#5b4bdb,stroke:#3c3489,color:#fff;
-    classDef conv fill:#eef0ff,stroke:#8a83e0,color:#26215c;
-    classDef ext fill:#fff,stroke:#b4b2a9,color:#444;
+    classDef core fill:#5b4bdb,stroke:#4335b0,color:#ffffff;
+    classDef conv fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
+    classDef ext fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
 
     subgraph C1["Capa 1 · CLI fino (lo que ejecutas)"]
         CLI["init · doctor · close · log · evidence · handoff · gates · context · sync · mcp"]:::core

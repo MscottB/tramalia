@@ -48,35 +48,32 @@ Tramalia is a **repo-first layer** that ensures *any* agent (Claude Code, Codex,
 Tramalia doesn't compete with the other AI tools: it **governs and orchestrates** them. Each occupies a distinct space; Tramalia is the core that ensures control, traceability and continuity.
 
 ```mermaid
-flowchart TD
-    classDef core fill:#5b4bdb,stroke:#3c3489,color:#fff,stroke-width:2px;
-    classDef sat fill:#eef0ff,stroke:#8a83e0,color:#26215c;
-    classDef repo fill:#eaf0e0,stroke:#639922,color:#173404;
+flowchart TB
+    classDef core fill:#5b4bdb,stroke:#4335b0,color:#ffffff;
+    classDef sat  fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef repo fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
+    classDef agent fill:#fff3dc,stroke:#e0a44a,color:#5a3d0a;
+
+    AG["🤖 AI agents<br/><small>Claude · Codex · Cursor · Antigravity</small>"]:::agent
+
+    subgraph TOOLS["Ecosystem tools · optional interop"]
+      direction LR
+      GA["Gentle-AI<br/><small>setup</small>"]:::sat
+      CX["Serena · Repomix<br/>codebase-memory-mcp<br/><small>context</small>"]:::sat
+      EN["Engram<br/><small>memory</small>"]:::sat
+      HR["Headroom<br/><small>compression</small>"]:::sat
+      MR["mise · rulesync<br/><small>gates · rules</small>"]:::sat
+    end
 
     T["🧩 TRAMALIA<br/><small>governance · gates · evidence · handoff · audit</small>"]:::core
+    R["📁 Repo<br/><small>AGENTS.md · docs/ai · .tramalia/evidence</small>"]:::repo
 
-    GA["Gentle-AI<br/><small>agent setup</small>"]:::sat
-    EN["Engram<br/><small>N2 memory</small>"]:::sat
-    HR["Headroom<br/><small>compression</small>"]:::sat
-    SR["Serena<br/><small>semantic navigation</small>"]:::sat
-    RP["Repomix<br/><small>snapshot</small>"]:::sat
-    CM["codebase-memory-mcp<br/><small>code graph</small>"]:::sat
-    MI["mise<br/><small>tools + gates</small>"]:::sat
-    RU["rulesync<br/><small>rule fan-out</small>"]:::sat
-
-    GA -.onboarding.-> T
-    EN -.memory.-> T
-    HR -.efficiency.-> T
-    SR -.context.-> T
-    RP -.context.-> T
-    CM -.context.-> T
-    MI -.execution.-> T
-    RU -.interop.-> T
-
-    T ==> R["📁 Repo<br/><small>AGENTS.md · docs/ai · .tramalia/evidence</small>"]:::repo
-    AG["🤖 AI agents<br/><small>Claude · Codex · Cursor · Antigravity</small>"]:::sat
-    AG ==reads/writes==> R
+    AG -->|read / write| R
+    TOOLS -. orchestrates .-> T
+    T ==>|governs| R
 ```
+
+<small>**Legend:** 🟪 Tramalia (core) · 🟦 tools (optional interop) · 🟨 AI agents · 🟩 the repository.</small>
 
 In one line: **Gentle-AI** enables *which* agents to use, **Engram** helps *remember*, **Headroom** makes context *cheaper*, **Serena/Repomix/codebase-memory-mcp** provide *code intelligence*, and **Tramalia** keeps the repo **controlled, traceable and consistent**.
 

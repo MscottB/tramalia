@@ -1,0 +1,51 @@
+/* ─────────────────────────────────────────────────────────────
+   Estilos extra de Tramalia — foco en la legibilidad de diagramas
+   ───────────────────────────────────────────────────────────── */
+
+/* Cada diagrama Mermaid queda enmarcado en una tarjeta centrada,
+   con fondo y borde que se adaptan a modo claro/oscuro. */
+.md-typeset .mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 1.6rem auto;
+  padding: 1.1rem 0.9rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.6rem;
+  background-color: var(--md-default-bg-color);
+  overflow-x: auto;
+}
+
+.md-typeset .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Texto de los nodos un poco más grande y con mejor interlineado. */
+.md-typeset .mermaid .nodeLabel,
+.md-typeset .mermaid .label {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.md-typeset .mermaid .nodeLabel small,
+.md-typeset .mermaid .label small {
+  opacity: 0.85;
+  font-size: 0.75rem;
+}
+
+/* Etiquetas de las flechas: fondo sólido para que se lean sobre las líneas. */
+.md-typeset .mermaid .edgeLabel,
+.md-typeset .mermaid .edgeLabel p {
+  background-color: var(--md-default-bg-color) !important;
+  color: var(--md-default-fg-color) !important;
+  padding: 0.05em 0.35em;
+  border-radius: 0.25em;
+  font-size: 0.78rem;
+}
+
+/* Cajas de los subgráficos (clusters) con esquinas redondeadas. */
+.md-typeset .mermaid .cluster rect {
+  rx: 8px;
+  ry: 8px;
+  opacity: 0.9;
+}
