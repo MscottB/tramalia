@@ -1,4 +1,4 @@
-# Licencias y donaciones
+# Licencias
 
 > **No es asesoría legal.** Este análisis es orientativo; para decisiones definitivas, valida con un abogado.
 
@@ -30,12 +30,8 @@ Las únicas licencias que importan para la de Tramalia son las de sus **dependen
 
 Solo importarían si Tramalia **empaquetara o enlazara** su código. No lo hace. Si en el futuro se redistribuyen binarios de terceros dentro de Tramalia, habría que revisar caso por caso.
 
-## Donaciones
-
-La licencia **no** determina si puedes recibir donaciones. **Cualquier** licencia open source (MIT, Apache-2.0, GPL, AGPL) lo permite vía GitHub Sponsors / Open Collective. Están habilitadas con [`.github/FUNDING.yml`](.github/FUNDING.yml).
-
 ## Por qué Apache-2.0 (y no otra)
 
 - **Apache-2.0 / MIT (permisivas):** máxima adopción, ideal para una capa de gobierno que quiere difundirse. Apache-2.0 añade concesión explícita de patentes y cláusula de marca. **← elegida.**
-- **AGPL-3.0 + comercial (dual):** copyleft fuerte + venta de excepción comercial = ingreso real, pero reduce la adopción. Decisión de negocio para más adelante.
-- **Source-available (BSL/FSL):** permite restricciones comerciales pero no es open source OSI → menos confianza/adopción. Excesivo para el objetivo de donaciones.
+- **AGPL-3.0 (copyleft fuerte):** obligaría a abrir derivados/servicios; reduce la adopción de una herramienta que busca esparcirse.
+- **Source-available (BSL/FSL):** permite restricciones comerciales pero no es open source OSI → menos confianza/adopción.

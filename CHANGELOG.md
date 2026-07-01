@@ -24,8 +24,3 @@ Primera muestra pública (preview) de Tramalia: capa repo-first de gobierno y ev
 - 34 tests con pytest.
 - Plantilla empaquetada en el wheel; sitio de documentación bilingüe (ES/EN) con MkDocs Material.
 - Licencia Apache-2.0.
-
-### Diseñado / siguiente
-- `tramalia learn` (importar aprendizajes a `docs/ai/06-intentos-fallidos.md`, con `--review`).
-- Doble capa en `close` con Headroom (`review-summary.md` derivado, junto al output crudo).
-- Publicar `tramalia-template` para habilitar `copier update`.
