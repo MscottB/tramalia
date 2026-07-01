@@ -2,6 +2,9 @@
 
 Estas herramientas **corren** las validaciones. Tramalia las orquesta vía `mise` (el runner) y captura su salida cruda en el evidence pack.
 
+!!! info "¿Qué es *bootstrap*?"
+    Las tres primeras (**mise, git, uv**) están marcadas como **bootstrap**: son la **base que instalas a mano primero**, porque no pueden instalarse solas (mise no puede instalarse a sí misma; git y uv son prerequisitos). Una vez presentes, `mise install` trae todo lo demás. Ver [Glosario](glosario.md).
+
 !!! tip "Vía recomendada"
     Casi todas se instalan **vía mise** (`mise use …`): quedan declaradas en `mise.toml` y `mise upgrade` las mantiene. La vía directa es la alternativa.
 

@@ -66,6 +66,7 @@ plugins:
             Referencia: Reference
             Comandos: Commands
             Herramientas: Tools
+            Glosario: Glossary
 
 extra_css:
   - stylesheets/extra.css
@@ -111,3 +112,4 @@ nav:
   - Referencia:
       - Comandos: comandos.md
       - Herramientas: herramientas.md
+      - Glosario: glosario.md

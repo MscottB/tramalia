@@ -27,6 +27,8 @@ Cada una se invoca como **proceso separado** (CLI/MCP). Por eso **sus licencias 
 
 ### Bootstrap
 
+La **base que instalas a mano primero** (no pueden instalarse solas); el resto lo trae `mise install`. Ver [Glosario](glosario.md).
+
 | Herramienta | Rol / alcance | Runtime | Licencia |
 |---|---|---|---|
 | **mise** | versiones de tools + entorno + runner de gates | binario (Rust) | MIT |
