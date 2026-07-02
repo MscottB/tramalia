@@ -7,6 +7,7 @@ Tramalia **only requires Python 3.10+**. It has no Node dependencies.
 ```bash
 pip install -e .              # base (basic terminal, stdlib only)
 pip install -e ".[pretty]"    # pretty mode: Rich + Questionary (recommended)
+pip install -e ".[tui]"       # TUI dashboard (tramalia ui, Textual)
 pip install -e ".[mcp]"       # MCP façade
 pip install -e ".[dev]"       # development (tests)
 ```
@@ -30,6 +31,8 @@ Tramalia **orchestrates** external tools. You don't need them all to start; `tra
 | **lighthouse · playwright** | UX/UI gate | **Node** | optional |
 | **engram** | N2 persistent memory (`--engram`) | binary | optional (interop) |
 | **headroom** | context/output compression (token-saver) | — | optional (interop) |
+| **specify** (Spec Kit) | spec-driven development (`specs/`) | Python | optional (interop) |
+| **ponytail** | minimalism ruleset + MCP (`--with-ponytail`) | **Node** (MCP) | optional (interop) |
 
 !!! tip "Do I need Node?"
     Only if you use `sync`, the `ux` gate, or `context` with Repomix. In a project with no frontend and no `sync`, you **never** need Node. `tramalia doctor` flags those rows as "requires Node".

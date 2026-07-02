@@ -26,6 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
     ini = sub.add_parser("init", help="inicializa la estructura (copier)")
     ini.add_argument("--with-headroom", action="store_true",
                      help="agrega Headroom (compresión) al .mcp.json (opt-in explícito)")
+    ini.add_argument("--with-ponytail", action="store_true",
+                     help="agrega el MCP de Ponytail al .mcp.json (requiere `tramalia skills` + Node)")
     sub.add_parser("gates", help="ejecuta quality gates (mise run gates)")
     sub.add_parser("context", help="genera contexto / token-saver (repomix + serena)")
     ev = sub.add_parser("evidence", help="genera el evidence pack")
@@ -53,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     sk.add_argument("action", nargs="?", choices=["sync", "list"], default="sync")
     sub.add_parser("update", help="actualiza todo (mise + copier + skills)")
     sub.add_parser("mcp", help="levanta el Tramalia MCP (fachada nivel 1, stdio)")
+    sub.add_parser("ui", help="abre el dashboard TUI (requiere extra [tui])")
     return p
 
 

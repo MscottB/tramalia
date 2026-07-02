@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-34%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-47%20passing-brightgreen.svg)
 
 **Español** · [English](README.en.md) · [📚 Documentación](https://MscottB.github.io/tramalia/)
 
@@ -47,11 +47,12 @@ Lo hace **orquestando herramientas externas** en vez de reimplementarlas.
 
 ## Características
 
-- **Cierre gobernado (`close`)** — corre los gates, escribe sus salidas en el **evidence pack** y genera el **handoff** en un solo paso; **bloquea el cierre si un gate falla** (salvo excepción documentada).
+- **Cierre gobernado (`close`)** — corre los gates, escribe sus salidas en el **evidence pack** y genera el **handoff** (enlazado) en un solo paso; **bloquea el cierre si un gate falla** (salvo excepción documentada).
 - **Pista de auditoría (`log`)** — historial verificable de cierres: qué tarea, qué gates pasaron, qué evidencia.
+- **Dashboard TUI (`ui`)** — panel en terminal con Resumen, Auditoría navegable y Cierre guiado (extra `[tui]`, Textual).
 - **Quality gates** — build, test, lint, seguridad, base de datos y UX/UI.
-- **Memoria del proyecto** — `AGENTS.md` único + `docs/ai/` + intentos fallidos + handoff tipado.
-- **`doctor`** — diagnostica qué herramientas necesita *tu* proyecto y cómo instalarlas.
+- **Convención completa** — `AGENTS.md` único + `docs/ai/` 00–11 + `specs/` + **13 skills** numeradas ancladas al flujo + intentos fallidos + handoff tipado.
+- **`doctor`** — diagnostica qué herramientas necesita *tu* proyecto y cómo instalarlas (incluye Spec Kit).
 - **Ahorro de tokens** *(interop)* — contexto derivado (Repomix) + navegación semántica (Serena).
 - **Fan-out de reglas** *(interop)* — propaga `AGENTS.md` a Cursor/Copilot/… con rulesync.
 - **Fachada MCP** + **memoria N2 opcional** (Engram) — expone/persiste sin reinventar.
@@ -67,15 +68,18 @@ tramalia doctor              # te dice qué más instalar
 ## Uso
 
 ```bash
-tramalia menu        # menú interactivo
-tramalia init        # genera la convención (AGENTS.md, docs/ai, mise.toml…)
+tramalia menu        # menú interactivo en bucle, con prompts guiados
+tramalia ui          # dashboard TUI (Resumen · Auditoría · Cierre)
+tramalia init        # genera la convención (AGENTS.md, docs/ai 00-11, specs, 13 skills…)
 tramalia doctor      # diagnostica herramientas (y cómo instalarlas)
 tramalia close       # cierra una tarea: gates → evidence → handoff (con enforcement)
 tramalia log         # pista de auditoría de los cierres
 tramalia gates       # corre los quality gates
 tramalia sync        # propaga AGENTS.md a otros agentes (interop, rulesync)
-tramalia update      # actualiza todo (mise + copier + skills)
+tramalia update      # actualiza todo (mise + skills)
 ```
+
+Extras opcionales de `init`: `--with-headroom` (compresión) y `--with-ponytail` (MCP del ruleset de minimalismo, tras `tramalia skills`).
 
 ## Tramalia sola o con tus herramientas
 

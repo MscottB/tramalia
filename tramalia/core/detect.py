@@ -50,8 +50,8 @@ def detect_stack(root: Path) -> list[str]:
 
 def enabled_features(stack: list[str]) -> tuple[str, ...]:
     """Decide qué features/gates aplican según el stack detectado."""
-    # "memory" siempre presente para que doctor surface Engram (N2 opcional).
-    features = {"init", "context", "security", "sync", "memory"}
+    # "memory" y "specs" siempre presentes: doctor surface Engram y Spec Kit (opcionales).
+    features = {"init", "context", "security", "sync", "memory", "specs"}
     if any(s in stack for s in ("postgres", "java", "dotnet", "python")):
         features.add("database")
     if any(s in stack for s in _FRONTEND):

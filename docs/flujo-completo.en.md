@@ -57,10 +57,11 @@ Drops into your repo, idempotent (never overwrites existing files):
 ```text
 AGENTS.md              # single rules for all agents
 CLAUDE.md              # → @AGENTS.md (no duplication)
-docs/ai/               # architecture, DB/security/UX rules, ADR, failed attempts, handoff
+docs/ai/               # full convention 00-11 (architecture, rules, ADR, handoff…)
+specs/                 # constitution · specification · plan · tasks · checklist
 mise.toml              # tools + gates tailored to the detected stack
-.mcp.json              # Serena (and Engram if installed)
-.tramalia/             # config, skills.toml, context/, evidence/
+.mcp.json              # Serena (Engram if present; Headroom/Ponytail via --with-*)
+.tramalia/             # config, current-task, skills.toml, 13 skills, context/, evidence/
 ```
 
 ## 3. See what's missing to install

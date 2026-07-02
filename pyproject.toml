@@ -1,6 +1,6 @@
 [project]
 name = "tramalia-cli"
-version = "0.6.0"
+version = "0.7.0"
 description = "Capa repo-first de gobierno y evidencia para desarrollo con múltiples agentes IA (reglas, gates, evidence pack, handoff y auditoría)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,7 +15,8 @@ dependencies = []
 [project.optional-dependencies]
 pretty = ["rich>=13", "questionary>=2"]
 mcp = ["mcp>=1.2"]
-dev = ["pytest>=8", "mcp>=1.2"]
+tui = ["textual>=1.0"]
+dev = ["pytest>=8", "mcp>=1.2", "textual>=1.0"]
 
 [project.scripts]
 tramalia = "tramalia.__main__:main"

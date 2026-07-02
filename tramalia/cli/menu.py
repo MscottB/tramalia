@@ -10,20 +10,30 @@ except Exception:
 
 # (clave, etiqueta) — la clave es el comando que se ejecuta
 OPTIONS: list[tuple[str, str]] = [
-    ("doctor", "diagnosticar herramientas requeridas"),
-    ("detect", "detectar el stack del proyecto"),
-    ("init", "inicializar o reparar la estructura (copier)"),
-    ("gates", "ejecutar quality gates (mise run gates)"),
     ("close", "★ cerrar tarea: gates → evidence → handoff"),
     ("log", "ver pista de auditoría (cierres)"),
+    ("doctor", "diagnosticar herramientas requeridas"),
+    ("detect", "detectar el stack del proyecto"),
+    ("init", "inicializar o reparar la estructura"),
+    ("gates", "ejecutar quality gates (mise run gates)"),
     ("context", "generar contexto / token-saver (repomix + serena)"),
     ("evidence", "generar evidence pack"),
     ("handoff", "crear handoff multiagente"),
     ("sync", "sincronizar reglas a otros agentes (rulesync)"),
     ("skills", "administrar skills (sync desde sus repos)"),
-    ("update", "actualizar todo (mise + copier + skills)"),
+    ("update", "actualizar todo (mise + skills)"),
+    ("ui", "abrir dashboard (TUI)"),
     ("quit", "salir"),
 ]
+
+
+def ask_text(prompt: str, default: str = "") -> str:
+    """Pregunta un texto (questionary si está; input stdlib si no)."""
+    if _HAS_Q:
+        answer = questionary.text(prompt, default=default, qmark="?").ask()
+        return (answer if answer is not None else default).strip() or default
+    raw = input(f"{prompt} [{default}]> ").strip()
+    return raw or default
 
 
 def choose() -> str:

@@ -74,6 +74,10 @@ REGISTRY: list[Tool] = [
     Tool("headroom", "headroom", "compresión de contexto/outputs (token-saver, opcional)",
          "feature", feature="context", managed_by_mise=False,
          install_hint='pip install "headroom-ai[all]"'),
+    # spec-driven development (opcional): complementa specs/ generada por init.
+    Tool("speckit", "specify", "spec-driven development (Spec Kit, opcional)",
+         "feature", feature="specs", managed_by_mise=False,
+         install_hint="uv tool install specify-cli --from git+https://github.com/github/spec-kit.git"),
 ]
 
 

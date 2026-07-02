@@ -4,8 +4,9 @@ The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`
 
 | Command | What it does | Type |
 |---|---|---|
-| `tramalia menu` | interactive menu | core |
-| `tramalia init` | generate the convention (idempotent) | core |
+| `tramalia menu` | **looping** interactive menu with guided prompts | core |
+| `tramalia ui` | **TUI dashboard** (Overview · Audit · Close) | core (+ `[tui]` extra) |
+| `tramalia init [--with-headroom --with-ponytail]` | generate the full convention (idempotent) | core |
 | `tramalia doctor [--fix]` | diagnose tools and how to install them | core |
 | `tramalia detect` | detect the stack and applicable gates | core |
 | **`tramalia close [--task --agent --reviewer --allow-fail --engram]`** | **closing ritual: gates → evidence → handoff (enforcement)** | **core ★** |
@@ -41,7 +42,13 @@ Classifies requirements into **bootstrap** (mise/git/uv), **stack** (node/dotnet
 
 ## init
 
-Generates idempotently (never overwrites existing files): a single `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `docs/ai/` with the curated rules (DB, security and UX/UI gates), a stack-tailored `mise.toml`, `.mcp.json` with Serena, and `.tramalia/` (config + skills).
+Generates idempotently (never overwrites existing files): a single `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), the **full `docs/ai/` 00–11**, **`specs/`** (constitution/specification/plan/tasks/checklist, integrated with `close`), **13 numbered skills** in `.tramalia/skills/`, a stack-tailored `mise.toml`, `.mcp.json` with Serena, and `.tramalia/` (config, current-task, skills.toml).
+
+Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimalism ruleset's MCP; requires `tramalia skills` + Node).
+
+## ui — the TUI dashboard
+
+`tramalia ui` opens a terminal panel (Textual, extra `pip install "tramalia-cli[tui]"`) with three views: **Overview** (live doctor + applicable gates), **Audit** (the closes from `log`, browsable; Enter shows the `metadata.json`) and **Close** (task/agent/reviewer form + gates output). It only reads and invokes the core — zero new logic.
 
 ## evidence and handoff
 

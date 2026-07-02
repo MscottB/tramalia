@@ -116,7 +116,8 @@ def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "
                     "> Excepción documentada — instala mise para validación verificable.\n")
     (evidence_dir / "gates-status.md").write_text(gates_md, encoding="utf-8")
 
-    handoff_path = handoff_core.new_handoff(root, task, agent, reviewer)
+    handoff_path = handoff_core.new_handoff(root, task, agent, reviewer,
+                                            evidence_ref=_rel(evidence_dir, root))
     blocked = bool(failed) and not allow_fail
     status = _close_status(ran, failed, allow_fail)
     closed = datetime.datetime.now().astimezone()

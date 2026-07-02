@@ -12,7 +12,8 @@ _HEADER = (
 
 
 def new_handoff(root: Path, task: str = "TASK-000",
-                agent: str = "", reviewer: str = "") -> Path:
+                agent: str = "", reviewer: str = "",
+                evidence_ref: str = "") -> Path:
     path = root / "docs" / "ai" / "07-handoff-agentes.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
@@ -24,6 +25,7 @@ def new_handoff(root: Path, task: str = "TASK-000",
         f"- Agente ejecutor: {agent or '[agente]'}\n"
         f"- Agente revisor sugerido: {reviewer or '[revisor]'}\n"
         f"- Tarea: {task}\n"
+        f"- Evidence pack: {evidence_ref or '[pendiente — genera con tramalia close]'}\n"
         "- Archivos modificados:\n"
         "- Comandos ejecutados:\n"
         "- Resultado:\n"

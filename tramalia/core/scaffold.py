@@ -162,4 +162,13 @@ def build_mcp_json(answers: dict) -> str:
         servers["headroom"] = {"command": "headroom", "args": ["mcp"]}
         note += (" Headroom añadido por --with-headroom; si tu versión difiere, "
                  "ajusta con `headroom mcp install`. No reemplaza la evidencia cruda.")
+    # Ponytail MCP (ruleset de minimalismo): opt-in; requiere `tramalia skills`
+    # (clona el repo) y `npm install` dentro de ponytail-mcp. Requiere Node.
+    if answers.get("with_ponytail"):
+        servers["ponytail"] = {
+            "command": "node",
+            "args": [".tramalia/skills/ponytail/ponytail-mcp/index.js"],
+        }
+        note += (" Ponytail añadido por --with-ponytail: ejecuta `tramalia skills` y "
+                 "`npm install` en .tramalia/skills/ponytail/ponytail-mcp antes de usarlo.")
     return json.dumps({"_note": note, "mcpServers": servers}, indent=2, ensure_ascii=False) + "\n"

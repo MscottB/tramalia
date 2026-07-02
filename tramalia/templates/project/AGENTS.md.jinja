@@ -10,19 +10,24 @@ Stack detectado: {{ stack }}
 
 ## Orden obligatorio antes de modificar código
 1. Leer docs/ai/00-resumen-proyecto.md
-2. Leer docs/ai/01-arquitectura.md (si existe)
-3. Leer .tramalia/current-task.md y specs/tasks.md (si existen)
-4. Si tocas base de datos → docs/ai/03-reglas-base-datos.md
-5. Si tocas seguridad → docs/ai/04-reglas-seguridad.md
-6. Si tocas interfaz → docs/ai/11-reglas-ux-ui.md
-7. Revisar docs/ai/06-intentos-fallidos.md
+2. Leer docs/ai/01-arquitectura.md
+3. Leer .tramalia/current-task.md y specs/tasks.md
+4. Si tocas código → docs/ai/02-reglas-codigo.md
+5. Si tocas base de datos → docs/ai/03-reglas-base-datos.md
+6. Si tocas seguridad → docs/ai/04-reglas-seguridad.md
+7. Si tocas interfaz → docs/ai/11-reglas-ux-ui.md
+8. Revisar docs/ai/06-intentos-fallidos.md
+
+## Skills del proyecto
+En .tramalia/skills/ hay 13 skills numeradas (01-spec-governance … 13-documentation-handoff)
+con los workflows de este repo. Consulta la que corresponda a tu tarea.
 
 ## Reglas generales (Ponytail / YAGNI)
 - Implementa solo el alcance de la tarea vigente.
 - Prioriza la solución mínima correcta; no abstraigas de más ni dupliques lógica.
 - Antes de leer o escribir, usa el mapa (.tramalia/context) y Serena para tocar lo mínimo.
 - No introduzcas dependencias sin justificación.
-- Ejecuta `mise run gates` antes de cerrar y actualiza el handoff.
+- Cierra cada tarea con `tramalia close --task <ID>` (gates + evidencia + handoff).
 
 ## Prohibiciones
 - No exponer secretos, tokens ni credenciales; avisa antes de leer .env o certificados.
@@ -31,4 +36,5 @@ Stack detectado: {{ stack }}
 - No marcar una tarea como terminada sin evidence pack.
 
 ## Comandos de verificación
-- Gates: `mise run gates`  ·  Cierre: `tramalia evidence` y `tramalia handoff`
+- Cierre gobernado: `tramalia close --task <ID>`  ·  Auditoría: `tramalia log`
+- Solo gates: `mise run gates`  ·  Manual: `tramalia evidence` / `tramalia handoff`

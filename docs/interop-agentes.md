@@ -19,10 +19,21 @@ Cómo Tramalia propaga reglas a múltiples agentes, scaffolding y spec-driven, y
 
 ## Spec Kit — spec-driven development (opcional)
 
-- **Qué es / alcance:** toolkit para desarrollo guiado por especificaciones (constitution/spec/plan/tasks).
+- **Qué es / alcance:** toolkit para desarrollo guiado por especificaciones (constitution/spec/plan/tasks, slash-commands `/speckit.*` en los agentes). **No tiene MCP** (verificado).
 - **Requiere:** Python (uv).
 - **Instalar:** `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git`.
-- **Tramalia la usa en:** opcional; complementa la carpeta `specs/` que `init` genera. Tramalia no la reimplementa.
+- **Tramalia la usa en:** `doctor` detecta el binario `specify` (feature `specs`, opcional); complementa la carpeta `specs/` que `init` genera (tasks ↔ `close --task`, checklist ↔ evidence pack). Tramalia no la reimplementa.
+
+## Ponytail — ruleset de minimalismo + MCP propio
+
+- **Qué es / alcance:** el principio Ponytail (código mínimo necesario) empaquetado como skill/ruleset, **con servidor MCP propio** (`ponytail-mcp`): expone la tool `ponytail_instructions` y el prompt `ponytail` (modos lite/full/ultra).
+- **Requiere:** git (para clonarlo) y **Node** (para su MCP). No está en npm: se usa desde su repo.
+- **Instalar / cablear (3 pasos):**
+  1. `tramalia skills` — lo clona a `.tramalia/skills/ponytail/` (ya viene declarado en `skills.toml`).
+  2. `npm install` dentro de `.tramalia/skills/ponytail/ponytail-mcp/`.
+  3. `tramalia init --with-ponytail` — agrega su servidor a `.mcp.json` (`node …/ponytail-mcp/index.js`).
+- **Tramalia la usa en:** el principio ya va como regla en `AGENTS.md` y como skill `04-minimalist-engineering`; el ruleset completo clonado queda legible para los agentes, y el MCP es la vía nativa opcional.
+- **Interactúa con:** todos los agentes (mismo ruleset por cualquier host); refuerza el gate de calidad.
 
 ## Gentle-AI — setup/onboarding de agentes (externo)
 

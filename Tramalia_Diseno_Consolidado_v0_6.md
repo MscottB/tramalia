@@ -180,17 +180,13 @@ tu-proyecto/
 ├── .mcp.json                 enchufa Serena (basic-memory opcional)
 ├── mise.toml                 tools (auto-update) + gates como tasks
 ├── .pre-commit-config.yaml   hooks de calidad antes de commit
-├── docs/ai/
-│   ├── 00-resumen-proyecto.md
-│   ├── 01-arquitectura.md
-│   ├── 02-reglas-codigo.md
-│   ├── 03-reglas-base-datos.md      gate DB (curado)
-│   ├── 04-reglas-seguridad.md       gate seguridad (curado)
-│   ├── 05-decisiones-adr.md
-│   ├── 06-intentos-fallidos.md
-│   ├── 07-handoff-agentes.md
-│   └── 11-reglas-ux-ui.md           gate UX/UI (curado) — NUEVO
-├── specs/                    constitution/spec/plan/tasks (Spec Kit opcional)
+├── docs/ai/                  convención completa 00–11
+│   ├── 00-resumen · 01-arquitectura · 02-reglas-codigo
+│   ├── 03-reglas-base-datos (gate DB) · 04-reglas-seguridad (gate seguridad)
+│   ├── 05-decisiones-adr · 06-intentos-fallidos · 07-handoff-agentes
+│   └── 08-comandos · 09-quality-gates · 10-contexto-operativo · 11-reglas-ux-ui (gate UX/UI)
+├── specs/                    constitution/specification/plan/tasks/checklist
+│                             (integrada con `close --task`; Spec Kit opcional la potencia)
 └── .tramalia/
     ├── config.json           configuración mínima de Tramalia
     ├── current-task.md       tarea en curso
@@ -335,7 +331,7 @@ ref    = "v1.2.0"     # o "main" para latest
 - **El fetch se delega**, según cuánto quieras:
   - **Cero código:** `git submodule` por skill → `git submodule update --remote` trae mejoras.
   - **Más rico:** `rulesync` (que ya maneja el formato `SKILL.md`) hace el *fan-out* a `.claude/skills`, `.cursor/`, Copilot, Gemini, etc., desde una sola fuente.
-- **Qué skills conservar como propias:** solo las que son convención de *tu* proyecto (p. ej. `spec-governance`, `federated-agent-memory`, `evidence-and-handoff`). Las genéricas (calidad de código, seguridad, ejecución de tools) ya vienen de fábrica en los agentes o aguas arriba; se *referencian*, no se copian.
+- **Skills propias:** `init` entrega **13 skills numeradas** (01-spec-governance … 13-documentation-handoff) en `.tramalia/skills/`. No son copias de conocimiento genérico: cada una es un **workflow anclado a los comandos y gates de Tramalia** (p. ej. 08-tool-execution-gate → `tramalia close`; 04-minimalist-engineering → el ruleset de Ponytail clonado). Lo genérico sigue *referenciado* (Ponytail vía skills.toml), no copiado.
 
 Esto evita el riesgo que el propio documento v0.5 temía: mantener tres copias divergentes de cada skill.
 

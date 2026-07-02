@@ -1,7 +1,10 @@
-# Manifiesto de skills: referencias, no copias. `tramalia skills sync` las trae
-# (git submodule o rulesync), de modo que se actualicen desde sus repos.
+# Manifiesto de skills EXTERNAS: referencias, no copias. `tramalia skills` las
+# clona/actualiza desde sus repos a .tramalia/skills/<name>.
+# Las 13 skills propias del proyecto (01-… a 13-…) ya viven en .tramalia/skills/.
 
-# [[skill]]
-# name   = "ponytail"
-# source = "git+https://github.com/DietrichGebert/ponytail"
-# ref    = "main"
+# Ponytail: ruleset de minimalismo + servidor MCP propio (ponytail-mcp).
+# Tras `tramalia skills`, su MCP se puede cablear con `tramalia init --with-ponytail`.
+[[skill]]
+name   = "ponytail"
+source = "git+https://github.com/DietrichGebert/ponytail"
+ref    = "main"

@@ -17,6 +17,7 @@ Tramalia's own code (Python, Apache-2.0). Works **standalone, with the stdlib on
 | `handoff` (`core/handoff.py`) | appends a structured handover to `docs/ai/07` | core |
 | `skills` (`core/skills.py`) | clones/updates skills from their repos | core (uses git) |
 | `mcp` (`mcp_server.py`) | MCP façade: exposes the convention as native tools | core (+ mcp SDK) |
+| `ui` (`tui.py`) | TUI dashboard: Overview · Audit · Close | core (+ `[tui]` extra) |
 | `tools` (`core/tools.py`) | tool registry and presence probing | internal |
 | `proc` (`core/proc.py`) | robust command execution on Windows (`.cmd` shims) | internal |
 | `render` / `menu` (`cli/`) | Rich-or-plain output and interactive menu | internal |
@@ -41,7 +42,8 @@ The **base you install by hand first** (they can't install themselves); the rest
 |---|---|---|---|
 | **copier** | scaffolding with `update` (future) | Python | MIT |
 | **rulesync** | fan-out of `AGENTS.md` to other agents | Node | MIT |
-| **Spec Kit** | spec-driven development (optional) | Python | MIT |
+| **Spec Kit** | spec-driven development (`specify`, detected by doctor) | Python | MIT |
+| **Ponytail** | minimalism ruleset + its own MCP (via `tramalia skills`) | Node (MCP) | see repo |
 
 ### Context / code intelligence
 
@@ -84,6 +86,7 @@ The **base you install by hand first** (they can't install themselves); the rest
 | **rich** | colored/table output (extra `pretty`) | MIT |
 | **questionary** | interactive menus (extra `pretty`) | MIT |
 | **mcp** | MCP façade SDK (extra `mcp`) | MIT |
+| **textual** | TUI dashboard (extra `tui`) | MIT |
 | **pytest** | tests (extra `dev`) | MIT |
 | mkdocs-material · mkdocs-static-i18n | only to build this documentation | MIT |
 

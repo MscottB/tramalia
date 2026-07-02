@@ -61,6 +61,7 @@ def cmd_init(args) -> int:
         "primary_agent": "codex",
         "reviewer_agent": "claude",
         "with_headroom": getattr(args, "with_headroom", False),
+        "with_ponytail": getattr(args, "with_ponytail", False),
     }
     render.header(root.name, stack, _is_initialized(root))
     results = scaffold.scaffold(root, answers)
@@ -214,12 +215,20 @@ def cmd_skills(args) -> int:
 
 
 def cmd_update(args) -> int:
-    render.info("update = mise upgrade + copier update + skills sync")
+    from tramalia.core import skills
+    render.info("update = mise upgrade + skills sync (+ copier update, futuro)")
     code = 0
     if shutil.which("mise"):
         code |= _run(["mise", "upgrade"])
     else:
         render.warn("mise ausente; omitiendo `mise upgrade`.")
+    results = skills.sync_skills(Path.cwd())
+    if results:
+        for name, act in results:
+            ok = act in ("clonada", "actualizada")
+            (render.ok if ok else render.warn)(f"skill {act}: {name}")
+    else:
+        render.info("sin skills externas declaradas que sincronizar.")
     return code
 
 
@@ -235,14 +244,56 @@ def cmd_mcp(args) -> int:
     return 0
 
 
+def cmd_ui(args) -> int:
+    try:
+        import textual  # noqa: F401
+    except ImportError:
+        render.err('falta Textual. Instálalo con: pip install "tramalia-cli[tui]"')
+        return 127
+    from tramalia import tui
+    tui.run()
+    return 0
+
+
+def _guided_args(command: str):
+    """Prompts guiados para close/handoff/evidence desde el menú (modo novato)."""
+    import argparse
+    task = menu.ask_text("ID de la tarea (ver specs/tasks.md)", "TASK-001")
+    agent = reviewer = ""
+    if command in ("close", "handoff"):
+        agent = menu.ask_text("agente ejecutor", "codex")
+        reviewer = menu.ask_text("agente revisor sugerido", "claude")
+    return argparse.Namespace(task=task, agent=agent, reviewer=reviewer,
+                              engram=False, allow_fail=False)
+
+
+def _show_last_close(root: Path) -> None:
+    from tramalia.core import governance
+    entries = governance.read_log(root)
+    if entries:
+        last = entries[0]
+        mark = _LOG_MARKS.get(last.get("status"), "○ —")
+        render.info(f"último cierre: {last['id']}  ·  {mark}")
+
+
 def cmd_menu(args) -> int:
     root = Path.cwd()
-    stack = detect_stack(root)
-    render.header(root.name, stack, _is_initialized(root))
-    choice = menu.choose()
-    if choice == "quit":
-        return 0
-    return dispatch(choice, args)
+    while True:
+        stack = detect_stack(root)
+        render.header(root.name, stack, _is_initialized(root))
+        _show_last_close(root)
+        try:
+            choice = menu.choose()
+        except (KeyboardInterrupt, EOFError):
+            return 0
+        if choice == "quit":
+            return 0
+        run_args = _guided_args(choice) if choice in ("close", "handoff", "evidence") else args
+        try:
+            dispatch(choice, run_args)
+        except (KeyboardInterrupt, EOFError):
+            render.warn("acción cancelada.")
+        print()
 
 
 _HANDLERS = {
@@ -259,6 +310,7 @@ _HANDLERS = {
     "skills": cmd_skills,
     "update": cmd_update,
     "mcp": cmd_mcp,
+    "ui": cmd_ui,
     "menu": cmd_menu,
 }
 
