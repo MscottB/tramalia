@@ -83,6 +83,7 @@ In one line: **Gentle-AI** enables *which* agents to use, **Engram** helps *reme
 
 - :material-download: [__Installation & requirements__](instalacion.md)
 - :material-sitemap: [__Full workflow__](flujo-completo.md)
+- :material-school: [__Full example__](ejemplo-completo.md) — a real project end to end: every own option and every third-party tool in action.
 - :material-tools: [__Tools__](herramientas.md)
 - :material-vector-link: [__Integrations__](interop.md)
 

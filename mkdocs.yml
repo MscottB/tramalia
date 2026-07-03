@@ -54,6 +54,7 @@ plugins:
             Empezar: Get started
             Instalación: Installation
             Flujo completo: Full workflow
+            Ejemplo completo: Full example
             Conceptos: Concepts
             Arquitectura: Architecture
             Ecosistema: Ecosystem
@@ -100,6 +101,7 @@ nav:
   - Empezar:
       - Instalación: instalacion.md
       - Flujo completo: flujo-completo.md
+      - Ejemplo completo: ejemplo-completo.md
   - Conceptos:
       - Arquitectura: arquitectura.md
       - Ecosistema: ecosistema.md

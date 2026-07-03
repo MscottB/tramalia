@@ -119,6 +119,7 @@ Together: **Gentle-AI** enables *which* agents to work with, **Engram** helps *r
 ## Documentation
 
 - **Site (ES/EN):** https://MscottB.github.io/tramalia/ — visual, with diagrams
+  - **[Full example](docs/ejemplo-completo.md)** — a real project end to end, showing every option and every third-party tool in action
   - [Ecosystem](docs/ecosistema.md) · [Full workflow](docs/flujo-completo.md) · [Architecture](docs/arquitectura.md) · [Integrations](docs/interop.md) · [Tools](docs/herramientas.md)
 - [User manual (Spanish)](MANUAL_DE_USUARIO.md)
 - [Consolidated design document (Spanish)](Tramalia_Diseno_Consolidado_v0_6.md)

@@ -121,6 +121,7 @@ Tabla completa en el [Manual de usuario](MANUAL_DE_USUARIO.md#parte-2--instalaci
 ## Documentación
 
 - **Sitio (ES/EN):** https://MscottB.github.io/tramalia/ — visual, con diagramas
+  - **[Ejemplo completo](docs/ejemplo-completo.md)** — un proyecto real de punta a punta, con cada opción y cada herramienta de terceros en acción
   - [Ecosistema](docs/ecosistema.md) · [Flujo completo](docs/flujo-completo.md) · [Arquitectura](docs/arquitectura.md) · [Integraciones](docs/interop.md) · [Herramientas](docs/herramientas.md)
 - [Manual de usuario](MANUAL_DE_USUARIO.md)
 - [Documento de diseño consolidado](Tramalia_Diseno_Consolidado_v0_6.md)

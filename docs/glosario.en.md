@@ -30,6 +30,7 @@ Short definitions of the terms used across the documentation. Use the search box
 | **Snapshot** | A **packaged** picture of the repo for AI consumption (done by Repomix). |
 | **Stack** | The set of **technologies** in a project (Angular, .NET, PostgreSQL…). `tramalia detect` identifies it. |
 | **Standalone** | Works **on its own**, without depending on anything external. Tramalia's core is standalone (Python only). |
+| **Subagent** | A specialized agent the main model invokes for a delegated task, in an isolated context and with **its own `model:`** (role-based routing). Tramalia ships 5 in `.claude/agents/`. |
 | **Token** | The minimal unit of text an AI model consumes. "Saving tokens" = sending less context to cut cost and latency. |
 | **Wheel** | Python's **installable package** format (`.whl`); it's what `pip install` uses. |
 
