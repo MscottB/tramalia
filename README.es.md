@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-52%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-60%20passing-brightgreen.svg)
 
 **Español** · [English](README.md) · [📚 Documentación](https://MscottB.github.io/tramalia/)
 
@@ -68,19 +68,27 @@ tramalia doctor              # te dice qué más instalar
 
 ## Uso
 
-```bash
-tramalia menu        # menú interactivo en bucle, con prompts guiados
-tramalia ui          # dashboard TUI (Resumen · Auditoría · Cierre)
-tramalia init        # genera la convención (AGENTS.md, docs/ai 00-11, specs, 13 skills…)
-tramalia doctor      # diagnostica herramientas (y cómo instalarlas)
-tramalia close       # cierra una tarea: gates → evidence → handoff (con enforcement)
-tramalia log         # pista de auditoría de los cierres
-tramalia gates       # corre los quality gates
-tramalia sync        # propaga AGENTS.md a otros agentes (interop, rulesync)
-tramalia update      # actualiza todo (mise + skills)
-```
+Los comandos están pensados para escribirse corto: `close` toma la tarea como argumento posicional, y agente/revisor salen por defecto de `.tramalia/config.json` (`agents.primary`/`agents.reviewer`). Si omites la tarea, se lee de `.tramalia/current-task.md` — el cierre del día a día son **dos palabras**.
 
-Extras opcionales de `init`: `--with-headroom` (compresión) y `--with-ponytail` (MCP del ruleset de minimalismo, tras `tramalia skills`).
+| Comando | Qué hace | Ejemplo simple |
+|---|---|---|
+| `menu` | menú interactivo en bucle con prompts guiados | `tramalia menu` |
+| `ui` | dashboard TUI: Resumen · Auditoría · Cierre (extra `[tui]`) | `tramalia ui` |
+| `init` | genera la convención completa (AGENTS.md, docs/ai 00-11, specs, 13 skills, 5 subagentes) | `tramalia init` |
+| `doctor` | diagnostica qué herramientas faltan y cómo instalarlas | `tramalia doctor` |
+| `detect` | detecta el stack y los gates aplicables | `tramalia detect` |
+| **`close`** | **cierra una tarea: gates → evidence → handoff, con enforcement** | `tramalia close` · `tramalia close TASK-001` |
+| `log` | pista de auditoría: tarea · agente · modelo · estado honesto | `tramalia log` |
+| `evidence` | crea solo el evidence pack | `tramalia evidence TASK-001` |
+| `handoff` | agrega solo la entrada de traspaso | `tramalia handoff TASK-001` |
+| `gates` | corre los quality gates (vía mise) | `tramalia gates` |
+| `context` | refresca el contexto derivado (ahorro de tokens) | `tramalia context` |
+| `sync` | propaga reglas **y subagentes** a otros hosts (rulesync) | `tramalia sync` |
+| `skills` | clona/actualiza skills referenciadas desde sus repos | `tramalia skills` |
+| `update` | actualiza todo (mise + skills) | `tramalia update` |
+| `mcp` | levanta la fachada MCP (extra `[mcp]`) | `tramalia mcp` |
+
+Flags avanzados (overrides): `close --task --agent --reviewer --model --allow-fail --engram` · `init --with-headroom --with-ponytail` · `sync --to --features`. Referencia completa: [Comandos](docs/comandos.md).
 
 ## Tramalia sola o con tus herramientas
 

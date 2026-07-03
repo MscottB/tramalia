@@ -25,7 +25,7 @@ sequenceDiagram
     participant T as tramalia close
     participant M as mise (gates)
     participant E as evidence pack
-    U->>T: close --task TASK-001 --agent codex
+    U->>T: close TASK-001
     T->>M: mise run build / test / lint / security…
     M-->>T: salida cruda + exit codes
     T->>E: escribe *-output.txt (CRUDO) + gates-status.md
@@ -94,7 +94,7 @@ Luego trabajas con tu agente (Claude/Codex/…), que lee `AGENTS.md` + `docs/ai/
 ## 6. Cerrar la tarea (el corazón del producto)
 
 ```bash
-tramalia close --task TASK-001 --agent codex --reviewer claude
+tramalia close TASK-001    # agente y revisor: defaults de config.json
 ```
 
 Esto, en un paso:

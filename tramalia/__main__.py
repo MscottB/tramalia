@@ -30,20 +30,27 @@ def build_parser() -> argparse.ArgumentParser:
                      help="agrega el MCP de Ponytail al .mcp.json (requiere `tramalia skills` + Node)")
     sub.add_parser("gates", help="ejecuta quality gates (mise run gates)")
     sub.add_parser("context", help="genera contexto / token-saver (repomix + serena)")
-    ev = sub.add_parser("evidence", help="genera el evidence pack")
-    ev.add_argument("--task", default=None, help="identificador de la tarea (TASK-XXX)")
+    ev = sub.add_parser("evidence", help="genera el evidence pack (ej: tramalia evidence TASK-001)")
+    ev.add_argument("task_pos", nargs="?", metavar="TAREA", default=None,
+                    help="ID de la tarea; si se omite, se usa .tramalia/current-task.md")
+    ev.add_argument("--task", default=None, help="ID de la tarea (alternativa al posicional)")
     ev.add_argument("--engram", action="store_true",
                     help="exporta a Engram (memoria persistente N2, opt-in)")
-    ho = sub.add_parser("handoff", help="crea un handoff multiagente")
-    ho.add_argument("--task", default=None, help="identificador de la tarea (TASK-XXX)")
-    ho.add_argument("--agent", default=None, help="agente ejecutor")
-    ho.add_argument("--reviewer", default=None, help="agente revisor sugerido")
+    ho = sub.add_parser("handoff", help="crea un handoff multiagente (ej: tramalia handoff TASK-001)")
+    ho.add_argument("task_pos", nargs="?", metavar="TAREA", default=None,
+                    help="ID de la tarea; si se omite, se usa .tramalia/current-task.md")
+    ho.add_argument("--task", default=None, help="ID de la tarea (alternativa al posicional)")
+    ho.add_argument("--agent", default=None, help="agente ejecutor (def: config agents.primary)")
+    ho.add_argument("--reviewer", default=None, help="agente revisor (def: config agents.reviewer)")
     ho.add_argument("--engram", action="store_true",
                     help="exporta a Engram (memoria persistente N2, opt-in)")
-    cl = sub.add_parser("close", help="ritual de cierre: gates → evidence → handoff (con enforcement)")
-    cl.add_argument("--task", default=None, help="identificador de la tarea (TASK-XXX)")
-    cl.add_argument("--agent", default=None, help="agente ejecutor")
-    cl.add_argument("--reviewer", default=None, help="agente revisor sugerido")
+    cl = sub.add_parser("close",
+                        help="ritual de cierre: gates → evidence → handoff (ej: tramalia close TASK-001)")
+    cl.add_argument("task_pos", nargs="?", metavar="TAREA", default=None,
+                    help="ID de la tarea; si se omite, se usa .tramalia/current-task.md")
+    cl.add_argument("--task", default=None, help="ID de la tarea (alternativa al posicional)")
+    cl.add_argument("--agent", default=None, help="agente ejecutor (def: config agents.primary)")
+    cl.add_argument("--reviewer", default=None, help="agente revisor (def: config agents.reviewer)")
     cl.add_argument("--allow-fail", action="store_true",
                     help="cierra aunque fallen gates (requiere excepción documentada)")
     cl.add_argument("--model", default=None,

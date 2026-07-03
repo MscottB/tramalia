@@ -63,7 +63,7 @@ The executor works with third-party help, without wasting context:
 ### 3. Close with enforcement
 
 ```bash
-tramalia close --task TASK-001 --agent claude-code --model sonnet --reviewer revisor
+tramalia close TASK-001 --model sonnet   # agent and reviewer come from config.json
 ```
 
 And here **all the third-party gates act at once** (via mise):

@@ -9,10 +9,10 @@ El **núcleo de gobierno** (`init`, `doctor`, `close`, `log`, `evidence`, `hando
 | `tramalia init [--with-headroom --with-ponytail]` | genera la convención completa (idempotente) | core |
 | `tramalia doctor [--fix]` | diagnostica herramientas y cómo instalarlas | core |
 | `tramalia detect` | detecta el stack y los gates aplicables | core |
-| **`tramalia close [--task --agent --reviewer --model --allow-fail --engram]`** | **ritual de cierre: gates → evidence → handoff (enforcement)** | **core ★** |
+| **`tramalia close [TAREA]`** | **ritual de cierre: gates → evidence → handoff (enforcement)** | **core ★** |
 | **`tramalia log`** | **pista de auditoría de los cierres** | **core ★** |
-| `tramalia evidence [--task --engram]` | crea el evidence pack de cierre | core |
-| `tramalia handoff [--task --agent --reviewer --engram]` | traspaso multiagente | core |
+| `tramalia evidence [TAREA]` | crea el evidence pack de cierre | core |
+| `tramalia handoff [TAREA]` | traspaso multiagente | core |
 | `tramalia gates` | ejecuta los quality gates | interop (mise) |
 | `tramalia context` | genera memoria derivada (token-saver) | interop (repomix + stdlib) |
 | `tramalia sync [--to --features]` | propaga AGENTS.md **y subagentes** a otros agentes | interop (rulesync) |
@@ -24,9 +24,22 @@ El **núcleo de gobierno** (`init`, `doctor`, `close`, `log`, `evidence`, `hando
 
 Es el comando estrella. En un paso: corre cada gate (`mise run <gate>`), **escribe sus salidas dentro del evidence pack**, genera el handoff y **bloquea el cierre si un gate falla** (a menos que pases `--allow-fail` con la excepción anotada en `risks.md`).
 
+**Forma simple — el cierre del día a día son dos palabras:**
+
 ```bash
-tramalia close --task TASK-001 --agent codex --reviewer claude
+tramalia close              # tarea desde .tramalia/current-task.md; agentes desde config.json
+tramalia close TASK-001     # tarea explícita (posicional)
 ```
+
+**Cadena de resolución** (cada dato busca en orden):
+
+| Dato | 1º | 2º | 3º | 4º |
+|---|---|---|---|---|
+| tarea | posicional | `--task` | ID en `.tramalia/current-task.md` | prompt si hay terminal; `TASK-000` en scripts |
+| agente | `--agent` | `config.json → agents.primary` | — | — |
+| revisor | `--reviewer` | `config.json → agents.reviewer` | — | — |
+
+Flags avanzados (overrides): `--task · --agent · --reviewer · --model · --allow-fail · --engram`.
 
 Funciona **standalone**: si `mise` no está, no inventa un resultado — registra en el pack que los gates no se ejecutaron como **excepción documentada**, y aun así deja evidence + handoff.
 

@@ -88,7 +88,7 @@ tramalia doctor
 > funciona standalone, solo con Python. El resto es interop opcional con herramientas
 > externas (mise, repomix, rulesync…).
 
-### `tramalia close [--task --agent --reviewer --model --allow-fail --engram]` ★
+### `tramalia close [TAREA]` ★
 El comando estrella, el **ritual de gobierno** en un paso:
 1. Corre cada gate (`mise run <gate>`) capturando su salida.
 2. La escribe **cruda dentro del evidence pack** (`*-output.txt` + `gates-status.md`)
@@ -105,9 +105,17 @@ Standalone: si `mise` no está, no inventa resultado — registra "gates no ejec
 como excepción documentada y aun así deja evidence + handoff. Con `--engram` exporta
 el cierre a la memoria persistente N2.
 
+**Forma simple** (los defaults hacen el trabajo):
+
 ```bash
-tramalia close --task TASK-001 --agent codex --reviewer claude
+tramalia close              # tarea: .tramalia/current-task.md · agentes: config.json
+tramalia close TASK-001     # tarea explícita (posicional)
 ```
+
+Cadena de resolución: tarea = posicional > `--task` > ID en `current-task.md` >
+prompt interactivo (o `TASK-000` en scripts). Agente/revisor = flag >
+`config.json → agents.primary/reviewer`. Flags avanzados: `--model`,
+`--allow-fail`, `--engram`.
 
 ### `tramalia log`
 Pista de auditoría: lista los cierres (un evidence pack por tarea), del más reciente
@@ -236,7 +244,7 @@ tramalia sync           # propaga reglas a Cursor/Copilot (interop)
 # por tarea:
 tramalia context        # refresca el contexto derivado (ahorra tokens)
 # … trabajas con tu agente (lee AGENTS.md + docs/ai) …
-tramalia close --task TASK-001 --agent codex --reviewer claude
+tramalia close TASK-001    # agente y revisor: defaults de config.json
 tramalia log            # revisa la pista de auditoría
 
 # mantenimiento:

@@ -100,9 +100,30 @@ def _engram_save(title: str, body: str) -> None:
         render.ok("exportado a Engram (memoria persistente N2).")
 
 
+def _interactive_ask_task():
+    """Prompt de tarea solo si hay terminal interactiva (los scripts no se cuelgan)."""
+    import sys
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return None
+    return lambda: menu.ask_text("ID de la tarea (ver specs/tasks.md)", "TASK-001")
+
+
+def _resolver(args):
+    """Aplica la cadena de defaults: posicional > --task > current-task > prompt."""
+    from tramalia.core import project
+    return project.resolve_close_args(
+        Path.cwd(),
+        getattr(args, "task_pos", None),
+        getattr(args, "task", None),
+        getattr(args, "agent", None),
+        getattr(args, "reviewer", None),
+        ask=_interactive_ask_task(),
+    )
+
+
 def cmd_evidence(args) -> int:
     from tramalia.core import evidence
-    task = getattr(args, "task", None) or "TASK-000"
+    task, _, _ = _resolver(args)
     target = evidence.build_evidence(Path.cwd(), task)
     render.ok(f"evidence pack creado: {target.relative_to(Path.cwd())}")
     render.info("completa summary.md, risks.md y next-steps.md antes de cerrar.")
@@ -113,9 +134,7 @@ def cmd_evidence(args) -> int:
 
 def cmd_handoff(args) -> int:
     from tramalia.core import handoff
-    task = getattr(args, "task", None) or "TASK-000"
-    agent = getattr(args, "agent", None) or ""
-    reviewer = getattr(args, "reviewer", None) or ""
+    task, agent, reviewer = _resolver(args)
     path = handoff.new_handoff(Path.cwd(), task, agent, reviewer)
     render.ok(f"handoff agregado a {path.relative_to(Path.cwd())}")
     if getattr(args, "engram", False):
@@ -126,11 +145,9 @@ def cmd_handoff(args) -> int:
 
 def cmd_close(args) -> int:
     from tramalia.core import governance
-    task = getattr(args, "task", None) or "TASK-000"
+    task, agent, reviewer = _resolver(args)
     res = governance.close(
-        Path.cwd(), task,
-        getattr(args, "agent", None) or "",
-        getattr(args, "reviewer", None) or "",
+        Path.cwd(), task, agent, reviewer,
         allow_fail=getattr(args, "allow_fail", False),
         model=getattr(args, "model", None) or "",
     )
@@ -272,14 +289,21 @@ def cmd_ui(args) -> int:
 
 
 def _guided_args(command: str):
-    """Prompts guiados para close/handoff/evidence desde el menú (modo novato)."""
+    """Prompts guiados para close/handoff/evidence desde el menú (modo novato).
+
+    Prellena con los defaults reales del proyecto: current-task.md y config.json.
+    """
     import argparse
-    task = menu.ask_text("ID de la tarea (ver specs/tasks.md)", "TASK-001")
+    from tramalia.core import project
+    root = Path.cwd()
+    primary, rev = project.default_agents(root)
+    task = menu.ask_text("ID de la tarea (ver specs/tasks.md)",
+                         project.current_task_id(root) or "TASK-001")
     agent = reviewer = ""
     if command in ("close", "handoff"):
-        agent = menu.ask_text("agente ejecutor", "codex")
-        reviewer = menu.ask_text("agente revisor sugerido", "claude")
-    return argparse.Namespace(task=task, agent=agent, reviewer=reviewer,
+        agent = menu.ask_text("agente ejecutor", primary or "codex")
+        reviewer = menu.ask_text("agente revisor sugerido", rev or "claude")
+    return argparse.Namespace(task=task, task_pos=None, agent=agent, reviewer=reviewer,
                               engram=False, allow_fail=False)
 
 

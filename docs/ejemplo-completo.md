@@ -63,7 +63,7 @@ El ejecutor trabaja con ayuda de terceros, sin gastar contexto de más:
 ### 3. Cerrar con enforcement
 
 ```bash
-tramalia close --task TASK-001 --agent claude-code --model sonnet --reviewer revisor
+tramalia close TASK-001 --model sonnet   # agente y revisor salen de config.json
 ```
 
 Y aquí actúan **todos los gates de terceros a la vez** (vía mise):

@@ -9,10 +9,10 @@ The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`
 | `tramalia init [--with-headroom --with-ponytail]` | generate the full convention (idempotent) | core |
 | `tramalia doctor [--fix]` | diagnose tools and how to install them | core |
 | `tramalia detect` | detect the stack and applicable gates | core |
-| **`tramalia close [--task --agent --reviewer --model --allow-fail --engram]`** | **closing ritual: gates → evidence → handoff (enforcement)** | **core ★** |
+| **`tramalia close [TASK]`** | **closing ritual: gates → evidence → handoff (enforcement)** | **core ★** |
 | **`tramalia log`** | **audit trail of closes** | **core ★** |
-| `tramalia evidence [--task --engram]` | create the closing evidence pack | core |
-| `tramalia handoff [--task --agent --reviewer --engram]` | multi-agent handoff | core |
+| `tramalia evidence [TASK]` | create the closing evidence pack | core |
+| `tramalia handoff [TASK]` | multi-agent handoff | core |
 | `tramalia gates` | run the quality gates | interop (mise) |
 | `tramalia context` | generate derived memory (token-saver) | interop (repomix + stdlib) |
 | `tramalia sync [--to --features]` | propagate AGENTS.md **and subagents** to other agents | interop (rulesync) |
@@ -24,9 +24,22 @@ The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`
 
 The flagship command. In one step: it runs each gate (`mise run <gate>`), **writes their output into the evidence pack**, generates the handoff, and **blocks the close if a gate fails** (unless you pass `--allow-fail` with the exception noted in `risks.md`).
 
+**Simple form — the everyday close is two words:**
+
 ```bash
-tramalia close --task TASK-001 --agent codex --reviewer claude
+tramalia close              # task from .tramalia/current-task.md; agents from config.json
+tramalia close TASK-001     # explicit task (positional)
 ```
+
+**Resolution chain** (each value is looked up in order):
+
+| Value | 1st | 2nd | 3rd | 4th |
+|---|---|---|---|---|
+| task | positional | `--task` | ID in `.tramalia/current-task.md` | prompt if interactive; `TASK-000` in scripts |
+| agent | `--agent` | `config.json → agents.primary` | — | — |
+| reviewer | `--reviewer` | `config.json → agents.reviewer` | — | — |
+
+Advanced flags (overrides): `--task · --agent · --reviewer · --model · --allow-fail · --engram`.
 
 It works **standalone**: if `mise` is missing, it does not invent a result — it records in the pack that the gates did not run as a **documented exception**, and still leaves evidence + handoff.
 

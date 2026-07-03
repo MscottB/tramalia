@@ -2,6 +2,28 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.9.0] - 2026-07-03
+
+Comandos simples: el cierre del día a día son dos palabras.
+
+### CLI
+- **Task posicional** en `close`/`handoff`/`evidence`: `tramalia close TASK-001`
+  (los flags `--task/--agent/--reviewer` siguen funcionando como overrides).
+- **Defaults desde el proyecto**: agente/revisor salen de `.tramalia/config.json`
+  (`agents.primary`/`agents.reviewer`); la tarea, del ID declarado en
+  `.tramalia/current-task.md`. Resultado: `tramalia close` a secas cierra la tarea
+  en curso con los agentes configurados.
+- Prompt interactivo solo si hay terminal (los scripts caen a `TASK-000`, nunca
+  se cuelgan). El menú prellena sus preguntas con estos mismos defaults.
+
+### Documentación
+- Tabla completa de los 15 comandos con ejemplos simples en ambos README.
+- Referencia de comandos reescrita "forma simple primero" (sin corchetes en los
+  títulos); cadena de resolución documentada en comandos/manual/flujo/ejemplo.
+
+### Calidad
+- 60 tests con pytest.
+
 ## [0.8.0] - 2026-07-03
 
 Subagentes por rol con ruteo de modelo y auditoría de modelo.

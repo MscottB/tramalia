@@ -25,7 +25,7 @@ sequenceDiagram
     participant T as tramalia close
     participant M as mise (gates)
     participant E as evidence pack
-    U->>T: close --task TASK-001 --agent codex
+    U->>T: close TASK-001
     T->>M: mise run build / test / lint / security…
     M-->>T: raw output + exit codes
     T->>E: writes *-output.txt (RAW) + gates-status.md
@@ -94,7 +94,7 @@ Then you work with your agent (Claude/Codex/…), which reads `AGENTS.md` + `doc
 ## 6. Close the task (the heart of the product)
 
 ```bash
-tramalia close --task TASK-001 --agent codex --reviewer claude
+tramalia close TASK-001    # agent and reviewer: defaults from config.json
 ```
 
 This, in one step:

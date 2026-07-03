@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-52%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-60%20passing-brightgreen.svg)
 
 [Español](README.es.md) · **English** · [📚 Docs](https://MscottB.github.io/tramalia/)
 
@@ -68,19 +68,27 @@ tramalia doctor              # tells you what else to install
 
 ## Usage
 
-```bash
-tramalia menu        # looping interactive menu with guided prompts
-tramalia ui          # TUI dashboard (Overview · Audit · Close)
-tramalia init        # generate the convention (AGENTS.md, docs/ai 00-11, specs, 13 skills…)
-tramalia doctor      # diagnose tools (and how to install them)
-tramalia close       # close a task: gates → evidence → handoff (with enforcement)
-tramalia log         # audit trail of closes
-tramalia gates       # run the quality gates
-tramalia sync        # propagate AGENTS.md to other agents (interop, rulesync)
-tramalia update      # update everything (mise + skills)
-```
+Commands are designed to be short: `close` takes the task as a positional argument, and agent/reviewer default from `.tramalia/config.json` (`agents.primary`/`agents.reviewer`). If you omit the task, it's read from `.tramalia/current-task.md` — so the everyday close is just **two words**.
 
-Optional `init` extras: `--with-headroom` (compression) and `--with-ponytail` (the minimalism ruleset's MCP, after `tramalia skills`).
+| Command | What it does | Simple example |
+|---|---|---|
+| `menu` | looping interactive menu with guided prompts | `tramalia menu` |
+| `ui` | TUI dashboard: Overview · Audit · Close (extra `[tui]`) | `tramalia ui` |
+| `init` | generate the full convention (AGENTS.md, docs/ai 00-11, specs, 13 skills, 5 subagents) | `tramalia init` |
+| `doctor` | diagnose which tools are missing and how to install them | `tramalia doctor` |
+| `detect` | detect the stack and applicable gates | `tramalia detect` |
+| **`close`** | **close a task: gates → evidence → handoff, with enforcement** | `tramalia close` · `tramalia close TASK-001` |
+| `log` | audit trail: task · agent · model · honest status | `tramalia log` |
+| `evidence` | create just the evidence pack | `tramalia evidence TASK-001` |
+| `handoff` | append just the handover entry | `tramalia handoff TASK-001` |
+| `gates` | run the quality gates (via mise) | `tramalia gates` |
+| `context` | refresh derived context (token saving) | `tramalia context` |
+| `sync` | propagate rules **and subagents** to other hosts (rulesync) | `tramalia sync` |
+| `skills` | clone/update referenced skills from their repos | `tramalia skills` |
+| `update` | update everything (mise + skills) | `tramalia update` |
+| `mcp` | start the MCP façade (extra `[mcp]`) | `tramalia mcp` |
+
+Advanced flags (overrides): `close --task --agent --reviewer --model --allow-fail --engram` · `init --with-headroom --with-ponytail` · `sync --to --features`. Full reference: [Commands](docs/comandos.md).
 
 ## Tramalia alone or with your tools
 
