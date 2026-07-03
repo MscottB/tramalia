@@ -2,6 +2,24 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.9.1] - 2026-07-03
+
+Primer lanzamiento a PyPI.
+
+### Empaquetado
+- `[project.urls]` en `pyproject.toml` (Homepage/Documentation → sitio mkdocs,
+  Repository, Changelog, Issues) — visibles en el sidebar de la página de PyPI.
+- Clasificadores de PyPI (Development Status, Python 3.10–3.13, Topics).
+- Workflow `.github/workflows/publish.yml`: construye sdist+wheel y publica en
+  PyPI en cada GitHub Release, vía **Trusted Publishing** (OIDC, sin tokens).
+- Validado con `twine check` (PASSED) e instalación limpia del wheel en venv nuevo.
+
+### Documentación
+- Instrucciones de instalación actualizadas a `pip install "tramalia-cli[...]"`
+  para usuario final (README ES/EN, manual, instalación, flujo, ejemplo completo);
+  la instalación editable (`pip install -e ".[dev]"`) queda reservada para
+  contribuidores, con nota explícita apuntando a `CONTRIBUTING.md`.
+
 ## [0.9.0] - 2026-07-03
 
 Comandos simples: el cierre del día a día son dos palabras.

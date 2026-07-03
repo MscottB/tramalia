@@ -61,9 +61,9 @@ Lo hace **orquestando herramientas externas** en vez de reimplementarlas.
 ## Instalación rápida
 
 ```bash
-pip install -e ".[pretty]"   # solo requiere Python 3.10+
-tramalia init                # genera la convención en tu repo
-tramalia doctor              # te dice qué más instalar
+pip install "tramalia-cli[pretty]"   # solo requiere Python 3.10+
+tramalia init                        # genera la convención en tu repo
+tramalia doctor                      # te dice qué más instalar
 ```
 
 ## Uso

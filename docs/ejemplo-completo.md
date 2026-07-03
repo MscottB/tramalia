@@ -127,4 +127,4 @@ O en el **dashboard**: `tramalia ui` → pestaña Auditoría, Enter sobre el cie
 | 10 herramientas sueltas que aprender una a una | `doctor` las diagnostica, `mise` las instala, Tramalia las orquesta |
 
 !!! tip "Para reproducirlo"
-    Todo lo de arriba funciona en cualquier repo: `pip install tramalia-cli[pretty]`, `tramalia init`, `tramalia doctor` — y desde ahí el flujo de [Flujo completo](flujo-completo.md).
+    Todo lo de arriba funciona en cualquier repo: `pip install "tramalia-cli[pretty]"`, `tramalia init`, `tramalia doctor` — y desde ahí el flujo de [Flujo completo](flujo-completo.md).

@@ -1,6 +1,6 @@
 [project]
 name = "tramalia-cli"
-version = "0.9.0"
+version = "0.9.1"
 description = "Capa repo-first de gobierno y evidencia para desarrollo con múltiples agentes IA (reglas, gates, evidence pack, handoff y auditoría)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -8,7 +8,27 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Michael Jim Scott Bravo" }]
 keywords = ["ai", "agents", "cli", "agents.md", "mise", "developer-tools"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://mscottb.github.io/tramalia/"
+Documentation = "https://mscottb.github.io/tramalia/"
+Repository = "https://github.com/MscottB/tramalia"
+Changelog = "https://github.com/MscottB/tramalia/blob/main/CHANGELOG.md"
+Issues = "https://github.com/MscottB/tramalia/issues"
 
 # La CLI corre solo con la stdlib (terminal básica).
 # El "modo bonito" (interactivo + colores) se activa solo si instalas estos extras.

@@ -127,4 +127,4 @@ Or in the **dashboard**: `tramalia ui` → Audit tab; Enter on the close shows i
 | 10 loose tools to learn one by one | `doctor` diagnoses them, `mise` installs them, Tramalia orchestrates them |
 
 !!! tip "To reproduce it"
-    Everything above works in any repo: `pip install tramalia-cli[pretty]`, `tramalia init`, `tramalia doctor` — and from there the [Full workflow](flujo-completo.md).
+    Everything above works in any repo: `pip install "tramalia-cli[pretty]"`, `tramalia init`, `tramalia doctor` — and from there the [Full workflow](flujo-completo.md).

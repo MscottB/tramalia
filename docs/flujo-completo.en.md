@@ -41,7 +41,7 @@ sequenceDiagram
 ## 1. Install Tramalia (Python only)
 
 ```bash
-pip install -e ".[pretty]"   # core + pretty mode (Rich + Questionary)
+pip install "tramalia-cli[pretty]"   # core + pretty mode (Rich + Questionary)
 ```
 
 Tramalia already runs. No Node, no cloud services.

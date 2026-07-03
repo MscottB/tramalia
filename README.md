@@ -61,9 +61,9 @@ It does this by **orchestrating external tools** instead of reimplementing them.
 ## Quick start
 
 ```bash
-pip install -e ".[pretty]"   # only requires Python 3.10+
-tramalia init                # generate the convention in your repo
-tramalia doctor              # tells you what else to install
+pip install "tramalia-cli[pretty]"   # only requires Python 3.10+
+tramalia init                        # generate the convention in your repo
+tramalia doctor                      # tells you what else to install
 ```
 
 ## Usage

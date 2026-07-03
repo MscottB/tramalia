@@ -24,14 +24,16 @@ el día a día son tus agentes IA leyendo los archivos que Tramalia deja en el r
 Tramalia en sí **solo requiere Python 3.10+**. No tiene ninguna dependencia Node.
 
 ```bash
-pip install -e .              # base — corre con solo la stdlib (terminal básica)
-pip install -e ".[pretty]"    # modo bonito: Rich + Questionary (recomendado)
-pip install -e ".[mcp]"       # fachada MCP (nivel 1)
-pip install -e ".[dev]"       # desarrollo (tests)
+pip install tramalia-cli              # base — corre con solo la stdlib (terminal básica)
+pip install "tramalia-cli[pretty]"    # modo bonito: Rich + Questionary (recomendado)
+pip install "tramalia-cli[mcp]"       # fachada MCP (nivel 1)
 ```
 
 La salida se ve bonita automáticamente si `rich`/`questionary` están instalados; si
 no, cae a texto plano. `--plain` fuerza el modo plano.
+
+¿Vas a contribuir? Clona el repo e instala en modo editable con las deps de
+desarrollo: `pip install -e ".[dev]"` (ver [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ### 2.2 Para una buena experiencia: las herramientas externas
 
@@ -62,7 +64,7 @@ para *tu* proyecto. Importante: **algunas son Node**, no Python.
 
 ```bash
 # 1. Tramalia
-pip install -e ".[pretty,mcp]"
+pip install "tramalia-cli[pretty,mcp]"
 
 # 2. Bootstrap (mise no se instala a sí mismo; ver enlace que da doctor)
 #    instala mise, git, uv según tu SO
@@ -236,7 +238,7 @@ une gates, evidencia y handoff en un paso auditable.
 
 ```bash
 # una vez, en el repo:
-pip install -e ".[pretty]"
+pip install "tramalia-cli[pretty]"
 tramalia init           # deja AGENTS.md, docs/ai, mise.toml, .mcp.json
 tramalia doctor         # instala lo que falte (mise primero; luego `mise install`)
 tramalia sync           # propaga reglas a Cursor/Copilot (interop)

@@ -5,12 +5,16 @@
 Tramalia **only requires Python 3.10+**. It has no Node dependencies.
 
 ```bash
-pip install -e .              # base (basic terminal, stdlib only)
-pip install -e ".[pretty]"    # pretty mode: Rich + Questionary (recommended)
-pip install -e ".[tui]"       # TUI dashboard (tramalia ui, Textual)
-pip install -e ".[mcp]"       # MCP façade
-pip install -e ".[dev]"       # development (tests)
+pip install tramalia-cli                    # base (basic terminal, stdlib only)
+pip install "tramalia-cli[pretty]"          # pretty mode: Rich + Questionary (recommended)
+pip install "tramalia-cli[tui]"             # TUI dashboard (tramalia ui, Textual)
+pip install "tramalia-cli[mcp]"             # MCP façade
+pip install "tramalia-cli[pretty,tui,mcp]"  # everything together
 ```
+
+!!! info "Contributing to the project?"
+    Clone the repo and install in editable mode: `pip install -e ".[dev]"`. See the
+    [contributing guide](https://github.com/MscottB/tramalia/blob/main/CONTRIBUTING.md).
 
 ## For a good experience: external tools
 
@@ -40,10 +44,10 @@ Tramalia **orchestrates** external tools. You don't need them all to start; `tra
 ## Recommended order
 
 ```bash
-pip install -e ".[pretty,mcp]"   # 1. Tramalia
+pip install "tramalia-cli[pretty,mcp]"   # 1. Tramalia
 # 2. Install mise, git, uv (bootstrap; doctor gives you the link)
-tramalia init                    # 3. generate the convention
-mise install                     #    mise installs what's declared
-mise use node@22                 # 4. only if you'll use sync / ux / repomix
-tramalia doctor                  # 5. verify nothing is missing
+tramalia init                            # 3. generate the convention
+mise install                             #    mise installs what's declared
+mise use node@22                         # 4. only if you'll use sync / ux / repomix
+tramalia doctor                          # 5. verify nothing is missing
 ```
