@@ -9,13 +9,13 @@ The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`
 | `tramalia init [--with-headroom --with-ponytail]` | generate the full convention (idempotent) | core |
 | `tramalia doctor [--fix]` | diagnose tools and how to install them | core |
 | `tramalia detect` | detect the stack and applicable gates | core |
-| **`tramalia close [--task --agent --reviewer --allow-fail --engram]`** | **closing ritual: gates → evidence → handoff (enforcement)** | **core ★** |
+| **`tramalia close [--task --agent --reviewer --model --allow-fail --engram]`** | **closing ritual: gates → evidence → handoff (enforcement)** | **core ★** |
 | **`tramalia log`** | **audit trail of closes** | **core ★** |
 | `tramalia evidence [--task --engram]` | create the closing evidence pack | core |
 | `tramalia handoff [--task --agent --reviewer --engram]` | multi-agent handoff | core |
 | `tramalia gates` | run the quality gates | interop (mise) |
 | `tramalia context` | generate derived memory (token-saver) | interop (repomix + stdlib) |
-| `tramalia sync [--to ...]` | propagate AGENTS.md to other agents | interop (rulesync) |
+| `tramalia sync [--to --features]` | propagate AGENTS.md **and subagents** to other agents | interop (rulesync) |
 | `tramalia skills [sync\|list]` | clone/update skills from their repos | interop (git) |
 | `tramalia update` | update everything | interop (mise + copier + skills) |
 | `tramalia mcp` | start the MCP façade | core (+ mcp SDK) |
@@ -42,7 +42,7 @@ Classifies requirements into **bootstrap** (mise/git/uv), **stack** (node/dotnet
 
 ## init
 
-Generates idempotently (never overwrites existing files): a single `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), the **full `docs/ai/` 00–11**, **`specs/`** (constitution/specification/plan/tasks/checklist, integrated with `close`), **13 numbered skills** in `.tramalia/skills/`, a stack-tailored `mise.toml`, `.mcp.json` with Serena, and `.tramalia/` (config, current-task, skills.toml).
+Generates idempotently (never overwrites existing files): a single `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), the **full `docs/ai/` 00–11**, **`specs/`** (constitution/specification/plan/tasks/checklist, integrated with `close`), **13 numbered skills** in `.tramalia/skills/`, **5 subagents with model routing** in `.claude/agents/` (see [Integrations → agents](interop-agentes.md)), a stack-tailored `mise.toml`, `.mcp.json` with Serena, and `.tramalia/` (config, current-task, skills.toml).
 
 Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimalism ruleset's MCP; requires `tramalia skills` + Node).
 

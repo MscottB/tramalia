@@ -92,7 +92,7 @@ def run_gates(root: Path) -> tuple[list[tuple[str, int, str]], bool]:
 
 
 def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "",
-          allow_fail: bool = False) -> CloseResult:
+          allow_fail: bool = False, model: str = "") -> CloseResult:
     """Ritual de cierre con enforcement: gates → evidence (con salidas) → handoff."""
     started = datetime.datetime.now().astimezone()
     gates, ran = run_gates(root)
@@ -125,6 +125,7 @@ def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "
     metadata = {
         "task": task,
         "agent": agent or None,
+        "model": model or None,
         "reviewer": reviewer or None,
         "started_at": started.isoformat(timespec="seconds"),
         "closed_at": closed.isoformat(timespec="seconds"),
@@ -170,6 +171,7 @@ def read_log(root: Path) -> list[dict]:
                     "id": d.name,
                     "status": m.get("status"),
                     "agent": m.get("agent"),
+                    "model": m.get("model"),
                     "closed_at": m.get("closed_at"),
                 })
                 continue

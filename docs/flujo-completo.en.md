@@ -59,6 +59,7 @@ AGENTS.md              # single rules for all agents
 CLAUDE.md              # → @AGENTS.md (no duplication)
 docs/ai/               # full convention 00-11 (architecture, rules, ADR, handoff…)
 specs/                 # constitution · specification · plan · tasks · checklist
+.claude/agents/        # 5 subagents with model routing (planner→opus, executor→inherit…)
 mise.toml              # tools + gates tailored to the detected stack
 .mcp.json              # Serena (Engram if present; Headroom/Ponytail via --with-*)
 .tramalia/             # config, current-task, skills.toml, 13 skills, context/, evidence/

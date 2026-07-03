@@ -46,11 +46,15 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument("--reviewer", default=None, help="agente revisor sugerido")
     cl.add_argument("--allow-fail", action="store_true",
                     help="cierra aunque fallen gates (requiere excepción documentada)")
+    cl.add_argument("--model", default=None,
+                    help="modelo usado por el agente ejecutor (queda en metadata.json)")
     cl.add_argument("--engram", action="store_true", help="exporta el cierre a Engram (N2)")
     sub.add_parser("log", help="pista de auditoría: cierres registrados (evidence packs)")
-    sy = sub.add_parser("sync", help="convierte AGENTS.md a otros agentes (rulesync)")
+    sy = sub.add_parser("sync", help="propaga reglas y subagentes a otros agentes (rulesync)")
     sy.add_argument("--to", default=None,
-                    help="targets separados por coma (def: copilot,cursor,cline,gemini)")
+                    help="targets separados por coma (def: copilot,cursor,cline)")
+    sy.add_argument("--features", default=None,
+                    help="features de rulesync a propagar (def: rules,subagents)")
     sk = sub.add_parser("skills", help="administra skills declaradas (.tramalia/skills.toml)")
     sk.add_argument("action", nargs="?", choices=["sync", "list"], default="sync")
     sub.add_parser("update", help="actualiza todo (mise + copier + skills)")

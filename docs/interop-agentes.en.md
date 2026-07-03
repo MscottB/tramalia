@@ -42,6 +42,24 @@ How Tramalia propagates rules to multiple agents, scaffolding and spec-driven, a
 - **Install:** per its official documentation.
 - **Relationship with Tramalia:** **external onboarding, NOT core.** Gentle-AI gets your machine ready; Tramalia governs what those agents do *inside the repo*. They're used separately to avoid double ownership of configs/prompts.
 
+## Role-based subagents with model routing
+
+`tramalia init` generates `.claude/agents/` with **5 governance roles** that Claude Code reads natively; each declares its `model:` in the frontmatter:
+
+| Agent | `model:` | Anchored to |
+|---|---|---|
+| `planificador` (planner) | opus | `specs/` + skill 01-spec-governance |
+| `ejecutor` (executor) | **inherit** (respects YOUR app selection) | `specs/tasks.md` + `tramalia close` |
+| `revisor` (reviewer) | opus | evidence pack + skill 12-multi-agent-review |
+| `documentador` (documenter) | haiku | `docs/ai/` + skill 13-documentation-handoff |
+| `resolutor-profundo` (deep solver) | fable (explicit invocation only) | exceptional cases + docs/ai/06 |
+
+**How routing works:** your `/model` controls the main conversation *always*; the agent's `model:` applies only inside the delegated task (isolated context, billed at its own model's rate). Precedence: invocation override > frontmatter > `inherit`.
+
+**Multi-host:** `tramalia sync` propagates the subagents via rulesync (`--features rules,subagents`) to Copilot, Cursor, Cline and other supported targets. It's idempotent: if you already have your own agents, `init` won't overwrite them.
+
+**Audit:** `tramalia close --model <model>` records in `metadata.json` which model closed the task — key when you route cheap models and want to know which closes deserve a closer look.
+
 ## AI agents — the consumers
 
 - **Who:** Claude Code, OpenAI Codex, Cursor, Antigravity, Gemini CLI, Copilot, Cline, etc.

@@ -2,6 +2,32 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.8.0] - 2026-07-03
+
+Subagentes por rol con ruteo de modelo y auditoría de modelo.
+
+### Subagentes (init)
+- `.claude/agents/` con **5 roles de gobierno** que Claude Code lee nativamente:
+  planificador→opus, **ejecutor→inherit** (respeta la selección del usuario en la app),
+  revisor→opus, documentador→haiku, resolutor-profundo→fable (solo invocación explícita).
+- Cada agente ancla su workflow a skills/comandos de Tramalia; idempotente (no pisa
+  agentes existentes).
+
+### Fan-out multi-host
+- `tramalia sync` gana `--features` (def. `rules,subagents`): propaga también los
+  subagentes vía rulesync a Copilot, Cursor, Cline y demás targets soportados.
+
+### Auditoría de modelo
+- `tramalia close --model <modelo>` registra en `metadata.json` qué modelo cerró la
+  tarea; `tramalia log` lo muestra (`codex (opus)`).
+
+### Presentación
+- README en inglés pasa a ser el principal (`README.md`); el español queda en
+  `README.es.md`. El About del repo enlaza la documentación.
+
+### Calidad
+- 52 tests con pytest.
+
 ## [0.7.0] - 2026-07-01
 
 Convención completa, nuevas integraciones y dashboard TUI.

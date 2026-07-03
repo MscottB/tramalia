@@ -132,6 +132,7 @@ def cmd_close(args) -> int:
         getattr(args, "agent", None) or "",
         getattr(args, "reviewer", None) or "",
         allow_fail=getattr(args, "allow_fail", False),
+        model=getattr(args, "model", None) or "",
     )
     if not res.gates_ran:
         render.warn("gates no ejecutados (mise ausente); registrado como excepción en el pack.")
@@ -172,6 +173,8 @@ def cmd_log(args) -> int:
     for e in entries:
         mark = _LOG_MARKS.get(e.get("status"), "○ —")
         extra = f"  ·  {e['agent']}" if e.get("agent") else ""
+        if e.get("model"):
+            extra += f" ({e['model']})"
         render.ok(f"{e['id']}  ·  {mark}{extra}")
     return 0
 
@@ -186,9 +189,22 @@ def cmd_sync(args) -> int:
     # CLAUDE.md/Codex no se incluyen: ya leen AGENTS.md nativamente.
     # Targets válidos en rulesync v9: copilot, cursor, cline, antigravity-cli, zed, junie, warp, …
     targets = getattr(args, "to", None) or "copilot,cursor,cline"
-    render.info(f"convirtiendo AGENTS.md → {targets} (rulesync)")
-    return _run(["rulesync", "convert", "--from", "agentsmd",
-                 "--to", targets, "--features", "rules"])
+    wanted = {f.strip() for f in
+              (getattr(args, "features", None) or "rules,subagents").split(",") if f.strip()}
+    code = 0
+    if "rules" in wanted:
+        render.info(f"reglas: AGENTS.md → {targets} (rulesync)")
+        code |= _run(["rulesync", "convert", "--from", "agentsmd",
+                      "--to", targets, "--features", "rules"])
+    if "subagents" in wanted:
+        if (Path.cwd() / ".claude" / "agents").exists():
+            render.info(f"subagentes: .claude/agents → {targets} (rulesync)")
+            # best-effort: no todos los targets soportan subagentes; rulesync lo reporta.
+            code |= _run(["rulesync", "convert", "--from", "claudecode",
+                          "--to", targets, "--features", "subagents"])
+        else:
+            render.info("sin .claude/agents; omitiendo fan-out de subagentes.")
+    return code
 
 
 def cmd_skills(args) -> int:
