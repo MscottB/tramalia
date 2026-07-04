@@ -37,10 +37,18 @@ flowchart LR
 - **Tramalia uses it in:** optional `context` backend / query MCP server.
 - **Interacts with / caution:** **only its query tools**. Its `manage_adr` and agent auto-configuration **must not** be used: ADRs live in `docs/ai/05` and rules in `AGENTS.md` (Tramalia's governance).
 
-## How the three fit together
+## CodeGraph — pre-indexed graph with auto-sync (CLI + MCP)
+
+- **What it is / scope:** a **pre-built** dependency graph in SQLite (FTS5): the `codegraph_explore` tool returns *"verbatim source + call flow + blast radius"* in **a single call**, 20+ languages, with file-watchers keeping the index current.
+- **Requires:** nothing (binary; official installer in its repo).
+- **Install:** see [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph); `codegraph init` in the project. **Caution:** its `codegraph install` auto-configures agents — as with codebase-memory-mcp, use only its query MCP server and leave the rules to `AGENTS.md`.
+- **Tramalia uses it in:** `doctor` detects it (feature `context`); alternative/complement to Serena and codebase-memory-mcp.
+
+## How the four fit together
 
 - **Serena** = *what* to read (symbols, live).
 - **Repomix** = full *snapshot* when you need a picture.
 - **codebase-memory-mcp** = persistent *structural graph* (architecture, impact).
+- **CodeGraph** = pre-indexed graph with auto-sync (surgical answer in one call).
 
 Tramalia doesn't compete with them: it declares them, detects them (`doctor`) and consumes their output in `.tramalia/context/` or via MCP. You choose which one(s) to mount.

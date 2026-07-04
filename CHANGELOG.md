@@ -2,6 +2,34 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.10.0] - 2026-07-03
+
+Instalación unificada en un comando + catálogo de skills externas.
+
+### Instalación
+- **`pip install tramalia-cli` es ahora la única línea necesaria**: Rich y
+  Questionary (puras-Python, diminutas) pasan a ser dependencias por defecto —
+  la experiencia recomendada sin corchetes. El núcleo sigue degradando a stdlib
+  si faltan (`--plain`).
+- **Auto-oferta de extras**: `tramalia ui` y `tramalia mcp` ofrecen instalar
+  Textual/SDK MCP ahí mismo la primera vez (solo con terminal interactiva;
+  en scripts imprimen el hint). Si el entorno bloquea pip (externally-managed,
+  pipx), muestran el comando manual y `pipx inject` sin traceback.
+- Alias `[pretty]` queda vacío (compatibilidad); nuevo alias `[full]`
+  (Textual + SDK MCP de una vez).
+
+### Integraciones (revisión del ecosistema)
+- **Catálogo de skills externas verificadas** en `skills.toml` (comentadas):
+  anthropics/skills (oficial), vercel-labs/agent-skills (web-design-guidelines
+  complementa el gate ux), superpowers, mattpocock/skills.
+- **CodeGraph** detectado por `doctor` (feature `context`): grafo pre-indexado
+  con auto-sync, alternativa a Serena/codebase-memory-mcp.
+- Docs: sección de orquestación multiagente externa (Multica/Vibe Kanban) y
+  tips de Claude Code (`/model opusplan`, "ultrathink", `/compact`).
+
+### Calidad
+- 65 tests con pytest.
+
 ## [0.9.1] - 2026-07-03
 
 Primer lanzamiento a PyPI.

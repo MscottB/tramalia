@@ -24,9 +24,9 @@ el día a día son tus agentes IA leyendo los archivos que Tramalia deja en el r
 Tramalia en sí **solo requiere Python 3.10+**. No tiene ninguna dependencia Node.
 
 ```bash
-pip install tramalia-cli              # base — corre con solo la stdlib (terminal básica)
-pip install "tramalia-cli[pretty]"    # modo bonito: Rich + Questionary (recomendado)
-pip install "tramalia-cli[mcp]"       # fachada MCP (nivel 1)
+pip install tramalia-cli              # un solo comando: CLI con colores y menú incluidos
+# tui y mcp se ofrecen a instalar solos al primer uso (tramalia ui / tramalia mcp);
+# si prefieres todo de una: pip install "tramalia-cli[full]"
 ```
 
 La salida se ve bonita automáticamente si `rich`/`questionary` están instalados; si
@@ -48,8 +48,8 @@ para *tu* proyecto. Importante: **algunas son Node**, no Python.
 | **git** | memoria versionada, skills, evidence | binario | recomendada | git-scm.com |
 | **uv** | instala tools Python (copier, serena) | binario | recomendada | astral.sh/uv |
 | **Node 18+** | lo exigen `sync`, gate `ux` y `context` (repomix) | — | si usas esas features | `mise use node@22` o nodejs.org |
-| rich · questionary | CLI interactiva y con color | Python | opcional | `pip install "tramalia-cli[pretty]"` |
-| SDK mcp | fachada MCP | Python | opcional | `pip install "tramalia-cli[mcp]"` |
+| rich · questionary | CLI interactiva y con color | Python | **incluidas por defecto** | vienen con `pip install tramalia-cli` |
+| SDK mcp | fachada MCP | Python | opcional (auto-oferta) | `tramalia mcp` ofrece instalarlo · `[full]` |
 | copier | `init` avanzado / `copier update` | Python | opcional | `uv tool install copier` |
 | serena | navegación semántica (MCP) | Python | opcional | `uvx … serena` |
 | semgrep · gitleaks | gate seguridad | Python/binario | opcional | `mise use pipx:semgrep` · `aqua:gitleaks` |
@@ -64,7 +64,7 @@ para *tu* proyecto. Importante: **algunas son Node**, no Python.
 
 ```bash
 # 1. Tramalia
-pip install "tramalia-cli[pretty,mcp]"
+pip install tramalia-cli
 
 # 2. Bootstrap (mise no se instala a sí mismo; ver enlace que da doctor)
 #    instala mise, git, uv según tu SO
@@ -161,7 +161,7 @@ Genera la convención en el repo actual, **idempotente** (no pisa lo existente):
 - `.tramalia/` (config.json, current-task.md, skills.toml)
 
 ### `tramalia ui`
-Dashboard TUI (Textual, extra `pip install "tramalia-cli[tui]"`): **Resumen** (doctor en
+Dashboard TUI (Textual; `tramalia ui` ofrece instalarlo al primer uso): **Resumen** (doctor en
 vivo), **Auditoría** (cierres navegables con su `metadata.json`) y **Cierre** guiado con
 la salida de los gates. Solo lee e invoca el core.
 
@@ -238,7 +238,7 @@ une gates, evidencia y handoff en un paso auditable.
 
 ```bash
 # una vez, en el repo:
-pip install "tramalia-cli[pretty]"
+pip install tramalia-cli
 tramalia init           # deja AGENTS.md, docs/ai, mise.toml, .mcp.json
 tramalia doctor         # instala lo que falte (mise primero; luego `mise install`)
 tramalia sync           # propaga reglas a Cursor/Copilot (interop)

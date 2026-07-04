@@ -1,16 +1,26 @@
 # Instalación y requisitos
 
-## Para correr Tramalia: solo Python
+## Para correr Tramalia: solo Python, un solo comando
 
 Tramalia **solo requiere Python 3.10+**. No tiene ninguna dependencia Node.
 
 ```bash
-pip install tramalia-cli                    # base (terminal básica, solo stdlib)
-pip install "tramalia-cli[pretty]"          # modo bonito: Rich + Questionary (recomendado)
-pip install "tramalia-cli[tui]"             # dashboard TUI (tramalia ui, Textual)
-pip install "tramalia-cli[mcp]"             # fachada MCP
-pip install "tramalia-cli[pretty,tui,mcp]"  # todo junto
+pip install tramalia-cli
 ```
+
+Eso es todo: incluye el CLI con colores y menú interactivo (Rich + Questionary, puras-Python y diminutas). Las dos piezas opcionales más pesadas — el **dashboard TUI** (`tramalia ui`) y la **fachada MCP** (`tramalia mcp`) — **se ofrecen a instalar solas la primera vez que las usas**:
+
+```text
+$ tramalia ui
+▲ el dashboard TUI requiere 'textual' (no está instalado).
+? ¿instalar 'textual' ahora? [S/n]
+```
+
+!!! note "Para expertos"
+    Si prefieres todo de una: `pip install "tramalia-cli[full]"` (agrega Textual + SDK MCP).
+    En entornos gestionados (Ubuntu 23+, Homebrew, pipx) donde pip directo está
+    bloqueado, la oferta automática te mostrará el comando manual
+    (`pipx inject tramalia-cli textual`).
 
 !!! info "¿Vas a contribuir al proyecto?"
     Clona el repo e instala en modo editable: `pip install -e ".[dev]"`. Ver la
@@ -27,7 +37,7 @@ Tramalia **orquesta** herramientas externas. No las necesitas todas para empezar
 | **git** | memoria versionada, skills, evidence | binario | recomendada |
 | **uv** | instala tools Python (copier, serena) | binario | recomendada |
 | **Node 18+** | `sync`, gate `ux`, `context` (repomix) | — | si usas esas features |
-| rich · questionary | CLI interactiva y con color | Python | opcional |
+| rich · questionary | CLI interactiva y con color | Python | **incluidas por defecto** |
 | semgrep · gitleaks | gate seguridad | Python/binario | opcional |
 | sqlfluff | gate base de datos | Python | opcional |
 | **repomix** | snapshot de contexto | **Node** | opcional |

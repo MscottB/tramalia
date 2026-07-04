@@ -60,6 +60,30 @@ How Tramalia propagates rules to multiple agents, scaffolding and spec-driven, a
 
 **Audit:** `tramalia close --model <model>` records in `metadata.json` which model closed the task — key when you route cheap models and want to know which closes deserve a closer look.
 
+## External skills catalog (vetted)
+
+Besides the 13 own skills, `skills.toml` ships a **commented catalog** of external sources in the standard SKILL.md format — uncomment the ones you want and `tramalia skills` clones them:
+
+| Source | What it brings | Fits with |
+|---|---|---|
+| [anthropics/skills](https://github.com/anthropics/skills) (official) | document skills (PDF/DOCX/XLSX), creative, technical | general use |
+| [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | react-best-practices (40+ rules) · **web-design-guidelines (100+ a11y/UX rules)** · writing-guidelines | **ux gate** + docs |
+| [superpowers](https://github.com/obra/superpowers) | TDD, systematic debugging, planning | skills 05/08 |
+| [mattpocock/skills](https://github.com/mattpocock/skills) | advanced TypeScript | TS projects |
+| [Ponytail](https://github.com/DietrichGebert/ponytail) (enabled by default) | minimalism + its own MCP | skill 04 |
+
+Other design/UX sources you can reference the same way: [impeccable](https://github.com/pbakaus/impeccable), [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [emilkowalski/skills](https://github.com/emilkowalski/skills) (animation/UI). Claude Code's official plugin marketplace is [claude-plugins-official](https://github.com/anthropics/claude-plugins-official).
+
+## Multi-agent orchestration (external)
+
+Tramalia does **not** launch agents in parallel — that's a separate ecosystem slot. If you need it: [Multica](https://github.com/multica-ai/multica) (agents as "teammates": you assign issues and they execute with a local daemon + dashboard), Vibe Kanban or Conductor. They coexist well: the orchestrator distributes the work, **Tramalia audits every close** (`close`/`log` with agent and model).
+
+## Tips for Claude Code (the most common host)
+
+- **`/model opusplan`** — Opus for planning, Sonnet for execution: pairs perfectly with the subagents above.
+- **"ultrathink"** in the prompt — triggers maximum extended reasoning for hard problems (useful before delegating to `resolutor-profundo`).
+- **`/compact`** — compacts the conversation when context grows; do it after a `tramalia close` (the evidence pack already preserves what matters).
+
 ## AI agents — the consumers
 
 - **Who:** Claude Code, OpenAI Codex, Cursor, Antigravity, Gemini CLI, Copilot, Cline, etc.

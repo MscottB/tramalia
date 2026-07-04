@@ -1,16 +1,25 @@
 # Installation & requirements
 
-## To run Tramalia: only Python
+## To run Tramalia: only Python, one command
 
 Tramalia **only requires Python 3.10+**. It has no Node dependencies.
 
 ```bash
-pip install tramalia-cli                    # base (basic terminal, stdlib only)
-pip install "tramalia-cli[pretty]"          # pretty mode: Rich + Questionary (recommended)
-pip install "tramalia-cli[tui]"             # TUI dashboard (tramalia ui, Textual)
-pip install "tramalia-cli[mcp]"             # MCP façade
-pip install "tramalia-cli[pretty,tui,mcp]"  # everything together
+pip install tramalia-cli
 ```
+
+That's it: it includes the CLI with colors and interactive menu (Rich + Questionary, pure-Python and tiny). The two heavier optional pieces — the **TUI dashboard** (`tramalia ui`) and the **MCP façade** (`tramalia mcp`) — **offer to install themselves the first time you use them**:
+
+```text
+$ tramalia ui
+▲ the TUI dashboard requires 'textual' (not installed).
+? install 'textual' now? [Y/n]
+```
+
+!!! note "For experts"
+    If you'd rather get everything upfront: `pip install "tramalia-cli[full]"` (adds Textual + MCP SDK).
+    In managed environments (Ubuntu 23+, Homebrew, pipx) where direct pip is blocked,
+    the auto-offer will show you the manual command (`pipx inject tramalia-cli textual`).
 
 !!! info "Contributing to the project?"
     Clone the repo and install in editable mode: `pip install -e ".[dev]"`. See the
@@ -27,7 +36,7 @@ Tramalia **orchestrates** external tools. You don't need them all to start; `tra
 | **git** | versioned memory, skills, evidence | binary | recommended |
 | **uv** | installs Python tools (copier, serena) | binary | recommended |
 | **Node 18+** | `sync`, `ux` gate, `context` (repomix) | — | if you use those features |
-| rich · questionary | interactive, colorful CLI | Python | optional |
+| rich · questionary | interactive, colorful CLI | Python | **included by default** |
 | semgrep · gitleaks | security gate | Python/binary | optional |
 | sqlfluff | database gate | Python | optional |
 | **repomix** | context snapshot | **Node** | optional |

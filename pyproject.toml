@@ -1,6 +1,6 @@
 [project]
 name = "tramalia-cli"
-version = "0.9.1"
+version = "0.10.0"
 description = "Capa repo-first de gobierno y evidencia para desarrollo con múltiples agentes IA (reglas, gates, evidence pack, handoff y auditoría)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,7 +21,10 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Quality Assurance",
 ]
-dependencies = []
+# Rich y Questionary son puras-Python y diminutas: van incluidas para que
+# `pip install tramalia-cli` dé la experiencia recomendada de una vez.
+# El núcleo igual degrada a stdlib si faltan (--plain / entornos mínimos).
+dependencies = ["rich>=13", "questionary>=2"]
 
 [project.urls]
 Homepage = "https://mscottb.github.io/tramalia/"
@@ -30,12 +33,13 @@ Repository = "https://github.com/MscottB/tramalia"
 Changelog = "https://github.com/MscottB/tramalia/blob/main/CHANGELOG.md"
 Issues = "https://github.com/MscottB/tramalia/issues"
 
-# La CLI corre solo con la stdlib (terminal básica).
-# El "modo bonito" (interactivo + colores) se activa solo si instalas estos extras.
+# tui y mcp son más pesadas y genuinamente opcionales; `tramalia ui`/`tramalia mcp`
+# ofrecen instalarlas al primer uso. `pretty` queda como alias vacío (compatibilidad).
 [project.optional-dependencies]
-pretty = ["rich>=13", "questionary>=2"]
+pretty = []
 mcp = ["mcp>=1.2"]
 tui = ["textual>=1.0"]
+full = ["mcp>=1.2", "textual>=1.0"]
 dev = ["pytest>=8", "mcp>=1.2", "textual>=1.0"]
 
 [project.scripts]

@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-60%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen.svg)
 
 [Español](README.es.md) · **English** · [📚 Docs](https://MscottB.github.io/tramalia/)
 
@@ -61,7 +61,7 @@ It does this by **orchestrating external tools** instead of reimplementing them.
 ## Quick start
 
 ```bash
-pip install "tramalia-cli[pretty]"   # only requires Python 3.10+
+pip install tramalia-cli    # only requires Python 3.10+ — one command, everything included
 tramalia init                        # generate the convention in your repo
 tramalia doctor                      # tells you what else to install
 ```

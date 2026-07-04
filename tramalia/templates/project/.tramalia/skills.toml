@@ -8,3 +8,32 @@
 name   = "ponytail"
 source = "git+https://github.com/DietrichGebert/ponytail"
 ref    = "main"
+
+# ── Catálogo de skills externas verificadas (descomenta las que quieras) ──────
+# Formato SKILL.md estándar; se clonan con `tramalia skills` y los agentes las leen.
+
+# Anthropic (oficial): document skills (PDF/DOCX/XLSX), creativas, técnicas.
+# [[skill]]
+# name   = "anthropic-skills"
+# source = "git+https://github.com/anthropics/skills"
+# ref    = "main"
+
+# Vercel: react-best-practices (40+ reglas), web-design-guidelines (100+ reglas
+# de a11y/UX — complementa el gate ux), writing-guidelines, vercel-optimize.
+# [[skill]]
+# name   = "vercel-agent-skills"
+# source = "git+https://github.com/vercel-labs/agent-skills"
+# ref    = "main"
+
+# Superpowers: pack popular de skills de proceso para Claude Code (TDD,
+# debugging sistemático, planificación).
+# [[skill]]
+# name   = "superpowers"
+# source = "git+https://github.com/obra/superpowers"
+# ref    = "main"
+
+# Matt Pocock: skills de TypeScript.
+# [[skill]]
+# name   = "mattpocock-skills"
+# source = "git+https://github.com/mattpocock/skills"
+# ref    = "main"

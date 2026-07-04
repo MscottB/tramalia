@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-60%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-65%20passing-brightgreen.svg)
 
 **Español** · [English](README.md) · [📚 Documentación](https://MscottB.github.io/tramalia/)
 
@@ -61,7 +61,7 @@ Lo hace **orquestando herramientas externas** en vez de reimplementarlas.
 ## Instalación rápida
 
 ```bash
-pip install "tramalia-cli[pretty]"   # solo requiere Python 3.10+
+pip install tramalia-cli    # solo requiere Python 3.10+ — un comando, todo incluido
 tramalia init                        # genera la convención en tu repo
 tramalia doctor                      # te dice qué más instalar
 ```

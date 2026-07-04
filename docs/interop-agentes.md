@@ -60,6 +60,30 @@ Cómo Tramalia propaga reglas a múltiples agentes, scaffolding y spec-driven, y
 
 **Auditoría:** `tramalia close --model <modelo>` registra en `metadata.json` qué modelo cerró la tarea — clave cuando ruteas modelos baratos y quieres saber qué cierres revisar con más ojo.
 
+## Catálogo de skills externas (verificadas)
+
+Además de las 13 skills propias, `skills.toml` trae un **catálogo comentado** de fuentes externas en formato SKILL.md estándar — descomenta las que quieras y `tramalia skills` las clona:
+
+| Fuente | Qué aporta | Encaja con |
+|---|---|---|
+| [anthropics/skills](https://github.com/anthropics/skills) (oficial) | document skills (PDF/DOCX/XLSX), creativas, técnicas | uso general |
+| [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | react-best-practices (40+ reglas) · **web-design-guidelines (100+ reglas a11y/UX)** · writing-guidelines | **gate ux** + docs |
+| [superpowers](https://github.com/obra/superpowers) | TDD, debugging sistemático, planificación | skills 05/08 |
+| [mattpocock/skills](https://github.com/mattpocock/skills) | TypeScript avanzado | proyectos TS |
+| [Ponytail](https://github.com/DietrichGebert/ponytail) (activa por defecto) | minimalismo + MCP propio | skill 04 |
+
+Otras fuentes de diseño/UX que puedes referenciar igual: [impeccable](https://github.com/pbakaus/impeccable), [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [emilkowalski/skills](https://github.com/emilkowalski/skills) (animación/UI). El marketplace oficial de plugins de Claude Code es [claude-plugins-official](https://github.com/anthropics/claude-plugins-official).
+
+## Orquestación multiagente (externa)
+
+Tramalia **no** lanza agentes en paralelo — eso es un slot aparte del ecosistema. Si lo necesitas: [Multica](https://github.com/multica-ai/multica) (agentes como "compañeros de equipo": asignas issues y ejecutan con daemon local + dashboard), Vibe Kanban o Conductor. Conviven bien: el orquestador reparte el trabajo, **Tramalia audita cada cierre** (`close`/`log` con agente y modelo).
+
+## Tips para Claude Code (host más común)
+
+- **`/model opusplan`** — Opus para planear, Sonnet para ejecutar: combina perfecto con los subagentes de arriba.
+- **"ultrathink"** en el prompt — activa el razonamiento extendido máximo para problemas difíciles (útil antes de delegar al `resolutor-profundo`).
+- **`/compact`** — compacta la conversación cuando el contexto crece; hazlo tras un `tramalia close` (el evidence pack ya conserva lo importante).
+
 ## Agentes IA — los consumidores
 
 - **Quiénes:** Claude Code, OpenAI Codex, Cursor, Antigravity, Gemini CLI, Copilot, Cline, etc.

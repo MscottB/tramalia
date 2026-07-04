@@ -78,6 +78,10 @@ REGISTRY: list[Tool] = [
     Tool("speckit", "specify", "spec-driven development (Spec Kit, opcional)",
          "feature", feature="specs", managed_by_mise=False,
          install_hint="uv tool install specify-cli --from git+https://github.com/github/spec-kit.git"),
+    # grafo de código pre-indexado (contexto quirúrgico en una llamada, opcional).
+    Tool("codegraph", "codegraph", "grafo de código pre-indexado (contexto, opcional)",
+         "feature", feature="context", managed_by_mise=False,
+         install_hint="ver github.com/colbymchenry/codegraph (instalar con --skip si no quieres que configure agentes)"),
 ]
 
 

@@ -52,6 +52,7 @@ La **base que instalas a mano primero** (no pueden instalarse solas); el resto l
 | **Repomix** | snapshot empaquetado del repo para IA | Node | MIT |
 | **Serena** | navegación/edición semántica (LSP, MCP) | Python | MIT |
 | **codebase-memory-mcp** | grafo estructural del código (158 lenguajes) | binario (C/C++) | ver repo |
+| **CodeGraph** | grafo pre-indexado con auto-sync (CLI + MCP) | binario | ver repo |
 
 ### Seguridad y base de datos (gates)
 
@@ -83,10 +84,10 @@ La **base que instalas a mano primero** (no pueden instalarse solas); el resto l
 
 | Paquete | Uso | Licencia |
 |---|---|---|
-| **rich** | salida con color/tablas (extra `pretty`) | MIT |
-| **questionary** | menús interactivos (extra `pretty`) | MIT |
-| **mcp** | SDK de la fachada MCP (extra `mcp`) | MIT |
-| **textual** | dashboard TUI (extra `tui`) | MIT |
+| **rich** | salida con color/tablas (incluida por defecto) | MIT |
+| **questionary** | menús interactivos (incluida por defecto) | MIT |
+| **mcp** | SDK de la fachada MCP (auto-oferta en `tramalia mcp` · `[full]`) | MIT |
+| **textual** | dashboard TUI (auto-oferta en `tramalia ui` · `[full]`) | MIT |
 | **pytest** | tests (extra `dev`) | MIT |
 | mkdocs-material · mkdocs-static-i18n | solo para construir esta documentación | MIT |
 

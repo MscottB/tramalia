@@ -265,11 +265,46 @@ def cmd_update(args) -> int:
     return code
 
 
-def cmd_mcp(args) -> int:
+def _ofrecer_instalar(paquete: str, para: str) -> bool:
+    """Ofrece instalar una dependencia opcional ahí mismo (solo con terminal).
+
+    Devuelve True si quedó instalada. Si el entorno rechaza pip (p. ej.
+    externally-managed), muestra el comando manual sin traceback — nunca cuelga
+    ni rompe en scripts (sin TTY solo imprime el hint).
+    """
+    import subprocess
+    import sys
+    render.warn(f"{para} requiere '{paquete}' (no está instalado).")
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        render.info(f"instálalo con: pip install {paquete}")
+        return False
+    respuesta = menu.ask_text(f"¿instalar '{paquete}' ahora? [S/n]", "S").strip().lower()
+    if respuesta not in ("", "s", "si", "sí", "y", "yes"):
+        render.info(f"puedes instalarlo luego con: pip install {paquete}")
+        return False
+    render.info(f"→ {sys.executable} -m pip install {paquete}")
+    result = subprocess.run([sys.executable, "-m", "pip", "install", paquete])
+    if result.returncode == 0:
+        import importlib
+        importlib.invalidate_caches()
+        render.ok(f"'{paquete}' instalado.")
+        return True
+    render.err("no se pudo instalar automáticamente (¿entorno gestionado/pipx?).")
+    render.info(f"manual: pip install {paquete}  ·  con pipx: pipx inject tramalia-cli {paquete}")
+    return False
+
+
+def _importable(modulo: str) -> bool:
     try:
-        import mcp  # noqa: F401
+        __import__(modulo)
+        return True
     except ImportError:
-        render.err('falta el SDK MCP. Instálalo con: pip install "tramalia-cli[mcp]"')
+        return False
+
+
+def cmd_mcp(args) -> int:
+    if not _importable("mcp") and not (_ofrecer_instalar("mcp", "la fachada MCP")
+                                       and _importable("mcp")):
         return 127
     from tramalia import mcp_server
     render.info("levantando Tramalia MCP (stdio)… Ctrl+C para detener.")
@@ -278,10 +313,8 @@ def cmd_mcp(args) -> int:
 
 
 def cmd_ui(args) -> int:
-    try:
-        import textual  # noqa: F401
-    except ImportError:
-        render.err('falta Textual. Instálalo con: pip install "tramalia-cli[tui]"')
+    if not _importable("textual") and not (_ofrecer_instalar("textual", "el dashboard TUI")
+                                           and _importable("textual")):
         return 127
     from tramalia import tui
     tui.run()
