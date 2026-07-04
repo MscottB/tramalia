@@ -44,11 +44,19 @@ flowchart LR
 - **Install:** see [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph); `codegraph init` in the project. **Caution:** its `codegraph install` auto-configures agents — as with codebase-memory-mcp, use only its query MCP server and leave the rules to `AGENTS.md`.
 - **Tramalia uses it in:** `doctor` detects it (feature `context`); alternative/complement to Serena and codebase-memory-mcp.
 
-## How the four fit together
+## Graphify — knowledge graph from code/docs/schemas (CLI + MCP + skill)
+
+- **What it is / scope:** turns code, SQL, scripts, docs, papers, images or videos into a **queryable graph** (HTML visualization + markdown report + JSON). It's a CLI, an MCP server, **and** a skill at once.
+- **Requires:** nothing extra (Python via `uv tool`).
+- **Install:** `uv tool install graphifyy` then `graphify install` (registers the skill). Used with `/graphify .`.
+- **Tramalia uses it in:** `doctor` detects it (feature `context`); alternative/complement to Serena, codebase-memory-mcp and CodeGraph in the same slot.
+
+## How the five fit together
 
 - **Serena** = *what* to read (symbols, live).
 - **Repomix** = full *snapshot* when you need a picture.
 - **codebase-memory-mcp** = persistent *structural graph* (architecture, impact).
 - **CodeGraph** = pre-indexed graph with auto-sync (surgical answer in one call).
+- **Graphify** = multi-format knowledge graph (code + docs + schemas together).
 
 Tramalia doesn't compete with them: it declares them, detects them (`doctor`) and consumes their output in `.tramalia/context/` or via MCP. You choose which one(s) to mount.

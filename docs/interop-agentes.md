@@ -69,19 +69,42 @@ Además de las 13 skills propias, `skills.toml` trae un **catálogo comentado** 
 | [anthropics/skills](https://github.com/anthropics/skills) (oficial) | document skills (PDF/DOCX/XLSX), creativas, técnicas | uso general |
 | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | react-best-practices (40+ reglas) · **web-design-guidelines (100+ reglas a11y/UX)** · writing-guidelines | **gate ux** + docs |
 | [superpowers](https://github.com/obra/superpowers) | TDD, debugging sistemático, planificación | skills 05/08 |
-| [mattpocock/skills](https://github.com/mattpocock/skills) | TypeScript avanzado | proyectos TS |
+| [mattpocock/skills](https://github.com/mattpocock/skills) | TypeScript avanzado (incluye **grill-me**: preguntas rigurosas antes de implementar) | proyectos TS + skill 01 |
+| [caveman](https://github.com/JuliusBrussee/caveman) | reduce ~65-75% los tokens de salida (respuestas sin relleno) | skill 03 (token-saver) |
 | [Ponytail](https://github.com/DietrichGebert/ponytail) (activa por defecto) | minimalismo + MCP propio | skill 04 |
 
-Otras fuentes de diseño/UX que puedes referenciar igual: [impeccable](https://github.com/pbakaus/impeccable), [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [emilkowalski/skills](https://github.com/emilkowalski/skills) (animación/UI). El marketplace oficial de plugins de Claude Code es [claude-plugins-official](https://github.com/anthropics/claude-plugins-official).
+Otras fuentes de diseño/UX que puedes referenciar igual: [impeccable](https://github.com/pbakaus/impeccable), [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [emilkowalski/skills](https://github.com/emilkowalski/skills) (animación/UI). El marketplace oficial de plugins de Claude Code es [claude-plugins-official](https://github.com/anthropics/claude-plugins-official). [gstack](https://github.com/garrytan/gstack) es un pack de 31 skills que simulan un equipo completo (CEO, Designer, QA, Security OWASP+STRIDE, Release) — mismo espíritu que los subagentes de Tramalia, a otra escala; referencia útil, no se instala como dependencia.
+
+## Revisión cruzada entre proveedores
+
+[codex-plugin-cc](https://github.com/openai/codex-plugin-cc) (oficial de OpenAI) permite invocar **Codex desde dentro de Claude Code** para review o delegación (`/codex:review`, `/codex:transfer`). Encaja directo con el rol `revisor` de Tramalia: dos modelos distintos revisando el mismo evidence pack.
+
+## Memoria personal vs. memoria de proyecto
+
+[ai-second-brain](https://github.com/charlie947/ai-second-brain) construye una memoria personal buscable desde tu historial de chats (ChatGPT/Claude). Es un ángulo **distinto** al de Engram/N2: Engram recuerda *decisiones del proyecto* entre cierres; ai-second-brain recuerda *tu* historial de conversaciones. No se solapan; pueden convivir.
 
 ## Orquestación multiagente (externa)
 
 Tramalia **no** lanza agentes en paralelo — eso es un slot aparte del ecosistema. Si lo necesitas: [Multica](https://github.com/multica-ai/multica) (agentes como "compañeros de equipo": asignas issues y ejecutan con daemon local + dashboard), Vibe Kanban o Conductor. Conviven bien: el orquestador reparte el trabajo, **Tramalia audita cada cierre** (`close`/`log` con agente y modelo).
 
+### El patrón Ralph loop
+
+[Ralph](https://ghuntley.com/ralph/) (Geoffrey Huntley) es un patrón, no una herramienta que se instala: un loop bash que re-alimenta el mismo prompt a un agente, iteración tras iteración, hasta completar un PRD. La clave es que **el progreso vive en archivos y git, no en el context window** — cada vuelta arranca con contexto limpio.
+
+Encaja de forma casi literal con la estructura de Tramalia:
+
+- **`specs/tasks.md`** = el PRD que Ralph necesita como fuente de verdad.
+- **Los 5 subagentes** = el patrón "el contexto principal es un scheduler, delega el trabajo caro" que Ralph recomienda.
+- **`.tramalia/evidence/`** = el estado que persiste fuera del context window entre iteraciones.
+- **`tramalia close`** = el punto de "handoff" natural al final de cada vuelta del loop.
+
+Si corres Tramalia en un loop tipo Ralph, cada iteración sería: leer `specs/tasks.md` → trabajar la siguiente tarea con el `ejecutor` → `tramalia close --task <ID>` → el loop continúa con la siguiente tarea, sin que el contexto crezca sin control.
+
 ## Tips para Claude Code (host más común)
 
 - **`/model opusplan`** — Opus para planear, Sonnet para ejecutar: combina perfecto con los subagentes de arriba.
-- **"ultrathink"** en el prompt — activa el razonamiento extendido máximo para problemas difíciles (útil antes de delegar al `resolutor-profundo`).
+- **"ultrathink"** en el prompt — activa el razonamiento extendido máximo **para un solo turno**, sin cambiar la sesión (útil antes de delegar al `resolutor-profundo`).
+- **`ultracode` / `/effort ultracode`** — a diferencia de ultrathink, es un modo de **sesión completa**: fija esfuerzo xhigh y auto-orquesta subagentes en paralelo para cada tarea sustancial. Resérvalo para trabajo grande (varias tareas de `specs/tasks.md` a la vez); es caro para ediciones rutinarias.
 - **`/compact`** — compacta la conversación cuando el contexto crece; hazlo tras un `tramalia close` (el evidence pack ya conserva lo importante).
 
 ## Agentes IA — los consumidores

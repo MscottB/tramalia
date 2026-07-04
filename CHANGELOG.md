@@ -2,6 +2,31 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.11.0] - 2026-07-04
+
+Segunda pasada de revisión del ecosistema — corrige recursos descartados sin
+verificar en la entrega anterior.
+
+### Integraciones
+- **Graphify** en `doctor` (feature `context`): grafo de conocimiento CLI+MCP+skill
+  desde código/docs/schemas — quinta alternativa en el slot de contexto junto a
+  Serena, Repomix, codebase-memory-mcp y CodeGraph.
+- **caveman** agregado al catálogo de skills (`skills.toml`, comentado): reduce
+  ~65-75% los tokens de salida — familia ahorro de tokens junto a Headroom.
+
+### Documentación (interop-agentes ES/EN)
+- **Patrón Ralph loop** documentado: cómo correr Tramalia en un loop tipo Ralph
+  usando `specs/tasks.md` como PRD, los subagentes como scheduler, y
+  `tramalia close` como punto de handoff entre iteraciones.
+- **`ultracode`** agregado junto a `ultrathink` (son distintos: turno único vs.
+  modo de sesión completa con auto-orquestación de subagentes).
+- Referencias a codex-plugin-cc (revisión cruzada Codex↔Claude Code, encaja con
+  el rol `revisor`), gstack (pack de 31 skills, mismo espíritu que los
+  subagentes), y ai-second-brain (memoria personal, distinta de Engram/N2).
+
+### Calidad
+- 66 tests con pytest.
+
 ## [0.10.0] - 2026-07-03
 
 Instalación unificada en un comando + catálogo de skills externas.

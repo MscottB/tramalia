@@ -82,6 +82,10 @@ REGISTRY: list[Tool] = [
     Tool("codegraph", "codegraph", "grafo de código pre-indexado (contexto, opcional)",
          "feature", feature="context", managed_by_mise=False,
          install_hint="ver github.com/colbymchenry/codegraph (instalar con --skip si no quieres que configure agentes)"),
+    # grafo de conocimiento desde código/docs/schemas (CLI+MCP+skill, opcional).
+    Tool("graphify", "graphify", "grafo de conocimiento del proyecto (contexto, opcional)",
+         "feature", feature="context", managed_by_mise=False,
+         install_hint="uv tool install graphifyy"),
 ]
 
 

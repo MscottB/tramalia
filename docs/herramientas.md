@@ -53,6 +53,7 @@ La **base que instalas a mano primero** (no pueden instalarse solas); el resto l
 | **Serena** | navegación/edición semántica (LSP, MCP) | Python | MIT |
 | **codebase-memory-mcp** | grafo estructural del código (158 lenguajes) | binario (C/C++) | ver repo |
 | **CodeGraph** | grafo pre-indexado con auto-sync (CLI + MCP) | binario | ver repo |
+| **Graphify** | grafo de conocimiento código+docs+schemas (CLI+MCP+skill) | Python (uv) | ver repo |
 
 ### Seguridad y base de datos (gates)
 

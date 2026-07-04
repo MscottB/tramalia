@@ -21,6 +21,13 @@ def test_specs_feature_siempre_habilitada():
     assert "speckit" in keys
 
 
+def test_graphify_en_registro_como_alternativa_de_contexto():
+    gf = next((t for t in REGISTRY if t.key == "graphify"), None)
+    assert gf is not None
+    assert gf.category == "feature" and gf.feature == "context"
+    assert gf.managed_by_mise is False
+
+
 def test_handoff_acepta_referencia_a_evidence(tmp_path):
     path = new_handoff(tmp_path, "TASK-5", "codex", "claude",
                        evidence_ref=".tramalia/evidence/x-TASK-5")

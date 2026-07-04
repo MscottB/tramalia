@@ -32,8 +32,16 @@ ref    = "main"
 # source = "git+https://github.com/obra/superpowers"
 # ref    = "main"
 
-# Matt Pocock: skills de TypeScript.
+# Matt Pocock: skills de TypeScript (incluye "grill-me": preguntas rigurosas
+# antes de implementar — complementa la skill 01-spec-governance).
 # [[skill]]
 # name   = "mattpocock-skills"
 # source = "git+https://github.com/mattpocock/skills"
+# ref    = "main"
+
+# Caveman: reduce ~65-75% los tokens de salida (respuestas "estilo cavernícola",
+# sin relleno conversacional). Familia ahorro de tokens junto a Headroom.
+# [[skill]]
+# name   = "caveman"
+# source = "git+https://github.com/JuliusBrussee/caveman"
 # ref    = "main"
