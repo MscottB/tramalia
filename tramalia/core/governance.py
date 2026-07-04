@@ -22,11 +22,12 @@ from tramalia.core import evidence as evidence_core
 from tramalia.core import handoff as handoff_core
 from tramalia.core import proc
 
-_GATE_ORDER = ["build", "test", "lint", "format", "security", "database", "ux"]
+_GATE_ORDER = ["build", "test", "lint", "format", "security", "database", "bundle", "ux"]
 _OUTPUT_FILE = {
     "build": "build-output.txt", "test": "test-output.txt", "lint": "lint-output.txt",
     "format": "lint-output.txt", "security": "security-output.txt",
-    "database": "database-output.txt", "ux": "ux-output.txt",
+    "database": "database-output.txt", "bundle": "bundle-output.txt",
+    "ux": "ux-output.txt",
 }
 
 

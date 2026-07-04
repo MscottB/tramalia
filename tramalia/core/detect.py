@@ -21,6 +21,9 @@ PATTERNS: dict[str, list[str]] = {
     "rust": ["Cargo.toml"],
     "postgres": ["*.sql", "database/migrations", "db/migrations"],
     "docker": ["Dockerfile", "compose.yaml", "compose.yml", "docker-compose.yml"],
+    # analítica: Databricks Asset Bundles y notebooks Jupyter
+    "databricks": ["databricks.yml", "databricks.yaml"],
+    "notebooks": ["*.ipynb", "notebooks/*.ipynb"],
 }
 
 # stacks que implican "hay frontend" -> activa el gate UX/UI
@@ -54,6 +57,8 @@ def enabled_features(stack: list[str]) -> tuple[str, ...]:
     features = {"init", "context", "security", "sync", "memory", "specs"}
     if any(s in stack for s in ("postgres", "java", "dotnet", "python")):
         features.add("database")
+    if "databricks" in stack:
+        features.add("databricks")
     if any(s in stack for s in _FRONTEND):
         features.add("ux")
     return tuple(sorted(features))

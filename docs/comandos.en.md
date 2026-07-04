@@ -61,7 +61,7 @@ Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimal
 
 ## ui — the TUI dashboard
 
-`tramalia ui` opens a terminal panel (Textual; if missing, `tramalia ui` **offers to install it** right there) with three views: **Overview** (live doctor + applicable gates), **Audit** (the closes from `log`, browsable; Enter shows the `metadata.json`) and **Close** (task/agent/reviewer form + gates output). It only reads and invokes the core — zero new logic.
+`tramalia ui` opens a terminal panel (Textual; if missing, `tramalia ui` **offers to install it** right there) with three views: **Overview** (live doctor + applicable gates), **Audit** (the closes from `log`, browsable; Enter shows the `metadata.json`) and **Close** (task/agent/reviewer form + gates output). It only reads and invokes the core — zero new logic. Full interface guide: [The interface (TUI)](interfaz.md).
 
 ## evidence and handoff
 

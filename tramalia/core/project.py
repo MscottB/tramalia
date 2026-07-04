@@ -13,6 +13,22 @@ import re
 from pathlib import Path
 
 
+def is_initialized(root: Path) -> bool:
+    """Un proyecto está gobernado por Tramalia si existe .tramalia/ (o AGENTS.md)."""
+    return (root / ".tramalia").exists() or (root / "AGENTS.md").exists()
+
+
+def task_description(root: Path, task_id: str) -> str | None:
+    """Sección de la tarea en specs/tasks.md (## <ID> … hasta el siguiente ##)."""
+    f = root / "specs" / "tasks.md"
+    if not f.exists() or not task_id:
+        return None
+    text = f.read_text(encoding="utf-8")
+    m = re.search(rf"^##\s+{re.escape(task_id)}\b.*?(?=^##\s|\Z)", text,
+                  flags=re.M | re.S)
+    return m.group(0).strip() if m else None
+
+
 def read_config(root: Path) -> dict:
     f = root / ".tramalia" / "config.json"
     if not f.exists():

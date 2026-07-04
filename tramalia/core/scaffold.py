@@ -101,6 +101,9 @@ def build_mise_toml(answers: dict) -> str:
         build_cmds.append("dotnet build"); test_cmds.append("dotnet test")
     if "python" in stacks:
         test_cmds.append("pytest"); lint_cmds.append("ruff check")
+    if "notebooks" in stacks:
+        # notebooks con outputs sucios rompen diffs y auditoría: verificar limpieza
+        lint_cmds.append("uvx nbstripout --verify .")
 
     lines: list[str] = ["# Generado por tramalia init. tools = auto-update; tasks = quality gates.", ""]
     lines.append("[tools]")
@@ -127,7 +130,10 @@ def build_mise_toml(answers: dict) -> str:
     if "security" in features:
         emit("security", ["gitleaks detect --no-banner", "semgrep scan --error --quiet"])
     if "database" in features:
-        emit("database", ["sqlfluff lint ."])
+        dialecto = " --dialect databricks" if "databricks" in stacks else ""
+        emit("database", [f"sqlfluff lint .{dialecto}"])
+    if "databricks" in features:
+        emit("bundle", ["databricks bundle validate"])
     if "ux" in features:
         emit("ux", ["lhci autorun", "playwright test"])
 

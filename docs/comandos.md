@@ -61,7 +61,7 @@ Flags opt-in: `--with-headroom` (compresión) y `--with-ponytail` (MCP del rules
 
 ## ui — el dashboard TUI
 
-`tramalia ui` abre un panel en la terminal (Textual; si falta, `tramalia ui` **ofrece instalarlo** ahí mismo) con tres vistas: **Resumen** (doctor en vivo + gates aplicables), **Auditoría** (los cierres de `log`, navegables; Enter muestra el `metadata.json`) y **Cierre** (formulario tarea/agente/revisor + salida de gates). Solo lee e invoca el core — cero lógica nueva.
+`tramalia ui` abre un panel en la terminal (Textual; si falta, `tramalia ui` **ofrece instalarlo** ahí mismo) con tres vistas: **Resumen** (doctor en vivo + gates aplicables), **Auditoría** (los cierres de `log`, navegables; Enter muestra el `metadata.json`) y **Cierre** (formulario tarea/agente/revisor + salida de gates). Solo lee e invoca el core — cero lógica nueva. Guía completa de la interfaz: [La interfaz (TUI)](interfaz.md).
 
 ## evidence y handoff
 

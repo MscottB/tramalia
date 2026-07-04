@@ -151,6 +151,16 @@ i audit trail — 3 closes (newest first):
 ○ 2026-06-28-0930-SETUP     ·  ○ no gates
 ```
 
+## Re-planning tasks (short · medium · long term)
+
+`specs/tasks.md` is versioned Markdown: **re-planning is editing it**, anytime and via three paths:
+
+- **You by hand** — change scope, order or horizon of any future task.
+- **The AI** — ask the `planificador` subagent: *"re-plan tasks 5-10 considering X"* and it edits the file (its role, skill 01).
+- **A specific one** — *"adjust only TASK-007"*.
+
+Each task carries `Estado` (pending · in-progress · closed) and `Horizonte` (now · next · later). The rule that makes it safe: **closed tasks are immutable through evidence** — their close lives in `.tramalia/evidence/` + `log`, so editing the future plan never rewrites history.
+
 ## 8. Maintenance
 
 ```bash

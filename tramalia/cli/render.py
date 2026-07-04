@@ -35,8 +35,15 @@ _NEED = {"bootstrap": "base", "stack": "stack"}
 
 
 def _need_label(tool) -> str:
+    from tramalia.i18n import t
     if tool.category == "feature":
         return f"gate:{tool.feature}"
+    if tool.category == "agent":
+        return t("doctor.need.agent")
+    if tool.category == "bootstrap":
+        return t("doctor.need.base")
+    if tool.category == "stack":
+        return t("doctor.need.stack")
     return _NEED.get(tool.category, tool.category)
 
 
@@ -58,41 +65,43 @@ def header(project: str, stack: list[str], initialized: bool) -> None:
 def doctor(report: Report) -> int:
     """Imprime el diagnóstico. Devuelve el exit code (0 si nada bloqueante falta)."""
     stack_txt = " · ".join(report.stack) if report.stack else "—"
+    from tramalia.i18n import t
     if _rich():
         table = Table(box=box.SIMPLE_HEAVY, expand=False)
-        table.add_column("herramienta", style="bold")
-        table.add_column("necesidad", style="dim")
-        table.add_column("estado")
-        table.add_column("detalle / cómo obtenerla", overflow="fold")
+        table.add_column(t("tui.col.tool"), style="bold")
+        table.add_column(t("tui.col.purpose"), overflow="fold", max_width=32)
+        table.add_column("tipo", style="dim")
+        table.add_column(t("tui.col.state"))
+        table.add_column(t("tui.col.detail"), overflow="fold")
         for s in report.statuses:
             if s.present:
-                estado = "[green]✓ ok[/green]"
-                detalle = s.version or "(instalada)"
-            elif s.tool.category == "feature":
-                estado = "[yellow]○ opcional[/yellow]"
+                estado = t("tui.status.ok")
+                detalle = s.version or "—"
+            elif s.tool.category in ("feature", "agent"):
+                estado = t("tui.status.optional")
                 detalle = s.tool.install_hint
             else:
-                estado = "[red]✗ falta[/red]"
+                estado = t("tui.status.missing")
                 detalle = s.tool.install_hint
             if s.tool.runtime == "node":
-                detalle += "  [magenta]· requiere Node[/magenta]"
-            table.add_row(s.tool.cmd, _need_label(s.tool), estado, detalle)
-        _console.print(f"\n[dim]stack detectado:[/dim] {stack_txt}")
+                detalle += "  [magenta]· Node[/magenta]"
+            table.add_row(s.tool.cmd, s.tool.role, _need_label(s.tool), estado, detalle)
+        _console.print(f"\n[dim]{t('doctor.stack')}[/dim] {stack_txt}")
         _console.print(table)
     else:
-        print(f"\nstack detectado: {stack_txt}")
-        print(f"{'herramienta':<14}{'necesidad':<16}{'estado':<11}detalle")
+        print(f"\n{t('doctor.stack')} {stack_txt}")
+        print(f"{'tool':<13}{'tipo':<15}{'estado':<10}para qué / detalle")
         print("-" * 78)
         for s in report.statuses:
             if s.present:
-                estado, detalle = "ok", (s.version or "(instalada)")
-            elif s.tool.category == "feature":
+                estado, detalle = "ok", (s.version or "—")
+            elif s.tool.category in ("feature", "agent"):
                 estado, detalle = "opcional", s.tool.install_hint
             else:
                 estado, detalle = "FALTA", s.tool.install_hint
             if s.tool.runtime == "node":
-                detalle += "  · requiere Node"
-            print(f"{s.tool.cmd:<14}{_need_label(s.tool):<16}{estado:<11}{detalle}")
+                detalle += "  · Node"
+            print(f"{s.tool.cmd:<13}{_need_label(s.tool):<15}{estado:<10}{s.tool.role} — {detalle}")
 
     if report.needs_node:
         _warn(f"Node no está instalado y lo requieren: {', '.join(report.node_tools)}.")

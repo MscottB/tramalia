@@ -108,6 +108,16 @@ def _interactive_ask_task():
     return lambda: menu.ask_text("ID de la tarea (ver specs/tasks.md)", "TASK-001")
 
 
+def _require_init() -> bool:
+    """Los comandos de gobierno exigen proyecto inicializado (guard de coherencia)."""
+    from tramalia.core import project
+    from tramalia.i18n import t
+    if project.is_initialized(Path.cwd()):
+        return True
+    render.err(t("close.uninit"))
+    return False
+
+
 def _resolver(args):
     """Aplica la cadena de defaults: posicional > --task > current-task > prompt."""
     from tramalia.core import project
@@ -123,6 +133,8 @@ def _resolver(args):
 
 def cmd_evidence(args) -> int:
     from tramalia.core import evidence
+    if not _require_init():
+        return 1
     task, _, _ = _resolver(args)
     target = evidence.build_evidence(Path.cwd(), task)
     render.ok(f"evidence pack creado: {target.relative_to(Path.cwd())}")
@@ -134,6 +146,8 @@ def cmd_evidence(args) -> int:
 
 def cmd_handoff(args) -> int:
     from tramalia.core import handoff
+    if not _require_init():
+        return 1
     task, agent, reviewer = _resolver(args)
     path = handoff.new_handoff(Path.cwd(), task, agent, reviewer)
     render.ok(f"handoff agregado a {path.relative_to(Path.cwd())}")
@@ -145,6 +159,8 @@ def cmd_handoff(args) -> int:
 
 def cmd_close(args) -> int:
     from tramalia.core import governance
+    if not _require_init():
+        return 1
     task, agent, reviewer = _resolver(args)
     res = governance.close(
         Path.cwd(), task, agent, reviewer,
@@ -167,17 +183,23 @@ def cmd_close(args) -> int:
         render.err(f"cierre BLOQUEADO por gates fallidos: {', '.join(res.failed)}.")
         render.info("usa --allow-fail solo con una excepción documentada en risks.md.")
         return 1
-    render.ok(f"tarea {task} cerrada con evidencia verificable.")
+    from tramalia.i18n import t
+    if res.status == "no_gates":
+        render.warn(t("close.done.nogates", task=task))
+    else:
+        render.ok(t("close.done", task=task))
     return 0
 
 
-_LOG_MARKS = {
-    "passed": "✓ passed",
-    "passed_with_exceptions": "⚠ con excepciones (forzado)",
-    "blocked": "✗ bloqueado",
-    "no_gates": "○ sin gates",
-    None: "○ —",
-}
+def _log_marks() -> dict:
+    from tramalia.i18n import t
+    return {
+        "passed": t("log.passed"),
+        "passed_with_exceptions": t("log.exceptions"),
+        "blocked": t("log.blocked"),
+        "no_gates": t("log.nogates"),
+        None: "○ —",
+    }
 
 
 def cmd_log(args) -> int:
@@ -188,7 +210,7 @@ def cmd_log(args) -> int:
         return 0
     render.info(f"pista de auditoría — {len(entries)} cierres (más reciente primero):")
     for e in entries:
-        mark = _LOG_MARKS.get(e.get("status"), "○ —")
+        mark = _log_marks().get(e.get("status"), "○ —")
         extra = f"  ·  {e['agent']}" if e.get("agent") else ""
         if e.get("model"):
             extra += f" ({e['model']})"
@@ -274,23 +296,24 @@ def _ofrecer_instalar(paquete: str, para: str) -> bool:
     """
     import subprocess
     import sys
-    render.warn(f"{para} requiere '{paquete}' (no está instalado).")
+    from tramalia.i18n import t
+    render.warn(t("offer.missing", para=para, paquete=paquete))
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
-        render.info(f"instálalo con: pip install {paquete}")
+        render.info(t("offer.hint", paquete=paquete))
         return False
-    respuesta = menu.ask_text(f"¿instalar '{paquete}' ahora? [S/n]", "S").strip().lower()
+    respuesta = menu.ask_text(t("offer.ask", paquete=paquete), "S").strip().lower()
     if respuesta not in ("", "s", "si", "sí", "y", "yes"):
-        render.info(f"puedes instalarlo luego con: pip install {paquete}")
+        render.info(t("offer.later", paquete=paquete))
         return False
     render.info(f"→ {sys.executable} -m pip install {paquete}")
     result = subprocess.run([sys.executable, "-m", "pip", "install", paquete])
     if result.returncode == 0:
         import importlib
         importlib.invalidate_caches()
-        render.ok(f"'{paquete}' instalado.")
+        render.ok(t("offer.installed", paquete=paquete))
         return True
-    render.err("no se pudo instalar automáticamente (¿entorno gestionado/pipx?).")
-    render.info(f"manual: pip install {paquete}  ·  con pipx: pipx inject tramalia-cli {paquete}")
+    render.err(t("offer.failed"))
+    render.info(t("offer.manual", paquete=paquete))
     return False
 
 
@@ -330,12 +353,13 @@ def _guided_args(command: str):
     from tramalia.core import project
     root = Path.cwd()
     primary, rev = project.default_agents(root)
-    task = menu.ask_text("ID de la tarea (ver specs/tasks.md)",
+    from tramalia.i18n import t as _t
+    task = menu.ask_text(_t("guided.task"),
                          project.current_task_id(root) or "TASK-001")
     agent = reviewer = ""
     if command in ("close", "handoff"):
-        agent = menu.ask_text("agente ejecutor", primary or "codex")
-        reviewer = menu.ask_text("agente revisor sugerido", rev or "claude")
+        agent = menu.ask_text(_t("guided.agent"), primary or "codex")
+        reviewer = menu.ask_text(_t("guided.reviewer"), rev or "claude")
     return argparse.Namespace(task=task, task_pos=None, agent=agent, reviewer=reviewer,
                               engram=False, allow_fail=False)
 
@@ -345,7 +369,7 @@ def _show_last_close(root: Path) -> None:
     entries = governance.read_log(root)
     if entries:
         last = entries[0]
-        mark = _LOG_MARKS.get(last.get("status"), "○ —")
+        mark = _log_marks().get(last.get("status"), "○ —")
         render.info(f"último cierre: {last['id']}  ·  {mark}")
 
 

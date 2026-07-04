@@ -151,6 +151,16 @@ i pista de auditoría — 3 cierres (más reciente primero):
 ○ 2026-06-28-0930-SETUP     ·  ○ sin gates
 ```
 
+## Re-planificar tareas (corto · mediano · largo plazo)
+
+`specs/tasks.md` es Markdown versionado: **re-planificar es editarlo**, en cualquier momento y por tres vías:
+
+- **Tú a mano** — cambias alcance, orden u horizonte de cualquier tarea futura.
+- **La IA** — pides al subagente `planificador`: *"re-planifica las tareas 5-10 considerando X"* y él edita el archivo (su rol, skill 01).
+- **Una específica** — *"ajusta solo TASK-007"*.
+
+Cada tarea lleva `Estado` (pendiente · en-progreso · cerrada) y `Horizonte` (ahora · próximo · después). La regla que lo hace seguro: **las tareas cerradas son inmutables por evidencia** — su cierre vive en `.tramalia/evidence/` + `log`, así que editar el plan futuro jamás reescribe la historia.
+
 ## 8. Mantenimiento
 
 ```bash

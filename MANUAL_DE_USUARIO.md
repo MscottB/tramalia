@@ -162,8 +162,13 @@ Genera la convención en el repo actual, **idempotente** (no pisa lo existente):
 
 ### `tramalia ui`
 Dashboard TUI (Textual; `tramalia ui` ofrece instalarlo al primer uso): **Resumen** (doctor en
-vivo), **Auditoría** (cierres navegables con su `metadata.json`) y **Cierre** guiado con
-la salida de los gates. Solo lee e invoca el core.
+vivo con columna "para qué" + gates reales de `mise.toml`), **Auditoría** (cierres navegables
+con su `metadata.json`) y **Cierre** guiado (prellenado desde `config.json`, muestra la
+descripción de la tarea al escribir su ID). Tecla `i` = `mise install` en vivo. Solo lee e
+invoca el core. Desde v0.12 la interfaz es **bilingüe** (es/en): `TRAMALIA_LANG` >
+`config.json → language` > locale del sistema. En proyectos sin inicializar, `close`,
+`evidence` y `handoff` se **bloquean con mensaje claro** (también en CLI), y la TUI ofrece
+el botón "Inicializar ahora".
 
 ### `tramalia menu`
 Menú interactivo **en bucle** (vuelve al menú tras cada acción), muestra el último

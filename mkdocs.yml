@@ -55,6 +55,9 @@ plugins:
             Instalación: Installation
             Flujo completo: Full workflow
             Ejemplo completo: Full example
+            La interfaz (TUI): The interface (TUI)
+            Modelos y esfuerzo por host: Models & effort per host
+            Analítica (Python/Databricks): Analytics (Python/Databricks)
             Conceptos: Concepts
             Arquitectura: Architecture
             Ecosistema: Ecosystem
@@ -102,6 +105,7 @@ nav:
       - Instalación: instalacion.md
       - Flujo completo: flujo-completo.md
       - Ejemplo completo: ejemplo-completo.md
+      - La interfaz (TUI): interfaz.md
   - Conceptos:
       - Arquitectura: arquitectura.md
       - Ecosistema: ecosistema.md
@@ -111,6 +115,8 @@ nav:
       - Contexto e inteligencia de código: interop-contexto.md
       - Memoria y eficiencia: interop-memoria.md
       - Reglas, skills y agentes: interop-agentes.md
+      - Modelos y esfuerzo por host: multi-host.md
+      - Analítica (Python/Databricks): analitica.md
   - Referencia:
       - Comandos: comandos.md
       - Herramientas: herramientas.md

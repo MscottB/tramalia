@@ -86,6 +86,22 @@ REGISTRY: list[Tool] = [
     Tool("graphify", "graphify", "grafo de conocimiento del proyecto (contexto, opcional)",
          "feature", feature="context", managed_by_mise=False,
          install_hint="uv tool install graphifyy"),
+    # analítica: Databricks Asset Bundles (gate bundle validate).
+    Tool("databricks", "databricks", "Databricks CLI (bundle validate, analítica)",
+         "feature", feature="databricks", managed_by_mise=False,
+         install_hint="https://docs.databricks.com/dev-tools/cli/install"),
+
+    # --- agentes CLI (detección informativa: Tramalia NO los configura) ---
+    Tool("claude", "claude", "Claude Code (agente CLI)", "agent",
+         managed_by_mise=False, install_hint="https://claude.com/claude-code"),
+    Tool("codex", "codex", "OpenAI Codex (agente CLI)", "agent",
+         managed_by_mise=False, install_hint="npm i -g @openai/codex"),
+    Tool("antigravity", "antigravity", "Google Antigravity (agente CLI)", "agent",
+         managed_by_mise=False, install_hint="instalador oficial de Antigravity"),
+    Tool("gemini", "gemini", "Gemini CLI (migrando a Antigravity)", "agent",
+         managed_by_mise=False, install_hint="npm i -g @google/gemini-cli"),
+    Tool("opencode", "opencode", "OpenCode (agente CLI)", "agent",
+         managed_by_mise=False, install_hint="https://opencode.ai"),
 ]
 
 
@@ -118,7 +134,7 @@ def relevant_tools(stack: list[str], features: tuple[str, ...]) -> list[Tool]:
     """Filtra el registro a lo que aplica para este proyecto."""
     out: list[Tool] = []
     for t in REGISTRY:
-        if t.category == "bootstrap":
+        if t.category in ("bootstrap", "agent"):
             out.append(t)
         elif t.category == "stack" and any(s in stack for s in t.stacks):
             out.append(t)

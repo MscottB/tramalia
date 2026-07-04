@@ -2,6 +2,52 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.12.0] - 2026-07-04
+
+Interfaz coherente e internacional + estrategia multi-host + soporte analítica.
+Nace del feedback real de usar `tramalia ui` desde una instalación limpia de PyPI.
+
+### Interfaz (TUI y CLI)
+- **Ruta completa del proyecto** en la cabecera (antes solo el nombre de la carpeta).
+- La línea de gates muestra los **gates reales de `mise.toml`** (build, test, lint…),
+  no las features internas que confundían.
+- Tabla de doctor con columna **"para qué"** (rol de cada herramienta) y tipo.
+- El formulario de Cierre se **prellena con los valores reales** de `config.json`
+  (tarea actual, agente, revisor) — se acabaron los placeholders de ejemplo.
+- Al escribir un ID de tarea se muestra su **descripción desde `specs/tasks.md`**.
+- Tecla **`i` instala lo que falta** (`mise install` en vivo, salida en pantalla);
+  si falta mise, hint de instalación por SO (winget/curl/brew).
+- Paleta de comandos de Textual desactivada (estaba solo en inglés).
+
+### Guardia de inicialización (coherencia)
+- `close`, `evidence` y `handoff` **se bloquean con mensaje claro (exit 1)** en
+  proyectos sin inicializar — antes cerraban "con éxito" sin convención.
+- Cierre sin gates dice honesto: "cerrada con **EXCEPCIÓN documentada**", no "✓ verificable".
+- Las pestañas Auditoría y Cierre muestran el estado sin inicializar con botón
+  **"Inicializar ahora"**.
+
+### Internacionalización (i18n)
+- Catálogos JSON `es`/`en` (`tramalia/i18n/`): agregar un idioma = agregar un JSON.
+- Resolución: `TRAMALIA_LANG` > `config.json → language` > locale del sistema > inglés.
+- `config.json` nuevo campo `"language": "auto"`.
+
+### Planificación por horizontes
+- Plantilla `specs/tasks.md` con `Estado` (pendiente·en-progreso·cerrada) y
+  `Horizonte` (ahora·próximo·después); re-planificar = editar el archivo
+  (humano o subagente `planificador`); las cerradas son inmutables por evidencia.
+
+### Multi-host y analítica
+- `doctor` **detecta CLIs de agentes instaladas** (claude, codex, antigravity,
+  gemini, opencode) — solo informa, nunca configura (frontera con Gentle-AI).
+- Nueva página de docs **"Modelos y esfuerzo por host"**: matriz modelo/esfuerzo
+  por CLI, codex-plugin-cc, opusplan/ultrathink/ultracode.
+- **Soporte Databricks/notebooks**: detecta `databricks.yml` y `*.ipynb`; gates
+  `databricks bundle validate`, `nbstripout --verify`, `sqlfluff --dialect databricks`.
+- Nuevas páginas de docs: **La interfaz (TUI)** y **Analítica** (ES/EN).
+
+### Calidad
+- 76 tests con pytest (10 nuevos en `tests/test_v012.py`).
+
 ## [0.11.0] - 2026-07-04
 
 Segunda pasada de revisión del ecosistema — corrige recursos descartados sin
