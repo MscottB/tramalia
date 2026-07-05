@@ -54,6 +54,7 @@ def cmd_init(args) -> int:
     from tramalia.core import scaffold
     root = Path.cwd()
     stack = detect_stack(root)
+    adopt = getattr(args, "adopt", False)
     answers = {
         "project_name": root.name,
         "stacks": stack,
@@ -62,13 +63,23 @@ def cmd_init(args) -> int:
         "reviewer_agent": "claude",
         "with_headroom": getattr(args, "with_headroom", False),
         "with_ponytail": getattr(args, "with_ponytail", False),
+        "adopt": adopt,
     }
     render.header(root.name, stack, _is_initialized(root))
     results = scaffold.scaffold(root, answers)
     for rel, state in results:
-        (render.ok if state == "creado" else render.info)(f"{state:>6}  {rel}")
+        (render.ok if state in ("creado", "adaptado") else render.info)(f"{state:>9}  {rel}")
     creados = sum(1 for _, s in results if s == "creado")
-    render.ok(f"init listo: {creados} creados, {len(results) - creados} ya existían.")
+    adaptados = sum(1 for _, s in results if s == "adaptado")
+    extra = f", {adaptados} adaptados" if adaptados else ""
+    ya = len(results) - creados - adaptados
+    render.ok(f"init listo: {creados} creados{extra}, {ya} ya existían.")
+    # aviso de adopción: hay archivos que el repo ya posee y que sin --adopt se saltan.
+    if not adopt:
+        agents = root / "AGENTS.md"
+        if agents.is_file() and "tramalia:gobierno" not in agents.read_text(encoding="utf-8", errors="ignore"):
+            render.info("detecté un AGENTS.md existente: usa `tramalia init --adopt` para "
+                        "integrar el gobierno sin pisarlo (merge por marcadores).")
     render.info("revisa AGENTS.md y mise.toml; instala lo que falte con `tramalia doctor`.")
     return 0
 

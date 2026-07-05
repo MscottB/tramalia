@@ -59,6 +59,8 @@ Genera de forma idempotente (no pisa lo existente): `AGENTS.md` único, `CLAUDE.
 
 Flags opt-in: `--with-headroom` (compresión) y `--with-ponytail` (MCP del ruleset de minimalismo; requiere `tramalia skills` + Node).
 
+**`--adopt`** — para repos que **ya tienen agente**: integra el gobierno en un `AGENTS.md`/`.mcp.json`/`CLAUDE.md` existentes con un merge por marcadores (no destructivo) en vez de saltarlos. Sin `--adopt`, un `init` normal que detecta un `AGENTS.md` sin gobierno te avisa cómo hacerlo. Detalle: [Adoptar un repo existente](adopcion.md).
+
 ## ui — el dashboard TUI
 
 `tramalia ui` abre un panel en la terminal (Textual; si falta, `tramalia ui` **ofrece instalarlo** ahí mismo) con tres vistas: **Resumen** (doctor en vivo + gates aplicables), **Auditoría** (los cierres de `log`, navegables; Enter muestra el `metadata.json`) y **Cierre** (formulario tarea/agente/revisor + salida de gates). Solo lee e invoca el core — cero lógica nueva. Guía completa de la interfaz: [La interfaz (TUI)](interfaz.md).

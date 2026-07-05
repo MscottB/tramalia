@@ -55,6 +55,7 @@ plugins:
             Instalación: Installation
             Flujo completo: Full workflow
             Ejemplo completo: Full example
+            Adoptar un repo existente: Adopting an existing repo
             La interfaz (TUI): The interface (TUI)
             Modelos y esfuerzo por host: Models & effort per host
             Analítica (Python/Databricks): Analytics (Python/Databricks)
@@ -105,6 +106,7 @@ nav:
       - Instalación: instalacion.md
       - Flujo completo: flujo-completo.md
       - Ejemplo completo: ejemplo-completo.md
+      - Adoptar un repo existente: adopcion.md
       - La interfaz (TUI): interfaz.md
   - Conceptos:
       - Arquitectura: arquitectura.md

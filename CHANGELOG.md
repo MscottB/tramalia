@@ -2,6 +2,30 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.14.0] - 2026-07-05
+
+Modo *adopt*: acoplarse a repos que ya tienen un agente configurado.
+
+### Adopción de proyectos existentes
+- **`tramalia init --adopt`**: en vez de saltar los archivos que un repo con
+  agente ya posee, **integra el gobierno sin pisarlos** (merge no destructivo):
+  - `AGENTS.md` — anexa una sección `## Gobierno (Tramalia)` entre marcadores
+    (`<!-- tramalia:gobierno -->`); re-ejecutar reemplaza el bloque, nunca duplica.
+  - `.mcp.json` — fusiona Serena (y Engram/Headroom/Ponytail según flags)
+    respetando tus servidores; si el JSON está malformado, no lo toca.
+  - `CLAUDE.md` — agrega el import `@AGENTS.md` si faltaba.
+- **Aviso automático**: un `init` normal que detecta un `AGENTS.md` sin gobierno
+  te indica usar `--adopt` — el hueco de onboarding queda visible.
+- `mise.toml` existente **no** se fusiona (merge de TOML es riesgoso): se
+  respeta y se documenta cómo agregar gates a mano.
+- Nuevo estado en el reporte de `init`: `adaptado` (junto a `creado`/`existe`).
+
+### Documentación
+- Nueva página **Adoptar un repo existente** (ES/EN) con diagrama del merge.
+
+### Calidad
+- 90 tests con pytest (9 nuevos en `tests/test_v014.py`).
+
 ## [0.13.0] - 2026-07-05
 
 Criterio explícito de selección de herramientas + dos integraciones nuevas.

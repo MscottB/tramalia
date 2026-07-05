@@ -35,9 +35,86 @@ def _variables(answers: dict) -> dict:
     }
 
 
+# --- modo adopt: integrar el gobierno en archivos que el repo ya posee ---
+# Se inyecta un bloque delimitado por marcadores (patrón "managed block"): re-ejecutar
+# reemplaza el contenido entre marcadores sin tocar una línea del usuario.
+_GOBIERNO_MARKER = "tramalia:gobierno"
+_CLAUDE_MARKER = "tramalia:agents-import"
+
+_GOBIERNO_BODY = """## Gobierno (Tramalia)
+
+Este proyecto usa Tramalia para gobierno y evidencia. Antes de modificar código:
+
+1. Lee `docs/ai/00-resumen-proyecto.md`, `01-arquitectura.md` y `.tramalia/current-task.md` + `specs/tasks.md`.
+2. Aplica `docs/ai/02-reglas-codigo.md` (y las de BD/seguridad/UX según lo que toques).
+3. Revisa `docs/ai/06-intentos-fallidos.md` antes de reintentar algo ya descartado.
+
+**Cierre obligatorio:** termina cada tarea con `tramalia close --task <ID>` (gates → evidence pack con salidas crudas → handoff). No marques una tarea como hecha sin su evidence pack. Auditoría: `tramalia log`.
+
+**Minimalismo (Ponytail/YAGNI):** haz lo mínimo correcto; no dupliques ni abstraigas de más. Usa primero las herramientas locales (`.tramalia/context`, Serena) antes de leer archivos enteros.
+
+**Prohibiciones:** no expongas secretos/tokens; no ejecutes comandos destructivos sin confirmar; no conectes MCP remotos fuera de la allowlist."""
+
+
+def _inject_block(existing: str, marker: str, body: str) -> str:
+    """Inserta o reemplaza un bloque delimitado por marcadores. Idempotente."""
+    start, end = f"<!-- {marker} inicio -->", f"<!-- {marker} fin -->"
+    block = f"{start}\n{body}\n{end}"
+    if start in existing and end in existing:
+        pre = existing[: existing.index(start)]
+        post = existing[existing.index(end) + len(end):]
+        return pre + block + post
+    sep = "" if existing.endswith("\n\n") else ("\n" if existing.endswith("\n") else "\n\n")
+    return existing + sep + block + "\n"
+
+
+def _merge_mcp(existing_text: str, servers: dict) -> tuple[str, bool]:
+    """Fusiona servidores en un .mcp.json existente sin pisar los del usuario.
+
+    Devuelve (texto, ok). ok=False si el JSON está malformado (no se toca).
+    """
+    import json
+    try:
+        data = json.loads(existing_text)
+    except Exception:
+        return existing_text, False
+    if not isinstance(data, dict):
+        return existing_text, False
+    bag = data.setdefault("mcpServers", {})
+    if not isinstance(bag, dict):
+        return existing_text, False
+    for name, cfg in servers.items():
+        bag.setdefault(name, cfg)  # respeta cualquier servidor tuyo con el mismo nombre
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n", True
+
+
+def _adopt_text(rel: str, dest: Path) -> str:
+    """Integra el gobierno en un AGENTS.md/CLAUDE.md existente. Devuelve el estado."""
+    if rel == "AGENTS.md":
+        text = dest.read_text(encoding="utf-8")
+        new = _inject_block(text, _GOBIERNO_MARKER, _GOBIERNO_BODY)
+        if new != text:
+            dest.write_text(new, encoding="utf-8")
+            return "adaptado"
+        return "existe"
+    if rel == "CLAUDE.md":
+        text = dest.read_text(encoding="utf-8")
+        if "AGENTS.md" in text:
+            return "existe"
+        new = _inject_block(text, _CLAUDE_MARKER, "@AGENTS.md")
+        dest.write_text(new, encoding="utf-8")
+        return "adaptado"
+    return "existe"
+
+
 def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
-    """Devuelve [(ruta_relativa, 'creado'|'existe'), ...]."""
+    """Devuelve [(ruta_relativa, 'creado'|'existe'|'adaptado'), ...].
+
+    Con answers["adopt"], integra el gobierno en un AGENTS.md/CLAUDE.md/.mcp.json
+    ya existentes (merge no destructivo) en vez de saltarlos.
+    """
     variables = _variables(answers)
+    adopt = bool(answers.get("adopt"))
     results: list[tuple[str, str]] = []
 
     # 1. archivos de texto desde la plantilla
@@ -49,7 +126,8 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
             rel = rel[:-6]
         dest = root / rel
         if dest.exists():
-            results.append((rel, "existe"))
+            state = _adopt_text(rel, dest) if adopt else "existe"
+            results.append((rel, state))
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
         content = src.read_text(encoding="utf-8")
@@ -62,7 +140,15 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
     for name, builder in (("mise.toml", build_mise_toml), (".mcp.json", build_mcp_json)):
         dest = root / name
         if dest.exists():
-            results.append((name, "existe"))
+            state = "existe"
+            if adopt and name == ".mcp.json":
+                merged, ok = _merge_mcp(dest.read_text(encoding="utf-8"), _mcp_servers(answers))
+                if not ok:
+                    state = "existe (JSON inválido, sin tocar)"
+                elif merged != dest.read_text(encoding="utf-8"):
+                    dest.write_text(merged, encoding="utf-8")
+                    state = "adaptado"
+            results.append((name, state))
             continue
         dest.write_text(builder(answers), encoding="utf-8")
         results.append((name, "creado"))
@@ -146,35 +232,44 @@ def build_mise_toml(answers: dict) -> str:
     return "\n".join(lines)
 
 
-def build_mcp_json(answers: dict) -> str:
-    import json
+def _mcp_servers(answers: dict) -> dict:
+    """Los servidores MCP que Tramalia cablea (reutilizado por init y por adopt)."""
     import shutil
 
-    servers = {
+    servers: dict = {
         "serena": {
             "command": "uvx",
             "args": ["--from", "git+https://github.com/oraios/serena",
                      "serena", "start-mcp-server"],
         }
     }
-    note = ("Serena = código vivo (token-saver). Memoria persistente opcional (N2): "
-            "Engram (`engram mcp`) o basic-memory.")
     # Engram (memoria local, seguro) se auto-cablea si está instalado.
     if shutil.which("engram"):
         servers["engram"] = {"command": "engram", "args": ["mcp"]}
-        note += " Engram detectado y añadido."
     # Headroom (compresión; puede ser proxy) NUNCA por defecto: solo con --with-headroom.
     if answers.get("with_headroom"):
         servers["headroom"] = {"command": "headroom", "args": ["mcp"]}
-        note += (" Headroom añadido por --with-headroom; si tu versión difiere, "
-                 "ajusta con `headroom mcp install`. No reemplaza la evidencia cruda.")
-    # Ponytail MCP (ruleset de minimalismo): opt-in; requiere `tramalia skills`
-    # (clona el repo) y `npm install` dentro de ponytail-mcp. Requiere Node.
+    # Ponytail MCP (ruleset de minimalismo): opt-in; requiere `tramalia skills` + Node.
     if answers.get("with_ponytail"):
         servers["ponytail"] = {
             "command": "node",
             "args": [".tramalia/skills/ponytail/ponytail-mcp/index.js"],
         }
+    return servers
+
+
+def build_mcp_json(answers: dict) -> str:
+    import json
+
+    servers = _mcp_servers(answers)
+    note = ("Serena = código vivo (token-saver). Memoria persistente opcional (N2): "
+            "Engram (`engram mcp`) o basic-memory.")
+    if "engram" in servers:
+        note += " Engram detectado y añadido."
+    if "headroom" in servers:
+        note += (" Headroom añadido por --with-headroom; si tu versión difiere, "
+                 "ajusta con `headroom mcp install`. No reemplaza la evidencia cruda.")
+    if "ponytail" in servers:
         note += (" Ponytail añadido por --with-ponytail: ejecuta `tramalia skills` y "
                  "`npm install` en .tramalia/skills/ponytail/ponytail-mcp antes de usarlo.")
     return json.dumps({"_note": note, "mcpServers": servers}, indent=2, ensure_ascii=False) + "\n"

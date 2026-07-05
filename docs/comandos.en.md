@@ -59,6 +59,8 @@ Generates idempotently (never overwrites existing files): a single `AGENTS.md`, 
 
 Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimalism ruleset's MCP; requires `tramalia skills` + Node).
 
+**`--adopt`** — for repos that **already have an agent**: it integrates governance into an existing `AGENTS.md`/`.mcp.json`/`CLAUDE.md` with a non-destructive marker-based merge instead of skipping them. Without `--adopt`, a normal `init` that detects an `AGENTS.md` without governance tells you how. Detail: [Adopting an existing repo](adopcion.md).
+
 ## ui — the TUI dashboard
 
 `tramalia ui` opens a terminal panel (Textual; if missing, `tramalia ui` **offers to install it** right there) with three views: **Overview** (live doctor + applicable gates), **Audit** (the closes from `log`, browsable; Enter shows the `metadata.json`) and **Close** (task/agent/reviewer form + gates output). It only reads and invokes the core — zero new logic. Full interface guide: [The interface (TUI)](interfaz.md).
