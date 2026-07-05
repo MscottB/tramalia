@@ -59,9 +59,10 @@ flowchart TB
     subgraph TOOLS["Ecosystem tools · optional interop"]
       direction LR
       GA["Gentle-AI<br/><small>setup</small>"]:::sat
-      CX["Serena · Repomix<br/>codebase-memory-mcp<br/><small>context</small>"]:::sat
+      CX["Serena · code graphs<br/>markitdown<br/><small>context</small>"]:::sat
+      KN["notebooklm-mcp<br/><small>external knowledge (cloud)</small>"]:::sat
       EN["Engram<br/><small>memory</small>"]:::sat
-      HR["Headroom<br/><small>compression</small>"]:::sat
+      HR["Headroom · caveman<br/><small>efficiency</small>"]:::sat
       MR["mise · rulesync<br/><small>gates · rules</small>"]:::sat
     end
 
@@ -75,7 +76,7 @@ flowchart TB
 
 <small>**Legend:** 🟪 Tramalia (core) · 🟦 tools (optional interop) · 🟨 AI agents · 🟩 the repository.</small>
 
-In one line: **Gentle-AI** enables *which* agents to use, **Engram** helps *remember*, **Headroom** makes context *cheaper*, **Serena/Repomix/codebase-memory-mcp** provide *code intelligence*, and **Tramalia** keeps the repo **controlled, traceable and consistent**.
+In one line: **Gentle-AI** enables *which* agents to use, **Engram** helps *remember*, **Headroom/caveman** make tokens *cheaper*, **Serena and the code graphs** provide *code intelligence*, **markitdown** ingests documents, and **Tramalia** keeps the repo **controlled, traceable and consistent** — whatever the host (Claude Code, Codex, Antigravity…) or the kind of project (software or [data analytics](analitica.md)).
 
 ## Start here
 
@@ -84,7 +85,10 @@ In one line: **Gentle-AI** enables *which* agents to use, **Engram** helps *reme
 - :material-download: [__Installation & requirements__](instalacion.md)
 - :material-sitemap: [__Full workflow__](flujo-completo.md)
 - :material-school: [__Full example__](ejemplo-completo.md) — a real project end to end: every own option and every third-party tool in action.
+- :material-monitor-dashboard: [__The interface (TUI)__](interfaz.md) — the bilingual (es/en) dashboard, tab by tab.
 - :material-tools: [__Tools__](herramientas.md)
 - :material-vector-link: [__Integrations__](interop.md)
 
 </div>
+
+Multi-host or a data project? See [Models & effort per host](multi-host.md) and [Analytics (Python/Databricks)](analitica.md).

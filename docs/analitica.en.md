@@ -2,6 +2,14 @@
 
 Tramalia governs a data project just as well as a software one — and analytics teams are often the ones who **leave the least evidence** (which job ran?, with what validation?, who closed it?). Here the convention + `close` provide exactly that.
 
+```mermaid
+flowchart LR
+    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    A["databricks.yml · *.ipynb"]:::s -->|tramalia detect| B["stack: databricks · notebooks"]:::s
+    B -->|mise.toml| C["gates: bundle · nbstripout · sqlfluff --dialect databricks"]:::s
+    C -->|tramalia close| D["evidence pack<br/><small>bundle-output.txt · database-output.txt</small>"]:::s
+```
+
 ## What it detects
 
 | Signal in the repo | Detected stack | Effect |

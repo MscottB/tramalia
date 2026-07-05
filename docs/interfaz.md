@@ -2,6 +2,17 @@
 
 `tramalia ui` abre el dashboard en la terminal (Textual). Esta página explica **cada elemento** de la interfaz, qué significa y qué puedes hacer desde ella.
 
+```mermaid
+flowchart LR
+    classDef s fill:#eef0ff,stroke:#8a83e0,color:#26215c;
+    R["Resumen<br/><small>doctor en vivo + gates reales</small>"]:::s -->|i: mise install| R
+    R --> A["Auditoría<br/><small>cierres navegables</small>"]:::s
+    R --> C["Cierre<br/><small>formulario prellenado</small>"]:::s
+    C -->|sin init| B["⚙ Inicializar ahora"]:::s
+    B --> R
+    C -->|▶ close| A
+```
+
 ## Idioma
 
 La interfaz se muestra en **tu idioma** automáticamente (locale del sistema; español e inglés incluidos). Para forzarlo:

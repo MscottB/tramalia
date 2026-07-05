@@ -23,7 +23,7 @@ flowchart TB
         CONV["AGENTS.md · docs/ai/ · mise.toml · .mcp.json · .tramalia/evidence"]:::conv
     end
     subgraph C3["Capa 3 · Externo (se actualiza desde sus repos)"]
-        EXT["mise · Serena · Repomix · Semgrep · rulesync · Engram · Headroom · agentes"]:::ext
+        EXT["mise · Serena/CodeGraph/Graphify · markitdown · Semgrep · rulesync · Engram · Headroom/caveman · agentes CLI"]:::ext
     end
     C1 -->|init genera| C2
     C2 -->|leen| C3
@@ -54,13 +54,14 @@ La distinción más importante del diseño: qué es **core** (propio, standalone
 
     Delega en herramientas externas; si faltan, lo registra como excepción documentada.
 
-    - `gates` → **mise**
-    - `context` → **Repomix / Serena / codebase-memory-mcp**
+    - `gates` → **mise** (incluye `bundle` para Databricks — ver [Analítica](analitica.md))
+    - `context` → **Serena / Repomix / CodeGraph / codebase-memory-mcp / Graphify / markitdown** (ver [criterio de selección](interop-contexto.md#el-criterio-cual-montar-y-cual-usar))
     - `sync` → **rulesync**
     - `skills` → **git**
     - `update` → **mise + copier**
-    - memoria N2 → **Engram**
-    - compresión → **Headroom** (opt-in)
+    - memoria N2 → **Engram** (o basic-memory / mem0)
+    - eficiencia → **Ponytail → caveman (`lite`) → Headroom** (en ese orden; ver [criterio](interop-memoria.md#el-criterio-cual-montar-y-cual-usar))
+    - agentes CLI → **detección informativa** en `doctor` (claude, codex, antigravity, gemini, opencode — nunca los configura)
 
 ## El modelo "manifiesto + actualizador"
 
@@ -87,3 +88,28 @@ flowchart LR
 > Los `*-output.txt` crudos y `metadata.json` son la evidencia **oficial**. Ningún artefacto derivado (compresión de Headroom, `review-summary.md`) puede modificarlos, reemplazarlos ni omitirlos — solo agregar archivos auxiliares marcados como derivados.
 
 Esta regla está en el código (`core/governance.py`), en un test (`test_close_conserva_salidas_crudas`) y aquí. Es lo que protege la auditabilidad cuando se suma eficiencia.
+
+## Invariante de inicialización
+
+> No hay gobierno sin convención. `close`, `evidence` y `handoff` **se bloquean (exit 1)** en un repo sin `tramalia init`; un cierre sin gates (`mise` ausente) se registra honestamente como `no_gates`, nunca como `passed`.
+
+Esto cierra el hueco que existía antes: un proyecto podía "cerrar" tareas sin haber corrido `init` ni un solo gate, sin dejar rastro de que faltaba convención. Ver `core/project.py::is_initialized` y la [guardia de inicialización](interfaz.md#pestana-cierre).
+
+## Interfaz e internacionalización
+
+`tramalia ui` (TUI, Textual) y el CLI comparten el mismo core — la interfaz **no tiene lógica propia**, solo lee e invoca. Es **bilingüe**: los catálogos viven en `tramalia/i18n/{es,en}.json` (agregar un idioma = agregar un JSON, sin tocar código), con esta resolución:
+
+```mermaid
+flowchart LR
+    classDef s fill:#eef0ff,stroke:#8a83e0,color:#26215c;
+    A["TRAMALIA_LANG"]:::s -->|si está| Z["idioma activo"]:::s
+    B["config.json → language"]:::s -->|si no| Z
+    C["locale del sistema"]:::s -->|si no| Z
+    D["inglés (fallback)"]:::s -->|si nada aplica| Z
+```
+
+Detalle completo de cada pestaña: [La interfaz (TUI)](interfaz.md).
+
+## Planificación por horizontes
+
+`specs/tasks.md` agrega `Estado` (pendiente · en-progreso · cerrada) y `Horizonte` (ahora · próximo · después) a cada tarea. Re-planificar es **editar el archivo** — a mano o vía el subagente `planificador` — y es seguro porque las tareas **cerradas son inmutables por evidencia**: su cierre ya vive en `.tramalia/evidence/` + `log`, así que el plan futuro se puede reescribir sin tocar la historia.

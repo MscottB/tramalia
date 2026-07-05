@@ -46,6 +46,11 @@ Tramalia **orchestrates** external tools. You don't need them all to start; `tra
 | **headroom** | context/output compression (token-saver) | — | optional (interop) |
 | **specify** (Spec Kit) | spec-driven development (`specs/`) | Python | optional (interop) |
 | **ponytail** | minimalism ruleset + MCP (`--with-ponytail`) | **Node** (MCP) | optional (interop) |
+| **markitdown** | ingestion: PDF/Office/images → Markdown (context) | Python | optional (interop) |
+| **databricks CLI** | `bundle validate` in analytics projects | binary | only if `databricks.yml` is detected |
+
+!!! tip "Want the interface in a specific language?"
+    The interface (`tramalia ui` and the CLI) detects your language automatically (system locale). To force it: `TRAMALIA_LANG=en` or `"language": "en"` in `.tramalia/config.json`. See [The interface (TUI)](interfaz.md#language).
 
 !!! tip "Do I need Node?"
     Only if you use `sync`, the `ux` gate, or `context` with Repomix. In a project with no frontend and no `sync`, you **never** need Node. `tramalia doctor` flags those rows as "requires Node".

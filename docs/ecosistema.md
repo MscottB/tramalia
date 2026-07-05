@@ -18,9 +18,10 @@ flowchart TB
     subgraph TOOLS["Herramientas del ecosistema · interop opcional"]
       direction LR
       SETUP["Setup<br/><small>Gentle-AI</small>"]:::sat
-      CTX["Contexto<br/><small>Serena · Repomix<br/>codebase-memory-mcp</small>"]:::sat
+      CTX["Contexto<br/><small>Serena · Repomix · CodeGraph<br/>codebase-memory-mcp · Graphify · markitdown</small>"]:::sat
+      KNOW["Conocimiento externo<br/><small>notebooklm-mcp (cloud)</small>"]:::sat
       MEM["Memoria<br/><small>Engram · basic-memory · mem0</small>"]:::sat
-      EFF["Eficiencia<br/><small>Headroom</small>"]:::sat
+      EFF["Eficiencia<br/><small>Ponytail · caveman · Headroom</small>"]:::sat
       EXEC["Ejecución y calidad<br/><small>mise · Semgrep · Gitleaks<br/>SQLFluff · Lighthouse · Playwright</small>"]:::sat
       FAN["Reglas<br/><small>rulesync</small>"]:::sat
     end
@@ -63,15 +64,24 @@ flowchart TB
 
 **Relación con Tramalia:** interop opcional de eficiencia. **Regla dura del moat:** *compresión ≠ evidencia*. El output crudo siempre se conserva en `.tramalia/evidence/`; Headroom solo genera vistas derivadas (`review-summary.md`). Por su modo proxy, **nunca** se cablea por defecto: solo con `tramalia init --with-headroom`.
 
-### Serena · Repomix · codebase-memory-mcp — inteligencia de código
+### Serena · Repomix · CodeGraph · codebase-memory-mcp · Graphify · markitdown — inteligencia de código
 
 **Alcance:**
 
 - **Serena** — navegación semántica *viva* (LSP): el agente lee solo el símbolo exacto que va a tocar.
 - **Repomix** — *snapshot* empaquetado del repo para IA.
+- **CodeGraph** — grafo de dependencias **pre-indexado** con auto-sync (respuesta quirúrgica en una llamada, 20+ lenguajes).
 - **codebase-memory-mcp** — **grafo estructural** persistente del código (158 lenguajes, `get_architecture`, call graphs, impacto); ~99% menos tokens que leer archivo por archivo.
+- **Graphify** — grafo de conocimiento que une código + docs + schemas (CLI+MCP+skill a la vez).
+- **markitdown** (Microsoft) — **ingesta**: convierte PDF/Word/Excel/imágenes a Markdown, para traer al contexto lo que no vive en código.
 
-**Relación con Tramalia:** son el slot de **contexto** que `tramalia context` orquesta. codebase-memory-mcp es una alternativa *más potente* como backend de `context` — pero se usa **solo como servidor MCP de consulta**: sus funciones de `manage_adr` y de auto-configurar agentes **no** deben pisar el gobierno repo-first (ADR viven en `docs/ai/05`, reglas en `AGENTS.md`). Instalar con `--skip-config`.
+**Relación con Tramalia:** son el slot de **contexto** que `tramalia context` orquesta y que `doctor` detecta. CodeGraph, codebase-memory-mcp y Graphify compiten por el mismo rol de *grafo* — se monta **uno solo**; el [criterio de selección](interop-contexto.md#el-criterio-cual-montar-y-cual-usar) da el desempate por caso de uso. Las de auto-configurar agentes (CodeGraph, codebase-memory-mcp) **no** deben pisar el gobierno repo-first: instalar con `--skip-config`, usar solo sus tools de consulta (ADR viven en `docs/ai/05`, reglas en `AGENTS.md`).
+
+### notebooklm-mcp — conocimiento externo curado (cloud)
+
+**Alcance:** deja al agente "preguntarle" a un notebook de Google NotebookLM cargado con documentación de terceros — respuestas ancladas a fuentes, no alucinadas.
+
+**Relación con Tramalia:** es un slot **distinto** al de contexto/memoria — *lo que otros documentaron*, no *tu* código ni *tus* decisiones. Regla dura: solo documentación pública; nunca código privado ni evidencia del repo. No aparece en `doctor` ni en el `.mcp.json` generado (corre vía `npx` y es un servicio cloud) — se cablea manualmente. Detalle: [Contexto e inteligencia de código](interop-contexto.md#notebooklm-mcp-conocimiento-externo-curado-mcp-cloud).
 
 ### mise — ejecución de tools y gates
 
@@ -101,5 +111,7 @@ flowchart TB
 | Se repiten errores ya descartados | Memoria de **intentos fallidos** |
 | "Funciona" sin prueba | **Gates con enforcement**: no se cierra sin validar (o excepción documentada) |
 | Herramientas sueltas, sin gobierno | Tramalia las **detecta, cablea y orquesta** (interop opcional) |
+| Demasiadas alternativas, sin saber cuál usar | [**Criterio explícito**](interop-contexto.md#el-criterio-cual-montar-y-cual-usar): qué pregunta responde cada una, local primero, desempates por caso |
+| ¿Qué agentes CLI hay instalados? | `doctor` los **detecta** (claude, codex, antigravity, gemini, opencode) — informativo, nunca los configura |
 
 Tramalia no añade *otra* herramienta al montón: añade la **capa que las hace trabajar de forma auditable sobre tu repo**.

@@ -2,6 +2,14 @@
 
 Tramalia is **host-neutral**: the convention (standard `AGENTS.md`), the fan-out (`sync`) and the audit (`close --agent/--model` records any combination) work the same with any agent. But **each host controls model and effort its own way** — here's the matrix:
 
+```mermaid
+flowchart LR
+    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    A["AGENTS.md<br/><small>single source</small>"]:::s -->|tramalia sync| B["Claude Code · Codex<br/>Antigravity · Hermes · OpenClaw…"]:::s
+    B -->|each with its own model/effort| C["tramalia close --agent --model"]:::s
+    C --> D["metadata.json + log<br/><small>unified audit</small>"]:::s
+```
+
 | Host | Reads AGENTS.md | Model selection | Effort / reasoning | Subagents with model |
 |---|---|---|---|---|
 | **Claude Code** (CLI/app) | ✅ native | `/model`, `opusplan` (Opus plans, Sonnet executes) | `ultrathink` (one turn) · `/effort ultracode` (session + auto-orchestration) | ✅ native (`.claude/agents/`, Tramalia's 5) |

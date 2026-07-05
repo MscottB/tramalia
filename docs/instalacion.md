@@ -47,6 +47,11 @@ Tramalia **orquesta** herramientas externas. No las necesitas todas para empezar
 | **headroom** | compresión de contexto/outputs (token-saver) | — | opcional (interop) |
 | **specify** (Spec Kit) | spec-driven development (`specs/`) | Python | opcional (interop) |
 | **ponytail** | ruleset de minimalismo + MCP (`--with-ponytail`) | **Node** (MCP) | opcional (interop) |
+| **markitdown** | ingesta: PDF/Office/imágenes → Markdown (contexto) | Python | opcional (interop) |
+| **databricks CLI** | `bundle validate` en proyectos de analítica | binario | solo si detecta `databricks.yml` |
+
+!!! tip "¿Vas a usar el idioma inglés?"
+    La interfaz (`tramalia ui` y el CLI) detecta tu idioma automáticamente (locale del sistema). Para forzarlo: `TRAMALIA_LANG=en` o `"language": "en"` en `.tramalia/config.json`. Ver [La interfaz (TUI)](interfaz.md#idioma).
 
 !!! tip "¿Necesito Node?"
     Solo si usas `sync`, el gate `ux` o `context` con Repomix. En un proyecto sin frontend y sin `sync`, **nunca** necesitas Node. `tramalia doctor` marca esas filas como "requiere Node".

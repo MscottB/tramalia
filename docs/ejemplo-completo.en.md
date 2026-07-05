@@ -17,7 +17,7 @@ tramalia init
 | `AGENTS.md` | **All** agents (Claude, Codex, Cursor…) read the same rules: reading order, Ponytail/YAGNI, prohibitions, closing with `close` |
 | `CLAUDE.md` (`@AGENTS.md`) | Claude Code aligned without duplicating rules |
 | `docs/ai/00–11` | The project's memory: architecture, code/DB/security/UX rules, ADR, **failed attempts**, handoff |
-| `specs/` | Every feature is born as a task with an ID in `tasks.md` — that ID is what `close` audits |
+| `specs/` | Every feature is born as a task with an ID in `tasks.md`, with `Estado` and `Horizonte` (now·next·later) — that ID is what `close` audits |
 | `.tramalia/skills/01…13` | 13 workflows telling the agent *how work is done here* |
 | `.claude/agents/` | **5 subagents with model routing**: planner→opus, executor→inherit, reviewer→opus, documenter→haiku, deep-solver→fable |
 | `mise.toml` | The detected stack's gates: `ng build`, `dotnet test`, `sqlfluff`, `semgrep`, `lhci`… |
@@ -107,6 +107,9 @@ tramalia log
 
 Or in the **dashboard**: `tramalia ui` → Audit tab; Enter on the close shows its `metadata.json`.
 
+!!! note "If TASK-001 is closed before `init`"
+    `close` **blocks (exit 1)** with a clear message — there's no convention to govern. This applies the same in the CLI and the TUI (Close tab shows "⚙ Initialize now"). See [Architecture → the initialization invariant](arquitectura.md#the-initialization-invariant).
+
 ## Optional extras (when you want them)
 
 | You enable | Tool (3rd-party) | Effect on the project |
@@ -115,7 +118,8 @@ Or in the **dashboard**: `tramalia ui` → Audit tab; Enter on the close shows i
 | `init --with-headroom` | **Headroom** | compresses context/outputs for agents — **never** the raw evidence |
 | `tramalia skills` + `init --with-ponytail` | **Ponytail** | clones its ruleset to `.tramalia/skills/ponytail/` and wires its MCP (`ponytail_instructions`) |
 | `/speckit.specify` | **Spec Kit** | supercharges the `specs/` folder Tramalia already generated (doctor detects it) |
-| query MCP server | **codebase-memory-mcp** | structural code graph as context backend (install with `--skip-config`) |
+| query MCP server | **codebase-memory-mcp** / **CodeGraph** | structural code graph as context backend (install with `--skip-config`) — [criterion for which one](interop-contexto.md#the-criterion-which-to-mount-and-which-to-use) |
+| `markitdown requirements.docx -o docs/ai/09-*.md` | **markitdown** | ingests the PRD or manual in `.docx`/`.pdf` into Markdown context |
 
 ## Before and after
 

@@ -59,9 +59,10 @@ flowchart TB
     subgraph TOOLS["Herramientas del ecosistema · interop opcional"]
       direction LR
       GA["Gentle-AI<br/><small>setup</small>"]:::sat
-      CX["Serena · Repomix<br/>codebase-memory-mcp<br/><small>contexto</small>"]:::sat
+      CX["Serena · grafos de código<br/>markitdown<br/><small>contexto</small>"]:::sat
+      KN["notebooklm-mcp<br/><small>conocimiento externo (cloud)</small>"]:::sat
       EN["Engram<br/><small>memoria</small>"]:::sat
-      HR["Headroom<br/><small>compresión</small>"]:::sat
+      HR["Headroom · caveman<br/><small>eficiencia</small>"]:::sat
       MR["mise · rulesync<br/><small>gates · reglas</small>"]:::sat
     end
 
@@ -75,7 +76,7 @@ flowchart TB
 
 <small>**Leyenda:** 🟪 Tramalia (núcleo) · 🟦 herramientas (interop opcional) · 🟨 agentes IA · 🟩 el repositorio.</small>
 
-En una frase: **Gentle-AI** habilita *con qué* agentes trabajar, **Engram** ayuda a *recordar*, **Headroom** *abarata* el contexto, **Serena/Repomix/codebase-memory-mcp** dan *inteligencia de código*, y **Tramalia** asegura que el repo se mantenga **controlado, trazable y consistente**.
+En una frase: **Gentle-AI** habilita *con qué* agentes trabajar, **Engram** ayuda a *recordar*, **Headroom/caveman** *abaratan* tokens, **Serena y los grafos de código** dan *inteligencia de código*, **markitdown** ingiere documentos, y **Tramalia** asegura que el repo se mantenga **controlado, trazable y consistente** — sea cual sea el host (Claude Code, Codex, Antigravity…) o el tipo de proyecto (software o [analítica de datos](analitica.md)).
 
 ## Empieza aquí
 
@@ -84,7 +85,10 @@ En una frase: **Gentle-AI** habilita *con qué* agentes trabajar, **Engram** ayu
 - :material-download: [__Instalación y requisitos__](instalacion.md) — qué instalar y por qué (incluido cuándo necesitas Node).
 - :material-sitemap: [__Flujo completo__](flujo-completo.md) — de `init` a `close`, paso a paso con ejemplos.
 - :material-school: [__Ejemplo completo__](ejemplo-completo.md) — un proyecto real de punta a punta: cada opción propia y cada herramienta de terceros en acción.
+- :material-monitor-dashboard: [__La interfaz (TUI)__](interfaz.md) — el dashboard bilingüe (es/en), pestaña por pestaña.
 - :material-tools: [__Herramientas__](herramientas.md) — cada pieza interna y externa, su alcance y licencia.
 - :material-vector-link: [__Integraciones__](interop.md) — cómo instalar e integrar cada herramienta con Tramalia.
 
 </div>
+
+¿Multi-host o proyecto de datos? Ver [Modelos y esfuerzo por host](multi-host.md) y [Analítica (Python/Databricks)](analitica.md).

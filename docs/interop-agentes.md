@@ -112,6 +112,7 @@ Si corres Tramalia en un loop tipo Ralph, cada iteración sería: leer `specs/ta
 - **Quiénes:** Claude Code, OpenAI Codex, Cursor, Antigravity, Gemini CLI, Copilot, Cline, etc.
 - **Requiere:** la instalación oficial de cada uno (Tramalia **no** los instala).
 - **Cómo interactúan con Tramalia:** **leen** `AGENTS.md` + `docs/ai/` (la convención que `init` deja), trabajan, y al cerrar usan `tramalia close` (por shell o vía la fachada MCP `tramalia mcp`). Tramalia no razona ni genera código: **gobierna** lo que ellos hacen.
+- **¿Cuáles tienes instalados?** `tramalia doctor` (y la pestaña Resumen de `tramalia ui`) **detecta las CLIs de agentes presentes** en tu máquina — solo informativo, nunca las configura. Matriz de modelo/esfuerzo por host: [Modelos y esfuerzo por host](multi-host.md).
 
 ## En una frase
 

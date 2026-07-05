@@ -17,7 +17,7 @@ tramalia init
 | `AGENTS.md` | **Todos** los agentes (Claude, Codex, Cursor…) leen las mismas reglas: orden de lectura, Ponytail/YAGNI, prohibiciones, cierre con `close` |
 | `CLAUDE.md` (`@AGENTS.md`) | Claude Code queda alineado sin duplicar reglas |
 | `docs/ai/00–11` | La memoria del proyecto: arquitectura, reglas de código/BD/seguridad/UX, ADR, **intentos fallidos**, handoff |
-| `specs/` | Toda feature nace como tarea con ID en `tasks.md` — ese ID es el que audita `close` |
+| `specs/` | Toda feature nace como tarea con ID en `tasks.md`, con `Estado` y `Horizonte` (ahora·próximo·después) — ese ID es el que audita `close` |
 | `.tramalia/skills/01…13` | 13 workflows que le dicen al agente *cómo se trabaja aquí* |
 | `.claude/agents/` | **5 subagentes con ruteo de modelo**: planificador→opus, ejecutor→inherit, revisor→opus, documentador→haiku, resolutor-profundo→fable |
 | `mise.toml` | Los gates del stack detectado: `ng build`, `dotnet test`, `sqlfluff`, `semgrep`, `lhci`… |
@@ -107,6 +107,9 @@ tramalia log
 
 O en el **dashboard**: `tramalia ui` → pestaña Auditoría, Enter sobre el cierre muestra su `metadata.json`.
 
+!!! note "Si TASK-001 se intenta cerrar sin `init`"
+    `close` se **bloquea (exit 1)** con un mensaje claro — no hay convención que gobernar. Esto aplica igual en CLI y en la TUI (pestaña Cierre muestra "⚙ Inicializar ahora"). Ver [Arquitectura → invariante de inicialización](arquitectura.md#invariante-de-inicializacion).
+
 ## Extras opcionales (cuando los quieras)
 
 | Activas | Herramienta (3º) | Efecto en el proyecto |
@@ -115,7 +118,8 @@ O en el **dashboard**: `tramalia ui` → pestaña Auditoría, Enter sobre el cie
 | `init --with-headroom` | **Headroom** | comprime contexto/outputs para los agentes — **nunca** la evidencia cruda |
 | `tramalia skills` + `init --with-ponytail` | **Ponytail** | clona su ruleset a `.tramalia/skills/ponytail/` y cablea su MCP (`ponytail_instructions`) |
 | `/speckit.specify` | **Spec Kit** | potencia la carpeta `specs/` que Tramalia ya generó (doctor lo detecta) |
-| servidor MCP de consulta | **codebase-memory-mcp** | grafo estructural del código como backend de contexto (instalar con `--skip-config`) |
+| servidor MCP de consulta | **codebase-memory-mcp** / **CodeGraph** | grafo estructural del código como backend de contexto (instalar con `--skip-config`) — [criterio de cuál usar](interop-contexto.md#el-criterio-cual-montar-y-cual-usar) |
+| `markitdown requisitos.docx -o docs/ai/09-*.md` | **markitdown** | ingiere el PRD o el manual en `.docx`/`.pdf` al contexto en Markdown |
 
 ## El antes y el después
 

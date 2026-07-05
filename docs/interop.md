@@ -45,28 +45,32 @@ flowchart TB
     classDef ext fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
 
     AG["🤖 Agente IA"]:::ext
-    SR["Serena<br/><small>decide qué leer</small>"]:::ext
-    RP["Repomix / codebase-memory-mcp<br/><small>arma el mapa</small>"]:::ext
-    HR["Headroom<br/><small>comprime lo leído</small>"]:::ext
+    SR["Serena / grafo de código<br/><small>decide/mapea qué leer (local primero)</small>"]:::ext
+    MD["markitdown<br/><small>ingiere PDF/Office</small>"]:::ext
+    HR["Ponytail → caveman → Headroom<br/><small>abaratan tokens</small>"]:::ext
     MI["mise<br/><small>corre los gates</small>"]:::ext
-    EN["Engram<br/><small>recuerda</small>"]:::ext
+    EN["Engram<br/><small>recuerda (N2)</small>"]:::ext
+    KN["notebooklm-mcp<br/><small>conocimiento externo (cloud)</small>"]:::ext
     T["🧩 TRAMALIA<br/><small>registra qué se hizo, qué se validó, qué evidencia queda</small>"]:::core
 
     AG -->|navega| SR
-    SR -->|símbolos| RP
-    RP -->|contexto| HR
+    MD -->|contexto en Markdown| SR
+    SR -->|contexto| HR
     HR -->|menos tokens| AG
+    AG -.->|solo público, manual| KN
     AG -->|cierra tarea| T
     T -->|mise run gates| MI
     MI -->|salida cruda| T
     T -->|export opt-in| EN
 ```
 
-En palabras: **Serena** decide qué leer, **Repomix/codebase-memory-mcp** arman el mapa, **Headroom** comprime, **mise** corre los gates, **Engram** recuerda — y **Tramalia** registra qué se hizo, qué se validó y qué evidencia queda. Cada actor hace lo suyo; Tramalia los gobierna.
+En palabras: **Serena/el grafo de código** deciden qué leer, **markitdown** ingiere documentos, **Ponytail→caveman→Headroom** abaratan tokens en ese orden, **mise** corre los gates, **Engram** recuerda, **notebooklm-mcp** responde con documentación externa (cloud, manual, nunca con datos privados) — y **Tramalia** registra qué se hizo, qué se validó y qué evidencia queda. Cada actor hace lo suyo; Tramalia los gobierna, aplicando siempre el mismo [criterio: local primero, degradación normal](interop-contexto.md#el-criterio-cual-montar-y-cual-usar).
 
 ## Las páginas de detalle
 
 - [Ejecución y gates](interop-ejecucion.md) — mise, git, uv, Semgrep, Gitleaks, SQLFluff, Lighthouse, Playwright, axe.
-- [Contexto e inteligencia de código](interop-contexto.md) — Repomix, Serena, codebase-memory-mcp.
-- [Memoria y eficiencia](interop-memoria.md) — Engram, basic-memory, mem0, Headroom.
+- [Contexto e inteligencia de código](interop-contexto.md) — Serena, Repomix, CodeGraph, codebase-memory-mcp, Graphify, markitdown, notebooklm-mcp — y el criterio para elegir entre ellas.
+- [Memoria y eficiencia](interop-memoria.md) — Engram, basic-memory, mem0, Ponytail, caveman, Headroom.
 - [Reglas, skills y agentes](interop-agentes.md) — rulesync, copier, Spec Kit, Gentle-AI, agentes IA.
+- [Modelos y esfuerzo por host](multi-host.md) — matriz por CLI y detección de agentes instalados.
+- [Analítica (Python/Databricks)](analitica.md) — gates de datos (`bundle`, notebooks, SQL).
