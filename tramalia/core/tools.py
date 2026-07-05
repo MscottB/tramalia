@@ -43,8 +43,16 @@ REGISTRY: list[Tool] = [
 
     # --- por stack ---
     Tool("node", "node", "runtime JS para frontend/build", "stack",
-         stacks=("node", "angular", "react", "vue", "svelte")),
+         stacks=("node", "angular", "react", "next", "nest", "vue", "svelte")),
     Tool("dotnet", "dotnet", "SDK .NET", "stack", stacks=("dotnet",)),
+    Tool("mvn", "mvn", "build Java (Maven)", "stack", stacks=("maven",),
+         managed_by_mise=False, install_hint="https://maven.apache.org/install.html"),
+    Tool("gradle", "gradle", "build Java (Gradle)", "stack", stacks=("gradle",),
+         managed_by_mise=False, install_hint="https://gradle.org/install/"),
+    Tool("go", "go", "toolchain Go (build/test)", "stack", stacks=("go",),
+         managed_by_mise=False, install_hint="https://go.dev/doc/install"),
+    Tool("cargo", "cargo", "toolchain Rust (build/test)", "stack", stacks=("rust",),
+         managed_by_mise=False, install_hint="https://www.rust-lang.org/tools/install"),
 
     # --- por feature/gate ---
     Tool("copier", "copier", "scaffolding de la convención (tramalia init)", "feature",

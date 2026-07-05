@@ -2,6 +2,38 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.15.0] - 2026-07-05
+
+Soporte por stack: matriz de gates completa + dialectos SQL + detección fina.
+
+### Matriz de gates por stack
+- **Java (Maven/Gradle), Go y Rust** ahora emiten `build`/`test` en `mise.toml`
+  (antes se detectaban pero no generaban gates): `mvn -B compile/test`,
+  `gradle build/test`, `go build/test ./...`, `cargo build/test`.
+- `doctor` **detecta el toolchain** de esos stacks (mvn, gradle, go, cargo) y
+  cómo instalarlo, además de node/.NET.
+
+### Detección más fina
+- **Next.js** (`next.config.*`, cuenta como frontend → gate `ux`), **NestJS**
+  (`nest-cli.json`, usa los scripts npm) y **Tailwind** (`tailwind.config.*`).
+- **SQL Server**: detectado por el driver `SqlClient` en el `.csproj` (un
+  dialecto SQL no se puede inferir del `*.sql` a ojo).
+
+### Dialectos SQL por `.sqlfluff`
+- El gate `database` ahora corre `sqlfluff lint .` **sin flag**; `init` genera un
+  **`.sqlfluff`** con el dialecto del motor detectado (Postgres → `postgres`,
+  SQL Server → `tsql`, Databricks → `databricks`).
+- **Multi-motor** (p. ej. Postgres + SQL Server en el mismo repo): el `.sqlfluff`
+  raíz toma el primario y comenta cómo dar su gramática al secundario (SQLFluff
+  usa el `.sqlfluff` más cercano a cada archivo).
+
+### Documentación
+- Nueva sección **Matriz de gates por stack** en Ejecución y gates (ES/EN);
+  SQLFluff y Analítica actualizadas al modelo de dialecto por `.sqlfluff`.
+
+### Calidad
+- 102 tests con pytest (12 nuevos en `tests/test_v015.py`).
+
 ## [0.14.0] - 2026-07-05
 
 Modo *adopt*: acoplarse a repos que ya tienen un agente configurado.

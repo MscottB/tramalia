@@ -17,13 +17,13 @@ flowchart LR
 | `pyproject.toml` / `requirements.txt` | `python` | gates `pytest` + `ruff` |
 | `databricks.yml` (Asset Bundles) | `databricks` | gate **`bundle`** → `databricks bundle validate` |
 | `*.ipynb` | `notebooks` | el gate lint agrega **`nbstripout --verify`** |
-| `*.sql` / migraciones | `postgres`-like | gate `database` → SQLFluff, **con `--dialect databricks`** si hay bundle |
+| `*.sql` / migraciones | `postgres`-like | gate `database` → SQLFluff; el dialecto (`databricks` si hay bundle) se escribe en `.sqlfluff` |
 
 ## Los gates de datos, explicados
 
 - **`bundle`** (`databricks bundle validate`): valida la definición del bundle (jobs, pipelines, targets) *antes* de desplegar — el equivalente a "compila" en el mundo Databricks. Requiere el [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install) (`tramalia doctor` lo detecta).
 - **`nbstripout --verify`**: falla si algún notebook tiene **outputs sin limpiar** — outputs sucios rompen los diffs, filtran datos a git y hacen imposible la revisión. Es el gate de higiene mínimo de notebooks.
-- **SQLFluff con dialecto databricks**: lintea tus SQL/queries con la gramática correcta (Delta, `CREATE TABLE ... USING`, etc.).
+- **SQLFluff con dialecto databricks**: lintea tus SQL/queries con la gramática correcta (Delta, `CREATE TABLE ... USING`, etc.). El dialecto se genera en un `.sqlfluff` (`dialect = databricks`); ver [Ejecución y gates → SQLFluff](interop-ejecucion.md#sqlfluff-gate-de-base-de-datos).
 
 ## El flujo tipo
 

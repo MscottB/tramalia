@@ -56,6 +56,8 @@ These tools **run** the validations. Tramalia orchestrates them via `mise` (the 
 - **Requires:** Python.
 - **Install:** `mise use pipx:sqlfluff` · direct: `pipx install sqlfluff`.
 - **Tramalia uses it in:** the `database` gate (if SQL/migrations are detected); rules in `docs/ai/03`.
+- **Dialect:** the gate runs `sqlfluff lint .` **without a flag**; the dialect lives in a **`.sqlfluff`** that `init` generates from the detected engine (Postgres → `postgres`, SQL Server → `tsql`, Databricks → `databricks`). A dialect can't be guessed from `*.sql` by eye: SQL Server is detected via the `SqlClient` driver in your `.csproj`.
+- **Multi-engine (e.g. Postgres + SQL Server in the same repo):** SQLFluff uses one dialect per config, so the root `.sqlfluff` takes the primary and **comments** how to give the secondary its grammar — create a `.sqlfluff` with `dialect = <other>` inside that SQL's folder (SQLFluff uses the nearest `.sqlfluff` to each file).
 
 ## Lighthouse CI · Playwright · axe · pa11y · Storybook — UX/UI gate
 
@@ -71,3 +73,20 @@ They only apply if there's a frontend. **All require Node** (`tramalia doctor` f
 
 - **Tramalia uses them in:** the `ux` gate (via `mise run ux`); rules in `docs/ai/11-reglas-ux-ui.md`.
 - **Interact with:** the detected frontend code; their raw output goes to the evidence pack.
+
+## Gate matrix per stack
+
+`tramalia detect` identifies the stack and `init` generates the `build`/`test`/`lint` gates in `mise.toml` with each one's native command. It's **additive**: an Angular + .NET monorepo emits both builds in the same gate.
+
+| Stack | Detected signal | build | test | lint |
+|---|---|---|---|---|
+| **Angular** | `angular.json` | `ng build` | `ng test --watch=false` | `ng lint` |
+| **Node / React / Next / Vue / Svelte / Nest** | `package.json` (+ `next.config.*`, `nest-cli.json`…) | `npm run build` | `npm test` | `npm run lint` |
+| **.NET** | `*.sln` / `*.csproj` | `dotnet build` | `dotnet test` | — |
+| **Java (Maven)** | `pom.xml` | `mvn -B compile` | `mvn -B test` | — |
+| **Java (Gradle)** | `build.gradle` | `gradle build -x test` | `gradle test` | — |
+| **Go** | `go.mod` | `go build ./...` | `go test ./...` | — |
+| **Rust** | `Cargo.toml` | `cargo build` | `cargo test` | — |
+| **Python** | `pyproject.toml` / `requirements.txt` | — | `pytest` | `ruff check` |
+
+Cross-cutting gates (`security`, `database`, `ux`, `bundle`) are enabled by feature, not by language — see above and [Analytics](analitica.md). `tramalia doctor` tells you which toolchain is missing for *your* stack (Go, Rust, Maven/Gradle, .NET, Node included). The commands are starting points: edit `mise.toml` if your project uses different scripts.

@@ -14,7 +14,7 @@ from pathlib import Path
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "project"
 
 # stacks que se consideran frontend (para el gate ux)
-_FRONTEND = ("node", "angular", "react", "vue", "svelte")
+_FRONTEND = ("node", "angular", "react", "next", "vue", "svelte")
 
 
 def _render(text: str, variables: dict) -> str:
@@ -136,8 +136,12 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
         dest.write_text(content, encoding="utf-8")
         results.append((rel, "creado"))
 
-    # 2. archivos generados según stack
-    for name, builder in (("mise.toml", build_mise_toml), (".mcp.json", build_mcp_json)):
+    # 2. archivos generados según stack (`.sqlfluff` solo aplica si hay SQL: builder→None)
+    for name, builder in (("mise.toml", build_mise_toml), (".mcp.json", build_mcp_json),
+                          (".sqlfluff", build_sqlfluff)):
+        content = builder(answers)
+        if content is None:
+            continue
         dest = root / name
         if dest.exists():
             state = "existe"
@@ -150,7 +154,7 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
                     state = "adaptado"
             results.append((name, state))
             continue
-        dest.write_text(builder(answers), encoding="utf-8")
+        dest.write_text(content, encoding="utf-8")
         results.append((name, "creado"))
 
     return results
@@ -181,10 +185,19 @@ def build_mise_toml(answers: dict) -> str:
     lint_cmds: list[str] = []
     if "angular" in stacks:
         build_cmds.append("ng build"); test_cmds.append("ng test --watch=false"); lint_cmds.append("ng lint")
-    elif any(s in stacks for s in ("node", "react", "vue", "svelte")):
+    elif any(s in stacks for s in ("node", "react", "next", "vue", "svelte")):
+        # cubre también Nest (API Node): usa los scripts de package.json.
         build_cmds.append("npm run build"); test_cmds.append("npm test"); lint_cmds.append("npm run lint")
     if "dotnet" in stacks:
         build_cmds.append("dotnet build"); test_cmds.append("dotnet test")
+    if "maven" in stacks:
+        build_cmds.append("mvn -B compile"); test_cmds.append("mvn -B test")
+    elif "gradle" in stacks:
+        build_cmds.append("gradle build -x test"); test_cmds.append("gradle test")
+    if "go" in stacks:
+        build_cmds.append("go build ./..."); test_cmds.append("go test ./...")
+    if "rust" in stacks:
+        build_cmds.append("cargo build"); test_cmds.append("cargo test")
     if "python" in stacks:
         test_cmds.append("pytest"); lint_cmds.append("ruff check")
     if "notebooks" in stacks:
@@ -216,8 +229,8 @@ def build_mise_toml(answers: dict) -> str:
     if "security" in features:
         emit("security", ["gitleaks detect --no-banner", "semgrep scan --error --quiet"])
     if "database" in features:
-        dialecto = " --dialect databricks" if "databricks" in stacks else ""
-        emit("database", [f"sqlfluff lint .{dialecto}"])
+        # el dialecto vive en .sqlfluff (soporta multi-motor por ruta), no en la CLI.
+        emit("database", ["sqlfluff lint ."])
     if "databricks" in features:
         emit("bundle", ["databricks bundle validate"])
     if "ux" in features:
@@ -229,6 +242,35 @@ def build_mise_toml(answers: dict) -> str:
         lines.append(f"depends = [{deps}]")
         lines.append("")
 
+    return "\n".join(lines)
+
+
+def build_sqlfluff(answers: dict):
+    """Genera `.sqlfluff` con el dialecto del gate `database`. None si no hay SQL.
+
+    El dialecto no se puede adivinar del *.sql a ojo, así que se deriva del stack
+    (Databricks / SQL Server via SqlClient / Postgres). Multi-motor: comenta cómo
+    dar a cada carpeta su propio dialecto (SQLFluff usa el .sqlfluff más cercano).
+    """
+    stacks = answers.get("stacks", [])
+    sql = [s for s in ("databricks", "sqlserver", "postgres") if s in stacks]
+    if not sql:
+        return None
+    dialecto = {"databricks": "databricks", "sqlserver": "tsql", "postgres": "postgres"}[sql[0]]
+    lines = [
+        "# Generado por tramalia init: dialecto del gate `database` (sqlfluff).",
+        "[sqlfluff]",
+        f"dialect = {dialecto}",
+        "",
+    ]
+    if len(sql) > 1:
+        secundarios = ", ".join(sql[1:])
+        lines += [
+            f"# Detectado también: {secundarios}. SQLFluff usa un solo dialecto por config.",
+            "# Para lintar otro motor con su gramática, crea un .sqlfluff con",
+            "# `dialect = <tsql|postgres|...>` dentro de la carpeta de ese SQL.",
+            "",
+        ]
     return "\n".join(lines)
 
 

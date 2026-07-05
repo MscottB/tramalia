@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-90%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-102%20passing-brightgreen.svg)
 
 **Español** · [English](README.md) · [📚 Documentación](https://MscottB.github.io/tramalia/)
 

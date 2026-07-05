@@ -101,6 +101,8 @@ def test_mise_toml_analitica(tmp_path):
     _init(tmp_path, ["python", "databricks", "notebooks"])
     mise = (tmp_path / "mise.toml").read_text(encoding="utf-8")
     assert "databricks bundle validate" in mise
-    assert "--dialect databricks" in mise
+    # el dialecto se movió a .sqlfluff (v0.15): el gate database llama sin flag
+    assert "sqlfluff lint ." in mise
+    assert (tmp_path / ".sqlfluff").read_text(encoding="utf-8").find("dialect = databricks") >= 0
     assert "nbstripout --verify" in mise
     assert "bundle" in governance._GATE_ORDER
