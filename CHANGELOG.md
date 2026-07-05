@@ -2,6 +2,37 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.13.0] - 2026-07-05
+
+Criterio explícito de selección de herramientas + dos integraciones nuevas.
+
+### Criterio de selección (contexto, memoria y eficiencia)
+- **interop-contexto** e **interop-memoria** ganan la sección "El criterio: cuál
+  montar y cuál usar" — 3 ejes: *qué pregunta responde* cada herramienta,
+  **local primero** (ahorro de tokens + privacidad) y **degradación normal**
+  (si no está instalada, el trabajo sigue — son aceleradores, no requisitos).
+- **Desempate de grafos** (CodeGraph vs codebase-memory-mcp vs Graphify): por
+  frecuencia de uso, lenguajes del repo y tipo de análisis; si hay dos o más,
+  la elección se deja escrita en `AGENTS.md`.
+- **Desempate de memoria N2** (Engram vs basic-memory vs mem0): una sola
+  memoria activa, elegida por caso; N0 (repo + git) ya es memoria si no hay ninguna.
+- **Eficiencia en orden**: 1º Ponytail (preventivo, cero riesgo), 2º caveman
+  nivel **`lite`** (los niveles agresivos pierden contexto), 3º Headroom
+  (máximo ahorro, solo opt-in por su modo proxy).
+- La plantilla **AGENTS.md** incluye ahora la sección "Criterio de herramientas
+  (local primero)" para que **los agentes apliquen el criterio en runtime**.
+
+### Integraciones nuevas
+- **markitdown** (Microsoft): ingesta PDF/Office/imágenes → Markdown; `doctor`
+  la detecta (feature `context`); documentada como "puerta de entrada" del slot contexto.
+- **notebooklm-mcp**: conocimiento externo curado vía Google NotebookLM
+  (respuestas ancladas a fuentes). Documentada con **regla dura**: solo docs
+  públicas de terceros, jamás código privado ni evidencia; no va en `doctor`
+  ni en `.mcp.json` por defecto (cloud + npx).
+
+### Calidad
+- 81 tests con pytest (5 nuevos en `tests/test_v013.py`).
+
 ## [0.12.0] - 2026-07-04
 
 Interfaz coherente e internacional + estrategia multi-host + soporte analítica.

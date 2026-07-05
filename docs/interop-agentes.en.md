@@ -70,7 +70,7 @@ Besides the 13 own skills, `skills.toml` ships a **commented catalog** of extern
 | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) | react-best-practices (40+ rules) · **web-design-guidelines (100+ a11y/UX rules)** · writing-guidelines | **ux gate** + docs |
 | [superpowers](https://github.com/obra/superpowers) | TDD, systematic debugging, planning | skills 05/08 |
 | [mattpocock/skills](https://github.com/mattpocock/skills) | advanced TypeScript (includes **grill-me**: rigorous questioning before implementing) | TS projects + skill 01 |
-| [caveman](https://github.com/JuliusBrussee/caveman) | cuts ~65-75% of output tokens (no-filler responses) | skill 03 (token-saver) |
+| [caveman](https://github.com/JuliusBrussee/caveman) | cuts ~65-75% of output tokens — use the **`lite`** level (aggressive ones lose context); Ponytail comes first: [efficiency criterion](interop-memoria.md#the-criterion-which-to-mount-and-which-to-use) | skill 03 (token-saver) |
 | [Ponytail](https://github.com/DietrichGebert/ponytail) (enabled by default) | minimalism + its own MCP | skill 04 |
 
 Other design/UX sources you can reference the same way: [impeccable](https://github.com/pbakaus/impeccable), [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [emilkowalski/skills](https://github.com/emilkowalski/skills) (animation/UI). Claude Code's official plugin marketplace is [claude-plugins-official](https://github.com/anthropics/claude-plugins-official). [gstack](https://github.com/garrytan/gstack) is a pack of 31 skills that simulate a full team (CEO, Designer, QA, Security OWASP+STRIDE, Release) — same spirit as Tramalia's subagents, at a different scale; a useful reference, not installed as a dependency.

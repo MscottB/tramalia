@@ -86,6 +86,10 @@ REGISTRY: list[Tool] = [
     Tool("graphify", "graphify", "grafo de conocimiento del proyecto (contexto, opcional)",
          "feature", feature="context", managed_by_mise=False,
          install_hint="uv tool install graphifyy"),
+    # ingesta de documentos: PDF/Office/imágenes → Markdown (contexto, opcional).
+    Tool("markitdown", "markitdown", "convierte PDF/Office/imágenes a Markdown (ingesta, contexto)",
+         "feature", feature="context", managed_by_mise=False,
+         install_hint='pip install "markitdown[all]"'),
     # analítica: Databricks Asset Bundles (gate bundle validate).
     Tool("databricks", "databricks", "Databricks CLI (bundle validate, analítica)",
          "feature", feature="databricks", managed_by_mise=False,

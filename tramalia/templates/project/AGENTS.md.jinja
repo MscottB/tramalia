@@ -29,6 +29,15 @@ con los workflows de este repo. Consulta la que corresponda a tu tarea.
 - No introduzcas dependencias sin justificación.
 - Cierra cada tarea con `tramalia close --task <ID>` (gates + evidencia + handoff).
 
+## Criterio de herramientas (local primero)
+- Usa primero las herramientas **locales instaladas** antes de leer archivos completos
+  o consultar servicios cloud: .tramalia/context/ → Serena/grafo de código (impacto:
+  "¿qué rompo si toco X?") → recién entonces lectura directa.
+- Si hay memoria N2 instalada (Engram), consúltala al iniciar y registra decisiones
+  al cerrar; usa **una sola** memoria activa.
+- Si una herramienta de contexto/memoria **no está instalada, prosigue con
+  normalidad** — son aceleradores, no requisitos. No pidas instalarlas para avanzar.
+
 ## Prohibiciones
 - No exponer secretos, tokens ni credenciales; avisa antes de leer .env o certificados.
 - No ejecutar comandos destructivos sin confirmación.

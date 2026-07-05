@@ -54,6 +54,8 @@ The **base you install by hand first** (they can't install themselves); the rest
 | **codebase-memory-mcp** | structural code graph (158 languages) | binary (C/C++) | see repo |
 | **CodeGraph** | pre-indexed graph with auto-sync (CLI + MCP) | binary | see repo |
 | **Graphify** | code+docs+schemas knowledge graph (CLI+MCP+skill) | Python (uv) | see repo |
+| **markitdown** | ingestion: PDF/Office/images → Markdown (CLI + MCP) | Python | MIT |
+| **notebooklm-mcp** | curated external knowledge via NotebookLM (cloud, manual) | Node + Chrome | MIT |
 
 ### Security and database (gates)
 
