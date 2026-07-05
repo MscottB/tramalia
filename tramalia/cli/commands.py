@@ -63,6 +63,7 @@ def cmd_init(args) -> int:
         "reviewer_agent": "claude",
         "with_headroom": getattr(args, "with_headroom", False),
         "with_ponytail": getattr(args, "with_ponytail", False),
+        "with_notebook_exec": getattr(args, "with_notebook_exec", False),
         "adopt": adopt,
     }
     render.header(root.name, stack, _is_initialized(root))

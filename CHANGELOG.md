@@ -2,6 +2,35 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.16.0] - 2026-07-05
+
+Analítica avanzada: métricas/umbrales en la evidencia + gate de notebooks.
+
+### Métricas y umbrales en el cierre (ML/analítica)
+- Si existe **`.tramalia/metrics.json`** (dataset, métricas, mlflow_run…), `close`
+  lo **copia crudo al evidence pack** e **incrusta en `metadata.json`** bajo
+  `metrics` — el cierre registra *con qué datos* y *qué números*, no solo pass/fail.
+- Si además existe **`.tramalia/thresholds.json`** (`{"accuracy":{"min":0.9}}`),
+  una métrica que **incumpla** su umbral (o falte) **bloquea el cierre** como un
+  gate fallido (`status: blocked`), salvo `--allow-fail` →
+  `passed_with_exceptions`. Detalle en `metrics-thresholds.txt` y
+  `metadata.json → metric_thresholds`.
+- Una regresión de accuracy que impide cerrar la tarea, con el hash del dataset
+  como evidencia — gobierno de ML, no solo de código.
+
+### Gate de ejecución de notebooks (opt-in)
+- **`tramalia init --with-notebook-exec`** agrega un gate `notebooks` que
+  **ejecuta** los notebooks (`jupyter execute notebooks/*.ipynb`) — el "build"
+  de analítica, más allá de la higiene de `nbstripout --verify`. Opt-in porque
+  requiere datos/entorno; `notebooks` se suma a `_GATE_ORDER`.
+
+### Documentación
+- Analítica (ES/EN) ampliada: ejecución de notebooks, métricas y umbrales;
+  `close` en la referencia menciona el flujo de métricas.
+
+### Calidad
+- 112 tests con pytest (10 nuevos en `tests/test_v016.py`).
+
 ## [0.15.0] - 2026-07-05
 
 Soporte por stack: matriz de gates completa + dialectos SQL + detección fina.

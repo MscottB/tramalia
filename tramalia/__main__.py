@@ -30,6 +30,8 @@ def build_parser() -> argparse.ArgumentParser:
                      help="agrega el MCP de Ponytail al .mcp.json (requiere `tramalia skills` + Node)")
     ini.add_argument("--adopt", action="store_true",
                      help="integra el gobierno en un AGENTS.md/.mcp.json existentes (merge no destructivo)")
+    ini.add_argument("--with-notebook-exec", action="store_true",
+                     help="agrega un gate que EJECUTA los notebooks (jupyter execute); opt-in, requiere datos/entorno")
     sub.add_parser("gates", help="ejecuta quality gates (mise run gates)")
     sub.add_parser("context", help="genera contexto / token-saver (repomix + serena)")
     ev = sub.add_parser("evidence", help="genera el evidence pack (ej: tramalia evidence TASK-001)")

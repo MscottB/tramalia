@@ -22,12 +22,13 @@ from tramalia.core import evidence as evidence_core
 from tramalia.core import handoff as handoff_core
 from tramalia.core import proc
 
-_GATE_ORDER = ["build", "test", "lint", "format", "security", "database", "bundle", "ux"]
+_GATE_ORDER = ["build", "test", "lint", "format", "security", "database",
+               "bundle", "notebooks", "ux"]
 _OUTPUT_FILE = {
     "build": "build-output.txt", "test": "test-output.txt", "lint": "lint-output.txt",
     "format": "lint-output.txt", "security": "security-output.txt",
     "database": "database-output.txt", "bundle": "bundle-output.txt",
-    "ux": "ux-output.txt",
+    "notebooks": "notebooks-output.txt", "ux": "ux-output.txt",
 }
 
 
@@ -59,6 +60,40 @@ def _close_status(ran: bool, failed: list[str], allow_fail: bool) -> str:
     if failed:
         return "blocked"
     return "passed"
+
+
+def _read_json(path: Path):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _check_thresholds(metrics: dict, thresholds: dict) -> list[str]:
+    """Compara métricas de dominio contra umbrales. Devuelve los incumplimientos.
+
+    metrics: {"metrics": {"accuracy": 0.91, ...}, ...} (o el dict plano).
+    thresholds: {"accuracy": {"min": 0.90}, "drift": {"max": 0.05}}.
+    Una métrica ausente cuenta como incumplimiento: no se puede pasar un umbral
+    que no se midió.
+    """
+    values = metrics.get("metrics", metrics) if isinstance(metrics, dict) else {}
+    violations: list[str] = []
+    for key, rule in (thresholds or {}).items():
+        if not isinstance(rule, dict):
+            continue
+        if key not in values:
+            violations.append(f"{key}: métrica ausente (umbral {rule})")
+            continue
+        v = values[key]
+        try:
+            if "min" in rule and v < rule["min"]:
+                violations.append(f"{key}={v} < min {rule['min']}")
+            if "max" in rule and v > rule["max"]:
+                violations.append(f"{key}={v} > max {rule['max']}")
+        except TypeError:
+            violations.append(f"{key}: valor no comparable ({v!r})")
+    return violations
 
 
 def gate_tasks(root: Path) -> list[str]:
@@ -119,8 +154,28 @@ def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "
 
     handoff_path = handoff_core.new_handoff(root, task, agent, reviewer,
                                             evidence_ref=_rel(evidence_dir, root))
-    blocked = bool(failed) and not allow_fail
+
+    # métricas de dominio (analítica/ML): evidencia cruda + umbrales que bloquean.
+    metrics = _read_json(root / ".tramalia" / "metrics.json")
+    thresholds = _read_json(root / ".tramalia" / "thresholds.json")
+    violations = _check_thresholds(metrics, thresholds) if (metrics and thresholds) else []
+    if metrics is not None:
+        # copia CRUDA a la evidencia (invariante del moat: nunca derivada).
+        (evidence_dir / "metrics.json").write_text(
+            json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if thresholds is not None:
+        cuerpo = ("todos los umbrales OK" if not violations
+                  else "INCUMPLIMIENTOS:\n" + "\n".join(f"- {v}" for v in violations))
+        (evidence_dir / "metrics-thresholds.txt").write_text(
+            f"# umbrales de métricas (exit {'1' if violations else '0'})\n\n{cuerpo}\n",
+            encoding="utf-8")
+
+    # un incumplimiento de umbral bloquea aunque los gates hayan pasado.
     status = _close_status(ran, failed, allow_fail)
+    if violations:
+        status = "passed_with_exceptions" if allow_fail else "blocked"
+    effective_failed = failed + (["metrics-thresholds"] if violations else [])
+    blocked = bool(effective_failed) and not allow_fail
     closed = datetime.datetime.now().astimezone()
 
     metadata = {
@@ -144,6 +199,14 @@ def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "
         "handoff": _rel(handoff_path, root),
         "evidence_dir": _rel(evidence_dir, root),
     }
+    if metrics is not None:
+        metadata["metrics"] = metrics
+    if thresholds is not None:
+        metadata["metric_thresholds"] = {
+            "checked": thresholds,
+            "violations": violations,
+            "passed": not violations,
+        }
     (evidence_dir / "metadata.json").write_text(
         json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 

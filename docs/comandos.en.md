@@ -45,6 +45,8 @@ It works **standalone**: if `mise` is missing, it does not invent a result — i
 
 Each close writes **`metadata.json`** (task, agent, reviewer, timestamps, exit codes and an honest `status`: `passed` / `blocked` / `passed_with_exceptions` / `no_gates`). The raw `*-output.txt` files are the official evidence; no derived artifact (e.g. Headroom compression) may replace them.
 
+**Domain metrics (ML/analytics):** if `.tramalia/metrics.json` exists, `close` copies it raw into the pack and embeds it in `metadata.json`; if `.tramalia/thresholds.json` is also present, a violated threshold **blocks the close** like a failed gate. See [Analytics](analitica.md#metrics-and-thresholds-in-the-evidence-mlanalytics).
+
 ## log — the audit trail
 
 Reads each close's `metadata.json` and lists the closes (newest first) with their `status` and agent. It's the verifiable history of agentic work on the repo.

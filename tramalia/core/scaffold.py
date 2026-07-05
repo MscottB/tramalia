@@ -233,6 +233,10 @@ def build_mise_toml(answers: dict) -> str:
         emit("database", ["sqlfluff lint ."])
     if "databricks" in features:
         emit("bundle", ["databricks bundle validate"])
+    if "notebooks" in stacks and answers.get("with_notebook_exec"):
+        # opt-in: ejecuta los notebooks de punta a punta (equivale a "build" en datos).
+        # requiere datos/entorno; ajusta la ruta si tus notebooks no están en notebooks/.
+        emit("notebooks", ["jupyter execute notebooks/*.ipynb"])
     if "ux" in features:
         emit("ux", ["lhci autorun", "playwright test"])
 

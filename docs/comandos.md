@@ -45,6 +45,8 @@ Funciona **standalone**: si `mise` no está, no inventa un resultado — registr
 
 Cada cierre escribe **`metadata.json`** (task, agente, reviewer, timestamps, exit codes y `status` honesto: `passed` / `blocked` / `passed_with_exceptions` / `no_gates`). Los `*-output.txt` crudos son la evidencia oficial; ningún derivado (p. ej. compresión de Headroom) puede reemplazarlos.
 
+**Métricas de dominio (ML/analítica):** si existe `.tramalia/metrics.json`, `close` lo copia crudo al pack y lo incrusta en `metadata.json`; si además hay `.tramalia/thresholds.json`, un umbral incumplido **bloquea el cierre** como un gate fallido. Ver [Analítica](analitica.md#metricas-y-umbrales-en-la-evidencia-mlanalitica).
+
 ## log — la pista de auditoría
 
 Lee el `metadata.json` de cada cierre y lista los cierres (más reciente primero) con su `status` y el agente. Es el historial verificable del trabajo agéntico sobre el repo.
