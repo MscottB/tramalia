@@ -30,6 +30,7 @@ class Tool:
     stacks: tuple[str, ...] = ()  # category "stack": stacks que la requieren
     feature: str = ""             # category "feature": gate/feature que la activa
     runtime: str = ""             # runtime externo que necesita: "node", "python", ...
+    ephemeral: bool = False       # corre vía uvx/npx: no requiere instalación
 
 
 REGISTRY: list[Tool] = [
@@ -60,7 +61,7 @@ REGISTRY: list[Tool] = [
     Tool("repomix", "repomix", "snapshot de contexto para IA", "feature",
          feature="context", runtime="node", install_hint="mise use npm:repomix"),
     Tool("serena", "serena", "navegación/edición semántica (MCP)", "feature",
-         feature="context", managed_by_mise=False,
+         feature="context", managed_by_mise=False, ephemeral=True,
          install_hint="uvx --from git+https://github.com/oraios/serena serena --help"),
     Tool("semgrep", "semgrep", "SAST (gate seguridad)", "feature",
          feature="security", install_hint="mise use pipx:semgrep"),
@@ -108,13 +109,45 @@ REGISTRY: list[Tool] = [
          managed_by_mise=False, install_hint="https://claude.com/claude-code"),
     Tool("codex", "codex", "OpenAI Codex (agente CLI)", "agent",
          managed_by_mise=False, install_hint="npm i -g @openai/codex"),
-    Tool("antigravity", "antigravity", "Google Antigravity (agente CLI)", "agent",
-         managed_by_mise=False, install_hint="instalador oficial de Antigravity"),
-    Tool("gemini", "gemini", "Gemini CLI (migrando a Antigravity)", "agent",
-         managed_by_mise=False, install_hint="npm i -g @google/gemini-cli"),
+    Tool("antigravity", "antigravity", "Google Antigravity (agente CLI; absorbió Gemini CLI)",
+         "agent", managed_by_mise=False, install_hint="instalador oficial de Antigravity"),
     Tool("opencode", "opencode", "OpenCode (agente CLI)", "agent",
-         managed_by_mise=False, install_hint="https://opencode.ai"),
+         managed_by_mise=False, install_hint="npm i -g opencode-ai"),
+    Tool("openclaw", "openclaw", "OpenClaw (gateway multi-modelo)", "agent",
+         managed_by_mise=False, install_hint="ver documentación de OpenClaw"),
+    Tool("hermes", "hermes", "Hermes (agente vía gateway)", "agent",
+         managed_by_mise=False, install_hint="ver documentación de Hermes"),
 ]
+
+# documentación oficial de cada herramienta (tecla `d` en la TUI / docs del sitio)
+DOCS: dict[str, str] = {
+    "mise": "https://mise.jdx.dev", "git": "https://git-scm.com/doc",
+    "uv": "https://docs.astral.sh/uv/", "node": "https://nodejs.org/docs",
+    "dotnet": "https://learn.microsoft.com/dotnet/", "go": "https://go.dev/doc/",
+    "cargo": "https://doc.rust-lang.org/cargo/", "mvn": "https://maven.apache.org/guides/",
+    "gradle": "https://docs.gradle.org", "copier": "https://copier.readthedocs.io",
+    "repomix": "https://repomix.com", "serena": "https://github.com/oraios/serena",
+    "semgrep": "https://semgrep.dev/docs/", "gitleaks": "https://github.com/gitleaks/gitleaks",
+    "sqlfluff": "https://docs.sqlfluff.com", "rulesync": "https://github.com/dyoshikawa/rulesync",
+    "lhci": "https://github.com/GoogleChrome/lighthouse-ci",
+    "playwright": "https://playwright.dev/docs/intro",
+    "engram": "https://github.com/gentleman-programming/engram",
+    "headroom": "https://github.com/headroom-ai/headroom",
+    "speckit": "https://github.com/github/spec-kit",
+    "codegraph": "https://github.com/colbymchenry/codegraph",
+    "graphify": "https://github.com/irsbugs/graphifyy",
+    "markitdown": "https://github.com/microsoft/markitdown",
+    "databricks": "https://docs.databricks.com/dev-tools/cli/",
+    "claude": "https://code.claude.com/docs", "codex": "https://developers.openai.com/codex",
+    "antigravity": "https://antigravity.google", "opencode": "https://opencode.ai/docs",
+    "openclaw": "https://github.com/openclaw", "hermes": "https://hermes.nousresearch.com",
+}
+
+
+def docs_url(tool: Tool) -> str:
+    if tool.key in DOCS:
+        return DOCS[tool.key]
+    return tool.install_hint if tool.install_hint.startswith("http") else ""
 
 
 @dataclass
@@ -137,12 +170,26 @@ def _mise_has(cmd: str, timeout: float = 6.0) -> bool:
         return False
 
 
+def _uv_has(cmd: str) -> bool:
+    """¿La instaló `uv tool install`? uv deja los ejecutables en ~/.local/bin,
+    que en Windows NO entra al PATH (ni reiniciando) salvo `uv tool update-shell`
+    — se revisa la carpeta directamente, sin depender del PATH."""
+    from pathlib import Path
+    base = Path.home() / ".local" / "bin"
+    return any((base / f"{cmd}{ext}").is_file() for ext in (".exe", ".cmd", ""))
+
+
 def probe(tool: Tool, timeout: float = 8.0) -> Status:
-    """Comprueba si una herramienta está en el PATH y su versión."""
+    """Comprueba si una herramienta está disponible y su versión."""
+    from tramalia.i18n import t
     if shutil.which(tool.cmd) is None:
+        if tool.ephemeral and shutil.which("uv"):
+            # corre vía uvx: no hay nada que instalar
+            return Status(tool, present=True, version=t("doctor.ephemeral"))
         if tool.managed_by_mise and _mise_has(tool.cmd):
-            from tramalia.i18n import t
             return Status(tool, present=True, version=t("doctor.viamise"))
+        if _uv_has(tool.cmd):
+            return Status(tool, present=True, version=t("doctor.viauv"))
         return Status(tool, present=False)
     version = None
     try:

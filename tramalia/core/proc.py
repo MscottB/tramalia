@@ -16,11 +16,20 @@ def which(cmd: str) -> str | None:
     return shutil.which(cmd)
 
 
-def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+def _resolve(cmd: list[str]) -> list[str]:
     exe = shutil.which(cmd[0])
     if exe is None:
         raise FileNotFoundError(cmd[0])
     args = [exe, *cmd[1:]]
     if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
         args = ["cmd", "/c", *args]
-    return subprocess.run(args, **kwargs)
+    return args
+
+
+def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+    return subprocess.run(_resolve(cmd), **kwargs)
+
+
+def popen(cmd: list[str], **kwargs) -> subprocess.Popen:
+    """Popen con el mismo manejo de shims .cmd que `run` (streaming en vivo)."""
+    return subprocess.Popen(_resolve(cmd), **kwargs)

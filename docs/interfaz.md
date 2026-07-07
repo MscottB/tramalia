@@ -31,6 +31,8 @@ TRAMALIA_LANG=en tramalia ui        # por sesión
 | `r` | refrescar todo (doctor, auditoría, formulario) |
 | `i` | **instalar herramientas faltantes** (ver abajo) |
 | `s` | **sincronizar skills** declaradas (pestaña Skills) |
+| `d` | abrir la **documentación** de la herramienta seleccionada |
+| `c` | **cancelar** la instalación en curso (sigue con la próxima) |
 
 ## Pestaña Resumen
 
@@ -43,13 +45,27 @@ TRAMALIA_LANG=en tramalia ui        # por sesión
   - *estado* — `✓ ok` (instalada y su versión) · `○ opcional` (solo si usas esa feature) · `✗ falta` (requerida).
   - *detalle / cómo obtenerla* — versión detectada o el comando de instalación exacto.
 
-La tabla incluye también los **agentes CLI detectados** en tu máquina (claude, codex, antigravity, gemini, opencode) — solo detección informativa: Tramalia nunca los configura.
+La tabla incluye también los **agentes CLI detectados** en tu máquina (claude, codex, antigravity, opencode, openclaw, hermes) — solo detección informativa: Tramalia nunca los configura.
 
 ### Instalar desde la interfaz (`i`)
 
-Pulsa `i` y se abre un **selector múltiple** con las herramientas faltantes que se pueden instalar automatizado en **tu sistema** (espacio marca, enter confirma). Cada una se instala por su mejor vía disponible — winget/brew para binarios, `mise use` para gates, `uv tool` para Python, `npm` solo si Node está presente — y la salida corre en vivo en un panel **dentro del Resumen** (ya no salta de pestaña). Las que no tienen vía automatizada aparecen en el panel con su comando manual.
+Pulsa `i` y se abre un **selector múltiple** con las herramientas faltantes que se pueden instalar automatizado en **tu sistema** (espacio marca, enter confirma). Cada una se instala por su mejor vía disponible — winget/brew para binarios, `mise use` para gates, `uv tool` para Python, `npm` solo si Node está presente. Las que no tienen vía automatizada muestran su comando manual en la columna *detalle* de la tabla.
 
-Al terminar, la tabla se refresca de verdad: las herramientas que mise instala viven tras sus **shims** (no están en el PATH hasta `mise activate` o reiniciar la terminal), y ahora el doctor las detecta igual consultando `mise which` — verás *"instalada vía mise (shims)"* en vez de un falso "falta". Detalle de vías por SO: [Instalación](instalacion.md#instalacion-automatizada-por-sistema).
+La salida corre **línea a línea en vivo** en un panel al costado de la tabla — si una instalación se queda pegada o pide permisos, lo ves al instante:
+
+- **`c` cancela** la herramienta en curso y **sigue con la siguiente** de tu selección (una pegada ya no bloquea al resto).
+- Cada herramienta tiene **tiempo límite**; al expirar, el proceso se termina y se continúa.
+- Si el error huele a permisos (winget/choco), el panel te lo dice claro: *"parece requerir una terminal como ADMINISTRADOR"*.
+
+Al terminar, la tabla se refresca **de verdad** — el doctor detecta también lo que no está en el PATH:
+
+| Cómo se instaló | Por qué `which` no la ve | Cómo la detecta el doctor |
+|---|---|---|
+| vía **mise** | shims fuera del PATH hasta `mise activate` | consulta `mise which` |
+| vía **uv** | `~/.local/bin` no entra al PATH en Windows (ni reiniciando) salvo `uv tool update-shell` | revisa la carpeta directamente |
+| **Serena** (uvx) | no se instala: es efímera | `✓ vía uvx — no requiere instalación` |
+
+Detalle de vías por SO: [Instalación](instalacion.md#instalacion-automatizada-por-sistema). Con la tecla **`d`** abres la documentación oficial de la herramienta seleccionada en el navegador.
 
 ## Pestaña Skills
 

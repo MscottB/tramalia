@@ -81,7 +81,7 @@ def test_task_description_extrae_seccion(tmp_path):
 # ---------------------------------------------------------------- agentes CLI
 def test_agentes_cli_detectables_y_no_bloqueantes(tmp_path):
     agentes = {t.key for t in REGISTRY if t.category == "agent"}
-    assert {"claude", "codex", "antigravity", "gemini", "opencode"} <= agentes
+    assert {"claude", "codex", "antigravity", "opencode", "openclaw", "hermes"} <= agentes
     keys = {t.key for t in relevant_tools([], ())}
     assert "claude" in keys  # siempre visibles
     rep = diagnose(tmp_path)

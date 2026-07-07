@@ -2,6 +2,38 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.20.0] - 2026-07-07
+
+Instalador robusto: streaming en vivo, cancelación, y detección fiel de lo
+instalado por uv/uvx. Nace del feedback real (headroom-ai pegado sin salida).
+
+### Instalación con feedback real
+- **Salida línea a línea en vivo** en un panel al costado de la tabla (layout
+  tabla|log) — se acabó el "no sé si va bien" (antes: bloqueante, todo al final).
+- **Tecla `c` cancela** la instalación en curso y sigue con la siguiente — una
+  pegada ya no bloquea al resto de la selección.
+- **Watchdog con timeout por herramienta**: un proceso pegado EN SILENCIO
+  también se termina (era justo el caso reportado).
+- Detección de errores de permisos (winget/choco): mensaje claro *"requiere
+  terminal como ADMINISTRADOR"*.
+- Las vías manuales ya no ensucian el log: viven en la columna detalle.
+
+### Detección fiel (estados ok reales)
+- **Instaladas vía uv**: `uv tool install` deja los binarios en `~/.local/bin`,
+  que en Windows NO entra al PATH ni reiniciando (salvo `uv tool update-shell`)
+  — el doctor ahora revisa esa carpeta directamente.
+- **Serena**: estado propio `✓ vía uvx — no requiere instalación` (es efímera).
+
+### Registro y documentación de herramientas
+- **Tecla `d`**: abre la documentación oficial de la herramienta seleccionada
+  (nuevo mapa `DOCS` con la URL de cada una).
+- **opencode** automatizable vía npm; **openclaw** y **hermes** detectables;
+  **gemini eliminado** (absorbido por Antigravity).
+
+### Calidad
+- 148 tests con pytest (9 nuevos en `tests/test_v020.py`, incl. cancelación y
+  timeout de procesos mudos).
+
 ## [0.19.0] - 2026-07-07
 
 Administración de skills desde la TUI y la CLI — la contraparte de las

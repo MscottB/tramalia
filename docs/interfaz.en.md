@@ -31,6 +31,8 @@ TRAMALIA_LANG=en tramalia ui        # per session
 | `r` | refresh everything (doctor, audit, form) |
 | `i` | **install missing tools** (see below) |
 | `s` | **sync declared skills** (Skills tab) |
+| `d` | open the selected tool's **documentation** |
+| `c` | **cancel** the running install (moves on to the next) |
 
 ## Overview tab
 
@@ -43,13 +45,27 @@ TRAMALIA_LANG=en tramalia ui        # per session
   - *status* — `✓ ok` (installed, with version) · `○ optional` (only if you use that feature) · `✗ missing` (required).
   - *detail / how to get it* — detected version or the exact install command.
 
-The table also includes the **agent CLIs detected** on your machine (claude, codex, antigravity, gemini, opencode) — detection only: Tramalia never configures them.
+The table also includes the **agent CLIs detected** on your machine (claude, codex, antigravity, opencode, openclaw, hermes) — detection only: Tramalia never configures them.
 
 ### Installing from the interface (`i`)
 
-Press `i` and a **multi-selector** opens with the missing tools that can be installed automatically on **your system** (space marks, enter confirms). Each one installs through its best available route — winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present — and the output streams live in a panel **inside Overview** (no more tab jumping). Tools without an automated route show up in the panel with their manual command.
+Press `i` and a **multi-selector** opens with the missing tools that can be installed automatically on **your system** (space marks, enter confirms). Each one installs through its best available route — winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present. Tools without an automated route show their manual command in the table's *detail* column.
 
-When it finishes, the table refreshes for real: tools installed by mise live behind its **shims** (not on PATH until `mise activate` or a terminal restart), and the doctor now detects them anyway by querying `mise which` — you'll see *"installed via mise (shims)"* instead of a false "missing". Per-OS routes: [Installation](instalacion.md#automated-installation-per-system).
+Output streams **line by line, live**, in a panel beside the table — if an install gets stuck or asks for permissions, you see it instantly:
+
+- **`c` cancels** the current tool and **moves on to the next** in your selection (a stuck one no longer blocks the rest).
+- Each tool has a **time limit**; on expiry the process is terminated and the queue continues.
+- If the error smells like permissions (winget/choco), the panel says it plainly: *"seems to need an ADMINISTRATOR terminal"*.
+
+When it finishes, the table refreshes **for real** — the doctor also detects what isn't on PATH:
+
+| Installed via | Why `which` misses it | How the doctor finds it |
+|---|---|---|
+| **mise** | shims off PATH until `mise activate` | queries `mise which` |
+| **uv** | `~/.local/bin` never enters PATH on Windows (even after restart) unless `uv tool update-shell` | checks the folder directly |
+| **Serena** (uvx) | never installed: ephemeral | `✓ via uvx — no install needed` |
+
+Per-OS routes: [Installation](instalacion.md#automated-installation-per-system). The **`d`** key opens the selected tool's official documentation in your browser.
 
 ## Skills tab
 

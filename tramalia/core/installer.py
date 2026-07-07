@@ -147,3 +147,68 @@ def run_install(opt: InstallOption, timeout: int = 900) -> tuple[int, str]:
         return cp.returncode, (cp.stdout or "") + (cp.stderr or "")
     except Exception as exc:
         return 1, str(exc)
+
+
+# señales típicas de "requiere terminal como administrador" (winget/choco en Windows)
+_ADMIN_MARKS = ("0x8a150049", "0x80070005", "access is denied", "acceso denegado",
+                "administrator", "administrador", "elevation", "elevad")
+
+
+def needs_admin(output: str) -> bool:
+    low = (output or "").lower()
+    return any(m in low for m in _ADMIN_MARKS)
+
+
+def run_install_streaming(opt: InstallOption, on_line, cancel=None,
+                          timeout: int = 600) -> tuple[int, str]:
+    """Ejecuta una opción emitiendo la salida LÍNEA A LÍNEA (on_line(str)).
+
+    - `cancel`: threading.Event — al activarse se termina el proceso (exit 130)
+      para que una instalación pegada no bloquee al resto de la selección.
+    - `timeout`: por herramienta; al expirar se termina el proceso (exit 124).
+    Devuelve (exit_code, salida_completa).
+    """
+    import subprocess
+    import threading
+    import time
+
+    if not opt.args:
+        return 1, f"opción manual, no ejecutable: {opt.display}"
+    try:
+        p = proc.popen(list(opt.args), stdout=subprocess.PIPE,
+                       stderr=subprocess.STDOUT, text=True,
+                       encoding="utf-8", errors="replace")
+    except Exception as exc:
+        return 1, str(exc)
+
+    # watchdog: vigila cancelación y timeout aunque el proceso esté MUDO
+    # (una instalación pegada sin imprimir nada era justo el caso reportado).
+    why: dict = {"code": None}
+
+    def _watch():
+        fin = time.monotonic() + timeout
+        while p.poll() is None:
+            if cancel is not None and cancel.is_set():
+                why["code"] = 130
+                p.terminate()
+                return
+            if time.monotonic() > fin:
+                why["code"] = 124
+                p.terminate()
+                return
+            time.sleep(0.2)
+
+    threading.Thread(target=_watch, daemon=True).start()
+    lines: list[str] = []
+    try:
+        for line in iter(p.stdout.readline, ""):
+            lines.append(line)
+            on_line(line.rstrip())
+        p.wait(timeout=30)
+        return why["code"] if why["code"] is not None else p.returncode, "".join(lines)
+    except Exception as exc:
+        try:
+            p.terminate()
+        except Exception:
+            pass
+        return why["code"] or 1, "".join(lines) + f"\n{exc}"

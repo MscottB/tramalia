@@ -80,6 +80,8 @@ def build_app():
             ("r", "refresh", t("tui.binding.refresh")),
             ("i", "install_missing", t("tui.binding.install")),
             ("s", "skills_sync", t("tui.binding.skills")),
+            ("d", "open_docs", t("tui.binding.docs")),
+            ("c", "cancel_install", t("tui.binding.cancel")),
         ]
         CSS = """
         #estado, #gates-linea, #lastclose { padding: 0 1; }
@@ -88,7 +90,8 @@ def build_app():
         #btn-close, #btn-init { margin: 1 1; }
         #taskinfo { padding: 0 1; color: $text-muted; max-height: 10; overflow-y: auto; }
         #salida { height: 1fr; margin: 0 1; border: round $primary; }
-        #instalador { height: 9; margin: 0 1; border: round $secondary; display: none; }
+        #resumen-cuerpo { height: 1fr; }
+        #instalador { width: 45%; margin: 0 1; border: round $secondary; display: none; }
         #skills-hint { padding: 0 1; color: $text-muted; }
         #skills-log { height: 8; margin: 0 1; border: round $secondary; display: none; }
         #aviso-uninit, #aviso-audit { padding: 1 1; }
@@ -102,9 +105,10 @@ def build_app():
                     yield Static(id="estado")
                     yield Static(id="gates-linea")
                     yield Static(id="lastclose")
-                    yield DataTable(id="tabla-doctor", cursor_type="row")
-                    # salida del instalador (tecla i) — vive AQUÍ, no en Cierre
-                    yield RichLog(id="instalador", wrap=True, markup=True)
+                    # tabla | log del instalador lado a lado (el log aparece al usar `i`)
+                    with Horizontal(id="resumen-cuerpo"):
+                        yield DataTable(id="tabla-doctor", cursor_type="row")
+                        yield RichLog(id="instalador", wrap=True, markup=True)
                 with TabPane(t("tui.tab.skills"), id="skills"):
                     yield Static(t("tui.skills.hint"), id="skills-hint")
                     yield DataTable(id="tabla-skills", cursor_type="row")
@@ -344,46 +348,82 @@ def build_app():
             return log
 
         def action_install_missing(self) -> None:
-            """Tecla i: selección múltiple de faltantes, instalación por SO."""
+            """Tecla i: selección múltiple de faltantes, instalación por SO.
+
+            Las vías manuales NO se vuelcan al log (ya están en la columna
+            detalle de la tabla): el log es solo para instalaciones en curso.
+            """
             self.query_one(TabbedContent).active = "resumen"
-            log = self._log_install()
             faltantes = [s.tool for s in getattr(self, "_report").statuses
                          if not s.present]
-            plans, manuales = [], []
-            for tool in faltantes:
-                best = installer.best_auto(tool)
-                (plans.append((tool, best)) if best else manuales.append(tool))
-            for tool in manuales:
-                opts = installer.options_for(tool)
-                cmd = opts[0].display if opts else tool.install_hint
-                log.write(t("tui.install.manual", tool=tool.cmd, cmd=cmd))
+            plans = [(tool, best) for tool in faltantes
+                     if (best := installer.best_auto(tool))]
             if not plans:
-                log.write(t("tui.install.none"))
+                self._log_install().write(t("tui.install.none"))
                 return
             self.push_screen(InstallScreen(plans), self._run_installs)
 
         def _run_installs(self, seleccion) -> None:
             if not seleccion:
                 return
+            import threading
+            self._cancel = threading.Event()
             self.run_worker(lambda: self._install_worker(seleccion),
                             thread=True, exclusive=True)
 
+        def action_cancel_install(self) -> None:
+            """Tecla c: termina la instalación en curso y sigue con la próxima."""
+            ev = getattr(self, "_cancel", None)
+            if ev is not None:
+                ev.set()
+
         def _install_worker(self, seleccion) -> None:
             for tool, opt in seleccion:
+                self._cancel.clear()  # cancelar aplica a UNA herramienta, no a todas
                 self.call_from_thread(
                     self._log_write,
                     t("tui.install.installing", tool=tool.cmd,
                       method=opt.method, cmd=opt.display))
-                code, out = installer.run_install(opt)
-                tail = "\n".join(out.strip().splitlines()[-5:])
+                code, out = installer.run_install_streaming(
+                    opt, on_line=lambda ln: self.call_from_thread(
+                        self._log_write, f"[dim]{ln}[/dim]"),
+                    cancel=self._cancel)
                 if code == 0:
                     self.call_from_thread(
                         self._log_write, t("tui.install.ok", tool=tool.cmd))
+                elif code == 130:
+                    self.call_from_thread(
+                        self._log_write, t("tui.install.cancelled", tool=tool.cmd))
+                elif code == 124:
+                    self.call_from_thread(
+                        self._log_write, t("tui.install.timeout", tool=tool.cmd))
                 else:
                     self.call_from_thread(
-                        self._log_write,
-                        t("tui.install.fail", tool=tool.cmd, code=code) + f"\n{tail}")
+                        self._log_write, t("tui.install.fail", tool=tool.cmd, code=code))
+                    if installer.needs_admin(out):
+                        self.call_from_thread(
+                            self._log_write, t("tui.install.admin", tool=tool.cmd))
             self.call_from_thread(self._after_installs)
+
+        # ------------------------------------------------------------ docs
+        def action_open_docs(self) -> None:
+            """Tecla d: abre la documentación de la herramienta seleccionada."""
+            import webbrowser
+            from tramalia.core.tools import REGISTRY, docs_url
+            tabla = self.query_one("#tabla-doctor", DataTable)
+            try:
+                fila = tabla.get_row_at(tabla.cursor_row)
+            except Exception:
+                return
+            cmd = str(fila[0]).strip()
+            tool = next((x for x in REGISTRY if x.cmd == cmd), None)
+            url = docs_url(tool) if tool else ""
+            log = self._log_install()
+            if url:
+                webbrowser.open(url)
+                log.write(t("tui.docs.opened", url=url))
+            else:
+                log.write(t("tui.docs.none"))
 
         def _log_write(self, msg: str) -> None:
             self._log_install().write(msg)
