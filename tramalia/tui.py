@@ -24,6 +24,7 @@ def build_app():
 
     from tramalia.core import doctor as doctor_core
     from tramalia.core import governance, installer, project
+    from tramalia.core import skills as skills_core
     from tramalia.core.detect import detect_stack
     from tramalia.core.scaffold import scaffold
     from tramalia.core.detect import enabled_features
@@ -78,6 +79,7 @@ def build_app():
             ("q", "quit", t("tui.binding.quit")),
             ("r", "refresh", t("tui.binding.refresh")),
             ("i", "install_missing", t("tui.binding.install")),
+            ("s", "skills_sync", t("tui.binding.skills")),
         ]
         CSS = """
         #estado, #gates-linea, #lastclose { padding: 0 1; }
@@ -87,6 +89,8 @@ def build_app():
         #taskinfo { padding: 0 1; color: $text-muted; max-height: 10; overflow-y: auto; }
         #salida { height: 1fr; margin: 0 1; border: round $primary; }
         #instalador { height: 9; margin: 0 1; border: round $secondary; display: none; }
+        #skills-hint { padding: 0 1; color: $text-muted; }
+        #skills-log { height: 8; margin: 0 1; border: round $secondary; display: none; }
         #aviso-uninit, #aviso-audit { padding: 1 1; }
         DataTable { height: 1fr; }
         """
@@ -101,6 +105,10 @@ def build_app():
                     yield DataTable(id="tabla-doctor", cursor_type="row")
                     # salida del instalador (tecla i) — vive AQUÍ, no en Cierre
                     yield RichLog(id="instalador", wrap=True, markup=True)
+                with TabPane(t("tui.tab.skills"), id="skills"):
+                    yield Static(t("tui.skills.hint"), id="skills-hint")
+                    yield DataTable(id="tabla-skills", cursor_type="row")
+                    yield RichLog(id="skills-log", wrap=True, markup=True)
                 with TabPane(t("tui.tab.audit"), id="auditoria"):
                     yield Static(id="aviso-audit")
                     with Horizontal():
@@ -171,8 +179,29 @@ def build_app():
                         detalle = hint
                     tabla.add_row(f"  {s.tool.cmd}", s.tool.role, mark, detalle)
 
+            self._refresh_skills(root, initialized)
             self._refresh_audit(root, initialized, entries)
             self._refresh_close(root, initialized)
+
+        def _refresh_skills(self, root, initialized) -> None:
+            tabla = self.query_one("#tabla-skills", DataTable)
+            tabla.clear(columns=True)
+            tabla.add_columns(t("tui.skills.col.name"), t("tui.col.state"),
+                              t("tui.skills.col.info"))
+            if not initialized:
+                self.query_one("#skills-hint", Static).update(t("tui.skills.uninit"))
+                return
+            self.query_one("#skills-hint", Static).update(t("tui.skills.hint"))
+            tabla.add_row(f"[bold cyan]· {t('skills.group.own')}[/]", "", "")
+            for s in skills_core.own_skills(root):
+                tabla.add_row(f"  {s['name']}", t("skills.state.installed"),
+                              s["description"])
+            tabla.add_row(f"[bold cyan]· {t('skills.group.external')}[/]", "", "")
+            for s in skills_core.catalog(root):
+                estado = (t("skills.state.installed") if s["installed"]
+                          else t("skills.state.declared") if s["enabled"]
+                          else t("skills.state.available"))
+                tabla.add_row(f"  {s['name']}", estado, s["source"])
 
         def _refresh_audit(self, root, initialized, entries) -> None:
             aviso = self.query_one("#aviso-audit", Static)
@@ -233,6 +262,9 @@ def build_app():
                 self._show_task_info(Path.cwd(), event.value)
 
         def on_data_table_row_selected(self, event) -> None:
+            if event.data_table.id == "tabla-skills":
+                self._toggle_skill(event)
+                return
             if event.data_table.id != "tabla-log":
                 return
             row = event.data_table.get_row(event.row_key)
@@ -243,6 +275,47 @@ def build_app():
                 detalle.update(json.dumps(data, indent=2, ensure_ascii=False))
             else:
                 detalle.update(t("tui.audit.nometa"))
+
+        # ------------------------------------------------------------ skills
+        def _skills_log(self) -> RichLog:
+            log = self.query_one("#skills-log", RichLog)
+            log.display = True
+            return log
+
+        def _toggle_skill(self, event) -> None:
+            """Enter sobre una skill externa: activa/desactiva su bloque del TOML."""
+            root = Path.cwd()
+            name = str(event.data_table.get_row(event.row_key)[0]).strip()
+            externa = next((s for s in skills_core.catalog(root)
+                            if s["name"] == name), None)
+            if externa is None:  # encabezado o skill propia: nada que alternar
+                return
+            log = self._skills_log()
+            nuevo = not externa["enabled"]
+            if skills_core.set_enabled(root, name, nuevo):
+                log.write(t("skills.toggle.on" if nuevo else "skills.toggle.off",
+                            name=name))
+            else:
+                log.write(t("skills.toggle.fail", name=name))
+            self._refresh_skills(root, project.is_initialized(root))
+
+        def action_skills_sync(self) -> None:
+            self.query_one(TabbedContent).active = "skills"
+            log = self._skills_log()
+            log.write(t("tui.skills.sync.running"))
+            self.run_worker(self._skills_sync_worker, thread=True, exclusive=True)
+
+        def _skills_sync_worker(self) -> None:
+            results = skills_core.sync_skills(Path.cwd())
+            self.call_from_thread(self._after_skills_sync, results)
+
+        def _after_skills_sync(self, results) -> None:
+            log = self._skills_log()
+            if not results:
+                log.write(t("tui.skills.sync.none"))
+            for name, act in results:
+                log.write(f"{act:>12}  {name}")
+            self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
 
         def on_button_pressed(self, event) -> None:
             if event.button.id == "btn-init":

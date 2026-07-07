@@ -2,6 +2,38 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.19.0] - 2026-07-07
+
+Administración de skills desde la TUI y la CLI — la contraparte de las
+herramientas (tecla `i`), ahora para skills.
+
+### Core (`core/skills.py`)
+- **`catalog()`**: el catálogo completo de skills externas, **incluidas las
+  comentadas** de `skills.toml` (invisibles para tomllib; parser propio) —
+  cada una con estado: instalada · declarada · disponible.
+- **`set_enabled()`**: activa/desactiva el bloque de una skill comentando/
+  descomentando **solo sus líneas**; conservador (si no reconoce el bloque con
+  certeza no toca nada) e idempotente.
+- **`own_skills()`**: las 16 propias con su descripción (frontmatter).
+
+### TUI: pestaña Skills (nueva, cuarta)
+- Tabla agrupada: **propias (01–16)** con descripción · **externas** con estado.
+- **Enter** sobre una externa la activa/desactiva en `skills.toml`.
+- **Tecla `s`**: sincroniza las declaradas (clona/actualiza desde sus repos)
+  con resultado en vivo.
+
+### CLI en paridad
+- `tramalia skills list` muestra ahora las 16 propias + el catálogo completo
+  con estados (antes solo veía las descomentadas).
+- Nuevos: `tramalia skills enable <nombre>` / `disable <nombre>`.
+
+### Documentación
+- Interfaz: sección "Pestaña Skills" + atajo `s` (ES/EN); la guía de skills
+  referencia las tres vías equivalentes (CLI, TUI, TOML a mano).
+
+### Calidad
+- 139 tests con pytest (8 nuevos en `tests/test_v019.py`).
+
 ## [0.18.0] - 2026-07-07
 
 Convención con sustancia: docs/ai stack-aware, skills de deploy/analítica/

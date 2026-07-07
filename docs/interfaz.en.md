@@ -30,6 +30,7 @@ TRAMALIA_LANG=en tramalia ui        # per session
 | `q` | quit |
 | `r` | refresh everything (doctor, audit, form) |
 | `i` | **install missing tools** (see below) |
+| `s` | **sync declared skills** (Skills tab) |
 
 ## Overview tab
 
@@ -49,6 +50,17 @@ The table also includes the **agent CLIs detected** on your machine (claude, cod
 Press `i` and a **multi-selector** opens with the missing tools that can be installed automatically on **your system** (space marks, enter confirms). Each one installs through its best available route — winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present — and the output streams live in a panel **inside Overview** (no more tab jumping). Tools without an automated route show up in the panel with their manual command.
 
 When it finishes, the table refreshes for real: tools installed by mise live behind its **shims** (not on PATH until `mise activate` or a terminal restart), and the doctor now detects them anyway by querying `mise which` — you'll see *"installed via mise (shims)"* instead of a false "missing". Per-OS routes: [Installation](instalacion.md#automated-installation-per-system).
+
+## Skills tab
+
+Manage skills without editing files by hand (the visual counterpart of [the skills guide](skills-guia.md)):
+
+- **Grouped table**: the **16 own** skills (repo workflows, with their description) and the **external** ones from the `skills.toml` catalog — including the **commented** ones, shown as `○ available`.
+- **Enter on an external one** toggles it (comments/uncomments its block in `skills.toml` conservatively: if the block isn't recognized with certainty, nothing is touched and it says so).
+- **`s` key** syncs: clones/updates the declared ones from their repos (`git`), with live results (`clonada` / `actualizada` / `error`).
+- States: `✓ installed` (folder present) · `◍ declared` (enabled, needs sync) · `○ available` (in catalog).
+
+CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` · `sync`.
 
 ## Audit tab
 

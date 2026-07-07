@@ -30,6 +30,7 @@ TRAMALIA_LANG=en tramalia ui        # por sesión
 | `q` | salir |
 | `r` | refrescar todo (doctor, auditoría, formulario) |
 | `i` | **instalar herramientas faltantes** (ver abajo) |
+| `s` | **sincronizar skills** declaradas (pestaña Skills) |
 
 ## Pestaña Resumen
 
@@ -49,6 +50,17 @@ La tabla incluye también los **agentes CLI detectados** en tu máquina (claude,
 Pulsa `i` y se abre un **selector múltiple** con las herramientas faltantes que se pueden instalar automatizado en **tu sistema** (espacio marca, enter confirma). Cada una se instala por su mejor vía disponible — winget/brew para binarios, `mise use` para gates, `uv tool` para Python, `npm` solo si Node está presente — y la salida corre en vivo en un panel **dentro del Resumen** (ya no salta de pestaña). Las que no tienen vía automatizada aparecen en el panel con su comando manual.
 
 Al terminar, la tabla se refresca de verdad: las herramientas que mise instala viven tras sus **shims** (no están en el PATH hasta `mise activate` o reiniciar la terminal), y ahora el doctor las detecta igual consultando `mise which` — verás *"instalada vía mise (shims)"* en vez de un falso "falta". Detalle de vías por SO: [Instalación](instalacion.md#instalacion-automatizada-por-sistema).
+
+## Pestaña Skills
+
+Administra las skills sin editar archivos a mano (la contraparte visual de [la guía de skills](skills-guia.md)):
+
+- **Tabla agrupada**: las **16 propias** (workflows del repo, con su descripción) y las **externas** del catálogo `skills.toml` — incluidas las **comentadas**, que aparecen como `○ disponible`.
+- **Enter sobre una externa** la activa/desactiva (comenta/descomenta su bloque en `skills.toml` de forma conservadora: si el bloque no se reconoce con certeza, no toca nada y lo dice).
+- **Tecla `s`** sincroniza: clona/actualiza las declaradas desde sus repos (`git`), con el resultado en vivo (`clonada` / `actualizada` / `error`).
+- Estados: `✓ instalada` (carpeta presente) · `◍ declarada` (activa, falta sync) · `○ disponible` (en catálogo).
+
+Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `sync`.
 
 ## Pestaña Auditoría
 

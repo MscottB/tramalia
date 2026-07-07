@@ -296,18 +296,47 @@ def cmd_sync(args) -> int:
     return code
 
 
+def _skill_state(s: dict) -> str:
+    from tramalia.i18n import t
+    if s["installed"]:
+        return t("skills.state.installed")
+    if s["enabled"]:
+        return t("skills.state.declared")
+    return t("skills.state.available")
+
+
 def cmd_skills(args) -> int:
     from tramalia.core import skills
+    from tramalia.i18n import t
     root = Path.cwd()
     action = getattr(args, "action", None) or "sync"
 
     if action == "list":
-        items = skills.read_skills(root)
-        if not items:
-            render.info("no hay skills declaradas en .tramalia/skills.toml")
-        for s in items:
-            render.ok(f"{s.get('name', '?')}  ←  {s.get('source', '')}")
+        propias = skills.own_skills(root)
+        if propias:
+            render.info(t("skills.group.own"))
+            for s in propias:
+                render.ok(f"{s['name']}  —  {s['description']}")
+        externas = skills.catalog(root)
+        if externas:
+            render.info(t("skills.group.external"))
+            for s in externas:
+                render.ok(f"{s['name']:<22}{_skill_state(s)}  ←  {s['source']}")
+        if not propias and not externas:
+            render.info("no hay skills (¿corriste `tramalia init`?)")
         return 0
+
+    if action in ("enable", "disable"):
+        name = getattr(args, "name", None)
+        if not name:
+            render.err(t("skills.toggle.needname"))
+            return 1
+        if skills.set_enabled(root, name, action == "enable"):
+            render.ok(t("skills.toggle.on" if action == "enable" else "skills.toggle.off",
+                        name=name))
+            return 0
+        render.err(t("skills.toggle.fail", name=name))
+        return 1
 
     results = skills.sync_skills(root)
     if not results:

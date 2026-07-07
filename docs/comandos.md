@@ -16,7 +16,7 @@ El **núcleo de gobierno** (`init`, `doctor`, `close`, `log`, `evidence`, `hando
 | `tramalia gates` | ejecuta los quality gates | interop (mise) |
 | `tramalia context` | genera memoria derivada (token-saver) | interop (repomix + stdlib) |
 | `tramalia sync [--to --features]` | propaga AGENTS.md **y subagentes** a otros agentes | interop (rulesync) |
-| `tramalia skills [sync\|list]` | clona/actualiza skills desde sus repos | interop (git) |
+| `tramalia skills [sync\|list\|enable\|disable]` | administra skills: catálogo con estados, activar/desactivar, clonar/actualizar | interop (git) |
 | `tramalia update` | actualiza todo | interop (mise + copier + skills) |
 | `tramalia mcp` | levanta la fachada MCP | core (+ SDK mcp) |
 

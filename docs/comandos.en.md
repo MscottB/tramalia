@@ -16,7 +16,7 @@ The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`
 | `tramalia gates` | run the quality gates | interop (mise) |
 | `tramalia context` | generate derived memory (token-saver) | interop (repomix + stdlib) |
 | `tramalia sync [--to --features]` | propagate AGENTS.md **and subagents** to other agents | interop (rulesync) |
-| `tramalia skills [sync\|list]` | clone/update skills from their repos | interop (git) |
+| `tramalia skills [sync\|list\|enable\|disable]` | manage skills: catalog with states, enable/disable, clone/update | interop (git) |
 | `tramalia update` | update everything | interop (mise + copier + skills) |
 | `tramalia mcp` | start the MCP façade | core (+ mcp SDK) |
 

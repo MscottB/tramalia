@@ -33,8 +33,8 @@ flowchart TB
 
 ## Administrarlas: el flujo completo
 
-1. **Ver qué hay declarado**: `tramalia skills list` — lee `.tramalia/skills.toml` (el manifiesto: *referencias*, no copias).
-2. **Activar una externa**: abre `.tramalia/skills.toml` y **descomenta** su bloque `[[skill]]`.
+1. **Ver qué hay**: `tramalia skills list` (o la pestaña **Skills** de `tramalia ui`) — muestra las 16 propias y el catálogo externo completo con estados: `✓ instalada` · `◍ declarada (falta sync)` · `○ disponible`.
+2. **Activar una externa**: `tramalia skills enable <nombre>` (o Enter sobre ella en la pestaña **Skills** de `tramalia ui`, o descomenta su bloque `[[skill]]` a mano — las tres vías son equivalentes).
 3. **Clonar/actualizar**: `tramalia skills` (o `tramalia update`, que además actualiza las tools de mise) — cada fuente se clona a `.tramalia/skills/<nombre>/` desde su repo.
 4. **Los agentes las descubren** solos: `AGENTS.md` les indica consultar `.tramalia/skills/`; con `tramalia sync --features rules,subagents` se propagan las reglas a Cursor/Copilot/Cline.
 5. **Agregar una tuya**: crea `.tramalia/skills/17-mi-skill/SKILL.md` con frontmatter `name`/`description` + secciones Propósito · Cuándo usar · Workflow · Guardrails · Evidencia esperada. Si está anclada a `close`/gates, es una skill de gobierno legítima.
