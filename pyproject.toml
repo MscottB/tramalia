@@ -1,6 +1,6 @@
 [project]
 name = "tramalia-cli"
-version = "0.17.0"
+version = "0.18.0"
 description = "Capa repo-first de gobierno y evidencia para desarrollo con múltiples agentes IA (reglas, gates, evidence pack, handoff y auditoría)."
 readme = "README.md"
 requires-python = ">=3.10"

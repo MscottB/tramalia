@@ -17,11 +17,11 @@ def _init(tmp_path, **extra):
     return scaffold(tmp_path, answers)
 
 
-def test_docs_ai_completo_00_a_11(tmp_path):
+def test_docs_ai_completo_00_a_13(tmp_path):
     _init(tmp_path)
     nombres = sorted(p.name for p in (tmp_path / "docs" / "ai").iterdir())
     numeros = sorted(n.split("-")[0] for n in nombres)
-    assert numeros == [f"{i:02d}" for i in range(12)], f"docs/ai incompleto: {nombres}"
+    assert numeros == [f"{i:02d}" for i in range(14)], f"docs/ai incompleto: {nombres}"
 
 
 def test_specs_generada_e_integrada(tmp_path):
@@ -39,12 +39,12 @@ def test_current_task_existe(tmp_path):
     assert (tmp_path / ".tramalia" / "current-task.md").exists()
 
 
-def test_trece_skills_numeradas(tmp_path):
+def test_dieciseis_skills_numeradas(tmp_path):
     _init(tmp_path)
     base = tmp_path / ".tramalia" / "skills"
     skills = sorted(d.name for d in base.iterdir() if d.is_dir())
-    assert len(skills) == 13
-    assert skills[0].startswith("01-") and skills[-1].startswith("13-")
+    assert len(skills) == 16
+    assert skills[0].startswith("01-") and skills[-1].startswith("16-")
     for d in skills:
         assert (base / d / "SKILL.md").exists(), d
 
@@ -53,7 +53,7 @@ def test_agents_md_referencia_skills_y_02(tmp_path):
     _init(tmp_path)
     texto = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "02-reglas-codigo" in texto
-    assert "13 skills" in texto
+    assert "16 skills" in texto
     assert "tramalia close" in texto
 
 

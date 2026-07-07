@@ -71,6 +71,7 @@ plugins:
             Referencia: Reference
             Comandos: Commands
             Herramientas: Tools
+            Skills: Skills
             Glosario: Glossary
 
 extra_css:
@@ -122,4 +123,5 @@ nav:
   - Referencia:
       - Comandos: comandos.md
       - Herramientas: herramientas.md
+      - Skills: skills-guia.md
       - Glosario: glosario.md

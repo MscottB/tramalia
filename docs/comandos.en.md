@@ -59,7 +59,7 @@ Classifies requirements into **bootstrap** (mise/git/uv), **stack** (node/dotnet
 
 ## init
 
-Generates idempotently (never overwrites existing files): a single `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), the **full `docs/ai/` 00–11**, **`specs/`** (constitution/specification/plan/tasks/checklist, integrated with `close`), **13 numbered skills** in `.tramalia/skills/`, **5 subagents with model routing** in `.claude/agents/` (see [Integrations → agents](interop-agentes.md)), a stack-tailored `mise.toml`, `.mcp.json` with Serena, and `.tramalia/` (config, current-task, skills.toml).
+Generates idempotently (never overwrites existing files): a single `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), the **full `docs/ai/` 00–13** (incl. deploy & analytics), **`specs/`** (constitution/specification/plan/tasks/checklist, integrated with `close`), **16 numbered skills** in `.tramalia/skills/` (see [Skills](skills-guia.md)), **5 subagents with model routing** in `.claude/agents/` (see [Integrations → agents](interop-agentes.md)), a stack-tailored `mise.toml`, `.mcp.json` with Serena, and `.tramalia/` (config, current-task, skills.toml).
 
 Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimalism ruleset's MCP; requires `tramalia skills` + Node).
 

@@ -147,11 +147,11 @@ Detecta el stack por patrones de archivos y muestra los gates aplicables.
 ### `tramalia init [--with-headroom --with-ponytail]`
 Genera la convención en el repo actual, **idempotente** (no pisa lo existente):
 - `AGENTS.md` (fuente única) y `CLAUDE.md` (`@AGENTS.md`)
-- `docs/ai/` **completo 00–11** (resumen, arquitectura, reglas de código/DB/seguridad/UX,
+- `docs/ai/` **completo 00–13** (resumen, arquitectura, reglas de código/DB/seguridad/UX,
   ADR, intentos fallidos, handoff, comandos, quality gates, contexto operativo)
 - `specs/` (constitution · specification · plan · tasks · checklist), integrada con el
   flujo: el ID de `tasks.md` es el que usa `close --task`
-- **13 skills numeradas** en `.tramalia/skills/` (01-spec-governance … 13-documentation-handoff)
+- **16 skills numeradas** en `.tramalia/skills/` (01-spec-governance … 16-threat-modeling)
 - **5 subagentes con ruteo de modelo** en `.claude/agents/` (planificador→opus,
   ejecutor→inherit, revisor→opus, documentador→haiku, resolutor-profundo→fable);
   tu `/model` controla la conversación principal, el `model:` de cada agente aplica
@@ -296,7 +296,7 @@ son shims `.cmd` que `subprocess` no ejecuta directo; se centralizó la ejecuci�
 ## Parte 7 · Estado y pendientes
 
 **Implementado y verificado (v0.8):** `doctor`, `detect`, `init` (convención completa:
-docs/ai 00–11, specs/, 13 skills, 5 subagentes con ruteo de modelo), `gates`, `context`,
+docs/ai 00–13, specs/, 16 skills, 5 subagentes con ruteo de modelo), `gates`, `context`,
 `evidence`, `handoff`, `close` (con `--model` en la auditoría), `log`, `sync` (reglas +
 subagentes), `skills`, `update`, `mcp`, `ui` (dashboard TUI), `menu` (bucle + prompts).
 52 tests con pytest. Wheel construible con la plantilla incluida. Interop: Engram (N2),

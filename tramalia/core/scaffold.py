@@ -24,6 +24,46 @@ def _render(text: str, variables: dict) -> str:
     return text
 
 
+def _reglas_stack(stacks: list) -> dict:
+    """Bloques de reglas específicos del stack detectado (para docs/ai stack-aware)."""
+    code, db, ux = [], [], []
+    if "angular" in stacks:
+        code.append("- **Angular**: componentes standalone; `OnPush`/señales para estado local; "
+                    "sin lógica en templates; `inject()` sobre constructor largo.")
+    if any(s in stacks for s in ("react", "next")):
+        code.append("- **React/Next**: server components por defecto (Next); estado global solo "
+                    "si cruza rutas; keys estables en listas; sin `useEffect` para datos derivables.")
+    if "dotnet" in stacks:
+        code.append("- **.NET**: async/await de punta a punta (nunca `.Result`/`.Wait()`); "
+                    "DTOs ≠ entidades de dominio; `ILogger` estructurado; config con `IOptions<T>`.")
+    if "python" in stacks:
+        code.append("- **Python**: type hints en toda función pública; dataclasses para datos; "
+                    "ruff manda en estilo (no discutir formato en review).")
+    if "sqlserver" in stacks:
+        db.append("- **SQL Server (tsql)**: `SET NOCOUNT ON` en procedimientos; evitar "
+                  "`NOLOCK` como default; `datetime2`/UTC; paginación con `OFFSET-FETCH`.")
+    if "postgres" in stacks:
+        db.append("- **PostgreSQL**: `timestamptz` siempre; índices parciales para flags; "
+                  "`EXPLAIN ANALYZE` antes de optimizar a ciegas; migraciones transaccionales.")
+    if "databricks" in stacks:
+        db.append("- **Databricks**: Delta como formato por defecto; `OPTIMIZE`/`VACUUM` "
+                  "programados, no manuales; esquemas explícitos (nunca inferSchema en prod).")
+    if any(s in stacks for s in _FRONTEND):
+        ux.append("- Accesibilidad mínima verificable: labels en inputs, contraste AA, foco "
+                  "visible, navegable por teclado (el gate ux lo mide con axe/Lighthouse).")
+        if "tailwind" in stacks:
+            ux.append("- **Tailwind**: tokens del `tailwind.config` (no valores mágicos "
+                      "inline); extraer componente cuando una clase se repite 3+ veces.")
+    else:
+        ux.append("- (Proyecto sin frontend detectado: esta sección aplica si agregas UI.)")
+    vacio = "- (Sin reglas específicas del stack detectado: completa según necesidad.)"
+    return {
+        "reglas_stack_codigo": "\n".join(code) or vacio,
+        "reglas_stack_bd": "\n".join(db) or vacio,
+        "reglas_stack_ux": "\n".join(ux),
+    }
+
+
 def _variables(answers: dict) -> dict:
     stacks = answers.get("stacks", [])
     return {
@@ -32,6 +72,7 @@ def _variables(answers: dict) -> dict:
         "primary_agent": answers.get("primary_agent", "codex"),
         "reviewer_agent": answers.get("reviewer_agent", "claude"),
         "date": datetime.date.today().isoformat(),
+        **_reglas_stack(stacks),
     }
 
 

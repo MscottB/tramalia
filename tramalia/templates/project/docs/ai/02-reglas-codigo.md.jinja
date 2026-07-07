@@ -1,0 +1,30 @@
+# 02 — Reglas de código
+
+## Principios (Ponytail / YAGNI)
+- Solución **mínima correcta**: implementa solo el alcance de la tarea vigente.
+- Nombres explícitos; funciones pequeñas con una responsabilidad.
+- No abstraigas hasta la **tercera** repetición real (no la anticipada).
+- Comentarios solo para restricciones que el código no puede expresar.
+- Cambios pequeños y revisables: si el diff supera ~400 líneas, divide la tarea.
+
+## Manejo de errores
+- Validar entradas en el borde (API/handler); confiar en el tipo hacia adentro.
+- No tragar excepciones: o se maneja con acción concreta, o se propaga con contexto.
+- Registrar errores con contexto útil (qué operación, con qué id) — **nunca** datos sensibles.
+- Errores esperables (validación, negocio) ≠ errores de programación: códigos/tipos distintos.
+
+## Testing
+- Cambia lógica → cambia o agrega test en el mismo commit.
+- Un test por comportamiento, no por método; nombres que describen el caso.
+- Los tests no dependen del orden ni de la máquina (hermetismo — sin red, sin reloj real).
+- Sin test posible: documenta la validación manual en el evidence pack del `close`.
+
+## Reglas del stack detectado
+{{ reglas_stack_codigo }}
+
+## Prohibiciones
+- Sin `TODO` sin tarea asociada (`TODO(TASK-XXX): …`).
+- Sin código muerto ni features "por si acaso" — se borran, git las recuerda.
+- Sin dependencias nuevas sin justificar necesidad y revisar licencia/mantenimiento.
+
+Verificación delegada: gates `lint`/`format`/`test` (los ejecuta `tramalia close`).

@@ -1,16 +1,30 @@
-# 10 — Contexto operativo (token-saver)
+# 10 — Contexto operativo
 
-> Lo derivable se genera con `tramalia context` en `.tramalia/context/`
-> (tech-stack, project-map). Aquí va solo lo curado.
+> Lo que un agente (o humano nuevo) necesita para CORRER el proyecto sin preguntar.
 
-## Resumen compacto
-[Estado actual en menos de 500 palabras.]
+## Entornos
+| Entorno | URL/host | Rama | Quién despliega |
+|---|---|---|---|
+| local | — | cualquiera | tú |
+| [staging] | [completa] | [main] | [CI / manual] |
+| [producción] | [completa] | [tag] | [proceso de 12-deploy-release.md] |
 
-## Archivos relevantes por módulo
-- [Módulo]: [archivos]
+## Correr en local
+```bash
+# [comandos exactos: levantar dependencias, migrar, arrancar]
+```
 
-## Exclusiones de contexto
-- node_modules · dist/build · bin/obj · .git · logs
+## Configuración y credenciales
+- Variables por entorno en `.env` (existe `.env.example` versionado; el `.env`
+  real **jamás** se commitea — Gitleaks lo verifica, no lo esperes).
+- Credenciales de servicios: [dónde viven — vault/secret manager], nunca en el repo.
+- El agente **no lee** `.env` ni certificados sin avisar (regla de AGENTS.md).
 
-## Decisiones recientes
-- [Fecha]: [decisión]
+## Observabilidad
+- Logs: [dónde se miran en cada entorno].
+- Errores/alertas: [Sentry/AppInsights/etc. y quién las recibe].
+- Health checks: [endpoint(s)].
+
+## Datos
+- Datos de prueba: sintéticos (nunca dumps de producción con PII real).
+- [Cómo obtener un dataset de desarrollo.]

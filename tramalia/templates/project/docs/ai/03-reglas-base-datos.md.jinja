@@ -1,0 +1,29 @@
+# 03 — Reglas de base de datos (gate database)
+
+## Migraciones (lo innegociable)
+- **Toda** migración lleva su rollback probado — sin rollback no se mergea.
+- Ordenadas y numeradas; nunca editar una migración ya aplicada en otro entorno.
+- Expansión antes que contracción: agregar columna → migrar datos → recién borrar
+  la vieja (en OTRA migración, otro deploy).
+- Los cambios destructivos (DROP, cambio de tipo) requieren aprobación humana explícita.
+
+## Diseño
+- PK en toda tabla; FK **siempre con índice** (el motor no lo crea solo en la mayoría).
+- Fechas en UTC (`timestamptz`/`datetime2`); el huso horario es problema de la UI.
+- Nada de `SELECT *` en código de aplicación: columnas explícitas.
+- Soft-delete solo si el negocio lo pide; si existe, TODA query lo filtra (o vista).
+
+## Performance
+- Detectar N+1 antes del review: si hay loop con query adentro, es N+1.
+- Índice nuevo = query real que lo justifica (adjúntala en el PR/ADR).
+- Paginar toda lista que pueda crecer; nunca cargar tablas completas a memoria.
+
+## Reglas del motor detectado
+{{ reglas_stack_bd }}
+
+## Datos y seguridad
+- PII nunca en logs ni en datos de prueba compartidos; usar datos sintéticos.
+- Credenciales de BD por entorno (ver `10-contexto-operativo.md`), jamás en el repo.
+
+Verificación delegada: gate `database` → SQLFluff con el dialecto de `.sqlfluff`
+(lo generó `tramalia init` según tu motor). Multi-motor: un `.sqlfluff` por carpeta.

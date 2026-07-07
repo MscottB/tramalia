@@ -57,12 +57,12 @@ Deja en tu repo, idempotente (no pisa lo existente):
 ```text
 AGENTS.md              # reglas únicas para todos los agentes
 CLAUDE.md              # → @AGENTS.md (sin duplicar)
-docs/ai/               # convención completa 00-11 (arquitectura, reglas, ADR, handoff…)
+docs/ai/               # convención completa 00-13 (arquitectura, reglas por stack, deploy, analítica…)
 specs/                 # constitution · specification · plan · tasks · checklist
 .claude/agents/        # 5 subagentes con ruteo de modelo (planificador→opus, ejecutor→inherit…)
 mise.toml              # tools + gates a la medida del stack detectado
 .mcp.json              # Serena (Engram si está; Headroom/Ponytail con --with-*)
-.tramalia/             # config, current-task, skills.toml, 13 skills, context/, evidence/
+.tramalia/             # config, current-task, skills.toml, 16 skills, context/, evidence/
 ```
 
 ## 3. Ver qué falta instalar

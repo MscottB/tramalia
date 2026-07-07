@@ -1,0 +1,19 @@
+# 11 — Reglas UX/UI (gate ux)
+
+## Reglas del stack detectado
+{{ reglas_stack_ux }}
+
+## Base verificable (la mide el gate)
+- **Accesibilidad**: contraste AA, `alt` en imágenes, labels en inputs, foco visible,
+  navegable 100% por teclado — axe/Lighthouse fallan si no.
+- **Rendimiento**: presupuesto Lighthouse ≥ [90] en performance; imágenes con tamaño
+  declarado (sin layout shift); lazy-load bajo el fold.
+- **Estados**: toda vista define cargando / vacío / error — no solo el caso feliz.
+
+## Consistencia
+- Componentes del design system antes que ad-hoc; si no existe, se propone, no se clona.
+- Textos de UI: consistentes en tono e idioma; errores accionables ("X falló: haz Y").
+- Regresión visual: si cambias un componente compartido, corre Playwright antes del close.
+
+Verificación delegada: gate `ux` (Lighthouse + Playwright + axe) vía `tramalia close`.
+Guías profundas (100+ reglas): skill externa `vercel-agent-skills` → ver `.tramalia/skills.toml`.

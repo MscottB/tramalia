@@ -1,6 +1,7 @@
 # Manifiesto de skills EXTERNAS: referencias, no copias. `tramalia skills` las
 # clona/actualiza desde sus repos a .tramalia/skills/<name>.
-# Las 13 skills propias del proyecto (01-… a 13-…) ya viven en .tramalia/skills/.
+# Las 16 skills propias del proyecto (01-… a 16-…) ya viven en .tramalia/skills/.
+# Criterio de cuál instalar y cómo administrarlas: docs → página "Skills".
 
 # Ponytail: ruleset de minimalismo + servidor MCP propio (ponytail-mcp).
 # Tras `tramalia skills`, su MCP se puede cablear con `tramalia init --with-ponytail`.
@@ -44,4 +45,23 @@ ref    = "main"
 # [[skill]]
 # name   = "caveman"
 # source = "git+https://github.com/JuliusBrussee/caveman"
+# ref    = "main"
+
+# gstack: 31 skills que simulan un equipo completo (Security OWASP+STRIDE,
+# Release/Deploy, QA, Designer…) — profundiza las skills 14 y 16 propias.
+# [[skill]]
+# name   = "gstack"
+# source = "git+https://github.com/garrytan/gstack"
+# ref    = "main"
+
+# Impeccable: guías de diseño/craft para UI de alta calidad (complementa 11-ux).
+# [[skill]]
+# name   = "impeccable"
+# source = "git+https://github.com/pbakaus/impeccable"
+# ref    = "main"
+
+# Emil Kowalski: animación e interacción de UI (complementa el gate ux).
+# [[skill]]
+# name   = "emilkowalski-skills"
+# source = "git+https://github.com/emilkowalski/skills"
 # ref    = "main"

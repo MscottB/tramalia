@@ -16,9 +16,9 @@ tramalia init
 |---|---|
 | `AGENTS.md` | **Todos** los agentes (Claude, Codex, Cursor…) leen las mismas reglas: orden de lectura, Ponytail/YAGNI, prohibiciones, cierre con `close` |
 | `CLAUDE.md` (`@AGENTS.md`) | Claude Code queda alineado sin duplicar reglas |
-| `docs/ai/00–11` | La memoria del proyecto: arquitectura, reglas de código/BD/seguridad/UX, ADR, **intentos fallidos**, handoff |
+| `docs/ai/00–13` | La memoria del proyecto: arquitectura, reglas **con contenido semilla según el stack** (código/BD/seguridad/UX), deploy, analítica, ADR, **intentos fallidos**, handoff |
 | `specs/` | Toda feature nace como tarea con ID en `tasks.md`, con `Estado` y `Horizonte` (ahora·próximo·después) — ese ID es el que audita `close` |
-| `.tramalia/skills/01…13` | 13 workflows que le dicen al agente *cómo se trabaja aquí* |
+| `.tramalia/skills/01…16` | 16 workflows que le dicen al agente *cómo se trabaja aquí* — incl. deploy, analítica y threat modeling ([guía](skills-guia.md)) |
 | `.claude/agents/` | **5 subagentes con ruteo de modelo**: planificador→opus, ejecutor→inherit, revisor→opus, documentador→haiku, resolutor-profundo→fable |
 | `mise.toml` | Los gates del stack detectado: `ng build`, `dotnet test`, `sqlfluff`, `semgrep`, `lhci`… |
 | `.mcp.json` | Serena cableada (navegación semántica); Engram si está instalado |

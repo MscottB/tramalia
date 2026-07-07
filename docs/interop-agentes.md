@@ -62,7 +62,7 @@ Cómo Tramalia propaga reglas a múltiples agentes, scaffolding y spec-driven, y
 
 ## Catálogo de skills externas (verificadas)
 
-Además de las 13 skills propias, `skills.toml` trae un **catálogo comentado** de fuentes externas en formato SKILL.md estándar — descomenta las que quieras y `tramalia skills` las clona:
+Además de las 16 skills propias ([administración y criterio](skills-guia.md)), `skills.toml` trae un **catálogo comentado** de fuentes externas en formato SKILL.md estándar — descomenta las que quieras y `tramalia skills` las clona:
 
 | Fuente | Qué aporta | Encaja con |
 |---|---|---|

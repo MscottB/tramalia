@@ -2,6 +2,42 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.18.0] - 2026-07-07
+
+Convención con sustancia: docs/ai stack-aware, skills de deploy/analítica/
+ciberseguridad, y guía de administración de skills.
+
+### docs/ai enriquecido y stack-aware (00–13)
+- Las plantillas dejan de ser esqueletos: **checklists accionables** en
+  arquitectura (reglas de dependencia, ADR obligatorio), código (errores,
+  testing hermético, prohibiciones), BD (migraciones con rollback SIEMPRE,
+  expansión/contracción, FK con índice), seguridad (OWASP práctico + supply
+  chain + cuándo escalar a humano), gates (política de excepciones) y
+  contexto operativo (entornos, credenciales).
+- **Stack-aware**: `init` genera reglas específicas de lo detectado — Angular/
+  React/.NET/Python en `02`; tsql/postgres/databricks en `03`; Tailwind/a11y
+  en `11`. Un proyecto Python no arrastra reglas de Angular.
+- **Dos archivos nuevos**: `12-deploy-release.md` (checklist pre/post deploy,
+  orden BD→backend→frontend, trigger de rollback definido ANTES) y
+  `13-analitica-datos.md` (notebooks, calidad de datos, metrics/thresholds).
+
+### Skills 14–16 (ancladas al gobierno, como las 13 originales)
+- **14-deploy-gate**: el release como tarea con checklist y evidencia.
+- **15-analytics-governance**: cerrar datos/ML con métricas y umbrales.
+- **16-threat-modeling**: STRIDE ligero antes de cambios sensibles (ciberseguridad
+  más allá del SAST).
+
+### Administración de skills
+- Nueva página **Skills: administración y catálogo** (ES/EN): las 3 capas
+  (reglas → skills propias → externas), la regla de oro ("skill propia solo si
+  está anclada a un comando/gate/evidencia"), el flujo con `skills.toml` +
+  `tramalia skills`, y la tabla **cuál instalar según necesidad**.
+- Catálogo externo ampliado en `skills.toml`: gstack (Security OWASP+STRIDE,
+  Release, QA), impeccable y emilkowalski-skills (UI craft), comentados.
+
+### Calidad
+- 131 tests con pytest (8 nuevos en `tests/test_v018.py`).
+
 ## [0.17.0] - 2026-07-06
 
 Instalador personalizado por sistema + fix de la tecla `i` en la TUI.
