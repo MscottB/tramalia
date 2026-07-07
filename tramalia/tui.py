@@ -111,6 +111,8 @@ def build_app():
                         yield RichLog(id="instalador", wrap=True, markup=True)
                 with TabPane(t("tui.tab.skills"), id="skills"):
                     yield Static(t("tui.skills.hint"), id="skills-hint")
+                    yield Input(placeholder=t("tui.skills.url.placeholder"),
+                                id="skill-url")
                     yield DataTable(id="tabla-skills", cursor_type="row")
                     yield RichLog(id="skills-log", wrap=True, markup=True)
                 with TabPane(t("tui.tab.audit"), id="auditoria"):
@@ -264,6 +266,20 @@ def build_app():
         def on_input_changed(self, event) -> None:
             if event.input.id == "in-task":
                 self._show_task_info(Path.cwd(), event.value)
+
+        def on_input_submitted(self, event) -> None:
+            """Enter en el input de URL: agrega la skill al manifiesto."""
+            if event.input.id != "skill-url" or not event.value.strip():
+                return
+            root = Path.cwd()
+            ok, resultado = skills_core.add_skill(root, event.value)
+            log = self._skills_log()
+            if ok:
+                log.write(t("skills.add.ok", name=resultado))
+                event.input.value = ""
+                self._refresh_skills(root, project.is_initialized(root))
+            else:
+                log.write(t(f"skills.add.{resultado}"))
 
         def on_data_table_row_selected(self, event) -> None:
             if event.data_table.id == "tabla-skills":

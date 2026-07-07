@@ -51,6 +51,39 @@ def diagnose(root: Path | None = None,
                   node_present=node_present, node_tools=node_tools)
 
 
+def write_snapshot(report: Report, root: Path) -> Path | None:
+    """Escribe .tramalia/context/tools.json: qué hay instalado y qué no.
+
+    Es CONTEXTO PARA LOS AGENTES (AGENTS.md les indica consultarlo antes de
+    invocar una herramienta externa — así no llaman a ciegas a una ausente).
+    Solo se escribe si el proyecto tiene .tramalia/.
+    """
+    import datetime
+    import json
+    if not (root / ".tramalia").is_dir():
+        return None
+    dest = root / ".tramalia" / "context"
+    dest.mkdir(parents=True, exist_ok=True)
+    data = {
+        "_nota": ("generado por `tramalia doctor` — consúltalo antes de invocar "
+                  "una herramienta externa; si installed=false usa su alternativa "
+                  "o continúa sin ella"),
+        "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "stack": report.stack,
+        "tools": [
+            {"key": s.tool.key, "cmd": s.tool.cmd, "installed": s.present,
+             "version": s.version, "category": s.tool.category,
+             "feature": s.tool.feature or None,
+             "alternative": None if s.present else s.tool.install_hint}
+            for s in report.statuses
+        ],
+    }
+    out = dest / "tools.json"
+    out.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                   encoding="utf-8")
+    return out
+
+
 def fix(report: Report) -> bool:
     """Intenta instalar lo que falte delegando en mise. Devuelve True si actuó."""
     mise_ok = next((s.present for s in report.statuses if s.tool.key == "mise"), False)

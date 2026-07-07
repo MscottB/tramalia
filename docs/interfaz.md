@@ -76,7 +76,9 @@ Administra las skills sin editar archivos a mano (la contraparte visual de [la g
 - **Tecla `s`** sincroniza: clona/actualiza las declaradas desde sus repos (`git`), con el resultado en vivo (`clonada` / `actualizada` / `error`).
 - Estados: `✓ instalada` (carpeta presente) · `◍ declarada` (activa, falta sync) · `○ disponible` (en catálogo).
 
-Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `sync`.
+Hay además un **input de URL**: pega la URL git de cualquier skill y Enter la agrega al manifiesto (luego `s` la clona).
+
+Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `add <url>` · `sync`.
 
 ## Pestaña Auditoría
 

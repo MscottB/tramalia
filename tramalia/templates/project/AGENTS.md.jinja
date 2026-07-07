@@ -33,6 +33,9 @@ externas adicionales: .tramalia/skills.toml (se clonan con `tramalia skills`).
 - Cierra cada tarea con `tramalia close --task <ID>` (gates + evidencia + handoff).
 
 ## Criterio de herramientas (local primero)
+- **Antes de invocar una herramienta externa, consulta .tramalia/context/tools.json**
+  (lo genera `tramalia doctor`): si `installed` es false, usa su `alternative` o
+  continúa sin ella — no la llames a ciegas.
 - Usa primero las herramientas **locales instaladas** antes de leer archivos completos
   o consultar servicios cloud: .tramalia/context/ → Serena/grafo de código (impacto:
   "¿qué rompo si toco X?") → recién entonces lectura directa.

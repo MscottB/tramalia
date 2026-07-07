@@ -37,7 +37,8 @@ flowchart TB
 2. **Enable an external one**: `tramalia skills enable <name>` (or Enter on it in the **Skills** tab of `tramalia ui`, or uncomment its `[[skill]]` block by hand — all three are equivalent).
 3. **Clone/update**: `tramalia skills` (or `tramalia update`, which also updates mise tools) — each source is cloned to `.tramalia/skills/<name>/` from its repo.
 4. **Agents discover them** on their own: `AGENTS.md` points them to `.tramalia/skills/`; `tramalia sync --features rules,subagents` propagates rules to Cursor/Copilot/Cline.
-5. **Add your own**: create `.tramalia/skills/17-my-skill/SKILL.md` with `name`/`description` frontmatter + Purpose · When to use · Workflow · Guardrails · Expected evidence sections. If it's anchored to `close`/gates, it's a legitimate governance skill.
+5. **Add one by URL**: `tramalia skills add <git-url> [name]` (or paste the URL in the Skills tab input) — declares it in the manifest; `sync` clones it.
+6. **Add your own**: create `.tramalia/skills/17-my-skill/SKILL.md` with `name`/`description` frontmatter + Purpose · When to use · Workflow · Guardrails · Expected evidence sections. If it's anchored to `close`/gates, it's a legitimate governance skill.
 
 ## Which one to install? (decision by need)
 

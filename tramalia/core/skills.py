@@ -98,6 +98,31 @@ def set_enabled(root: Path, name: str, enabled: bool) -> bool:
     return False
 
 
+def add_skill(root: Path, source: str, name: str | None = None) -> tuple[bool, str]:
+    """Agrega un bloque [[skill]] ACTIVO al manifiesto desde una URL git.
+
+    Devuelve (ok, nombre|razón). El nombre se deriva del último segmento de la
+    URL si no se pasa. No duplica: si ya existe en el catálogo, no toca nada.
+    """
+    f = root / ".tramalia" / "skills.toml"
+    if not f.exists():
+        return False, "sin-manifiesto"
+    src = source.strip()
+    if not src.startswith(("http://", "https://", "git+")):
+        return False, "url-invalida"
+    if not src.startswith("git+"):
+        src = "git+" + src
+    nombre = (name or src.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1]).strip()
+    if not nombre:
+        return False, "url-invalida"
+    if any(s["name"] == nombre for s in catalog(root)):
+        return False, "duplicada"
+    bloque = f'\n[[skill]]\nname   = "{nombre}"\nsource = "{src}"\nref    = "main"\n'
+    with f.open("a", encoding="utf-8") as fh:
+        fh.write(bloque)
+    return True, nombre
+
+
 def own_skills(root: Path) -> list[dict]:
     """Las skills propias del proyecto (NN-*/SKILL.md) con su descripción."""
     base = root / ".tramalia" / "skills"

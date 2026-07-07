@@ -67,10 +67,13 @@ def build_parser() -> argparse.ArgumentParser:
     sy.add_argument("--features", default=None,
                     help="features de rulesync a propagar (def: rules,subagents)")
     sk = sub.add_parser("skills", help="administra skills (.tramalia/skills.toml): sync/list/enable/disable")
-    sk.add_argument("action", nargs="?", choices=["sync", "list", "enable", "disable"],
+    sk.add_argument("action", nargs="?",
+                    choices=["sync", "list", "enable", "disable", "add"],
                     default="sync")
     sk.add_argument("name", nargs="?", default=None,
-                    help="nombre de la skill (para enable/disable)")
+                    help="nombre (enable/disable) o URL git (add)")
+    sk.add_argument("alias", nargs="?", default=None,
+                    help="nombre opcional para `add` (default: del URL)")
     sub.add_parser("update", help="actualiza todo (mise + copier + skills)")
     sub.add_parser("mcp", help="levanta el Tramalia MCP (fachada nivel 1, stdio)")
     sub.add_parser("ui", help="abre el dashboard TUI (requiere extra [tui])")

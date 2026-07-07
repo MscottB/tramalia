@@ -33,6 +33,8 @@ def _run(cmd: list[str]) -> int:
 
 def cmd_doctor(args) -> int:
     report = doctor_core.diagnose(Path.cwd())
+    # snapshot para los agentes: qué está instalado (AGENTS.md les dice leerlo)
+    doctor_core.write_snapshot(report, Path.cwd())
     code = render.doctor(report)
     if not getattr(args, "fix", False):
         return code
@@ -325,6 +327,18 @@ def cmd_skills(args) -> int:
         if not propias and not externas:
             render.info("no hay skills (¿corriste `tramalia init`?)")
         return 0
+
+    if action == "add":
+        url = getattr(args, "name", None)
+        if not url:
+            render.err(t("skills.add.needurl"))
+            return 1
+        ok, resultado = skills.add_skill(root, url, getattr(args, "alias", None))
+        if ok:
+            render.ok(t("skills.add.ok", name=resultado))
+            return 0
+        render.err(t(f"skills.add.{resultado}"))
+        return 1
 
     if action in ("enable", "disable"):
         name = getattr(args, "name", None)

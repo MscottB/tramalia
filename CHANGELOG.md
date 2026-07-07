@@ -2,6 +2,32 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.21.0] - 2026-07-07
+
+Agentes conscientes de las herramientas + skills por URL + página de Ayuda.
+
+### tools.json: los agentes ya no llaman a ciegas
+- `tramalia doctor` escribe **`.tramalia/context/tools.json`** (qué está
+  instalado, versión, y la alternativa de cada ausente).
+- La plantilla `AGENTS.md` ordena: *"antes de invocar una herramienta externa,
+  consulta tools.json; si `installed` es false, usa su alternativa o continúa"*
+  — se acabaron los turnos quemados invocando semgrep inexistente.
+
+### Skills por URL
+- **`tramalia skills add <url-git> [nombre]`** — declara la skill en el
+  manifiesto (nombre derivado del URL; sin duplicados; URL validada).
+- En la TUI: **input en la pestaña Skills** — pegar URL + Enter; `s` la clona.
+
+### Documentación
+- Nueva página **Ayuda (FAQ)** (ES/EN): los tropiezos reales resueltos — uv y
+  el PATH, shims de mise, instalaciones pegadas/admin, guardia de init,
+  excepciones de gates, idioma, actualizar el CLI, skills.
+- **Multi-host** gana la sección *Apps de escritorio e IDEs* (Claude Code
+  desktop, Codex desktop, Antigravity IDE — funcionan hoy: repo-first).
+
+### Calidad
+- 154 tests con pytest (6 nuevos en `tests/test_v021.py`).
+
 ## [0.20.0] - 2026-07-07
 
 Instalador robusto: streaming en vivo, cancelación, y detección fiel de lo

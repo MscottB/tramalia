@@ -76,7 +76,9 @@ Manage skills without editing files by hand (the visual counterpart of [the skil
 - **`s` key** syncs: clones/updates the declared ones from their repos (`git`), with live results (`clonada` / `actualizada` / `error`).
 - States: `✓ installed` (folder present) · `◍ declared` (enabled, needs sync) · `○ available` (in catalog).
 
-CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` · `sync`.
+There's also a **URL input**: paste any skill's git URL and Enter adds it to the manifest (then `s` clones it).
+
+CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` · `add <url>` · `sync`.
 
 ## Audit tab
 

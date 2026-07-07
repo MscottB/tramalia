@@ -19,7 +19,11 @@ flowchart LR
 | **OpenClaw** and multi-model API gateways | AGENTS.md is plain Markdown: they read it if their config points to it | gateway profiles / API keys | `reasoning_effort` / thinking budget per request | manual |
 
 !!! tip "Which agents do you have installed?"
-    `tramalia doctor` (and the Overview tab of `tramalia ui`) now **detects the agent CLIs present** on your machine — claude, codex, antigravity, gemini, opencode — with their version. Detection only: configuring them remains each agent's (or Gentle-AI's) territory.
+    `tramalia doctor` (and the Overview tab of `tramalia ui`) now **detects the agent CLIs present** on your machine — claude, codex, antigravity, opencode, openclaw, hermes — with their version. Detection only: configuring them remains each agent's (or Gentle-AI's) territory.
+
+## Desktop apps & IDEs
+
+Everything above applies **equally** to the apps: Claude Code desktop uses the same engine as its CLI (reads `AGENTS.md`, `.mcp.json`, `.claude/agents/` and runs shell → `tramalia close` works identically); Codex desktop and Antigravity IDE read `AGENTS.md` natively and receive rules via `sync`. For GUIs without shell, the universal route is the **MCP façade** (`tramalia mcp`). That's the repo-first design paying off: governance lives in the repo, not in the host.
 
 ## The strategy in practice
 
