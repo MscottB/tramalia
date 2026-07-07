@@ -77,8 +77,10 @@ def test_close_umbral_incumplido_con_allow_fail_es_excepcion(tmp_path):
     assert res.status == "passed_with_exceptions" and res.blocked is False
 
 
-def test_close_sin_metricas_es_igual_que_antes(tmp_path):
+def test_close_sin_metricas_es_igual_que_antes(tmp_path, monkeypatch):
     _prep(tmp_path)
+    # hermético: simular que mise NO está (independiente de la máquina)
+    monkeypatch.setattr(governance.proc, "which", lambda _cmd: None)
     res = close(tmp_path, task="TASK-1")
     assert res.status == "no_gates"           # sin mise ni métricas: comportamiento previo
     assert "metrics" not in (res.metadata or {})

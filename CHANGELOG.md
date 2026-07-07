@@ -2,6 +2,44 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.17.0] - 2026-07-06
+
+Instalador personalizado por sistema + fix de la tecla `i` en la TUI.
+Nace del feedback real de instalar en Windows (winget ✓, scoop ✗).
+
+### Instalador por SO y por gestor (`core/installer.py`)
+- Detecta el sistema (Windows/macOS/Linux) y qué gestores hay: para cada
+  herramienta arma opciones **ordenadas** — la mejor disponible se ejecuta
+  automatizada, el resto se muestra como alternativa manual.
+- **mise en Windows: winget primero** (`winget install jdx.mise`, vía
+  verificada); choco/scoop quedan como alternativas manuales.
+- Reglas: `curl | sh` **nunca** automatizado; opciones **npm solo si Node/npm
+  está presente** (verificador incluido); `pipx:` deriva a `uv tool install`.
+- `doctor --fix` renovado: plan automatizado + **selección múltiple**
+  interactiva (checkbox) antes de ejecutar; muestra qué requiere vía manual.
+
+### TUI: tecla `i` arreglada de raíz
+- Ya **no salta a la pestaña Cierre**: la salida corre en un panel propio
+  dentro del Resumen.
+- Ya no corre un `mise install` ciego: abre un **selector múltiple** con las
+  faltantes instalables en tu sistema y las instala una a una por su mejor vía.
+- **Fix del "no muestra diferencia"**: lo que mise instala vive tras sus
+  *shims* (fuera del PATH hasta `mise activate`); el doctor ahora consulta
+  `mise which` y las marca "instalada vía mise (shims)" en vez de "falta".
+
+### Resumen agrupado
+- La tabla del doctor (CLI y TUI) sale **agrupada**: base (bootstrap) · stack
+  del proyecto · gates y features · agentes CLI. Hints por SO en cada fila.
+
+### Documentación
+- Instalación: nueva sección "Instalación automatizada por sistema" (tabla
+  por SO) y **"Actualizar"** (`pip install -U tramalia-cli` vs
+  `tramalia update` — hueco reportado); Interfaz y Comandos actualizadas.
+
+### Calidad
+- 123 tests con pytest (11 nuevos en `tests/test_v017.py`); un test de v0.16
+  hecho hermético (dependía de si mise estaba instalado en la máquina).
+
 ## [0.16.0] - 2026-07-05
 
 Analítica avanzada: métricas/umbrales en la evidencia + gate de notebooks.

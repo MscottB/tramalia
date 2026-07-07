@@ -6,6 +6,7 @@ tal cual y nunca esconde errores). doctor/detect son lógica propia.
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 from tramalia.cli import menu, render
@@ -33,12 +34,49 @@ def _run(cmd: list[str]) -> int:
 def cmd_doctor(args) -> int:
     report = doctor_core.diagnose(Path.cwd())
     code = render.doctor(report)
-    if getattr(args, "fix", False) and report.missing_blocking:
-        if doctor_core.fix(report):
-            render.info("`mise install` ejecutado; re-evaluando…")
-            return render.doctor(doctor_core.diagnose(Path.cwd()))
-        render.warn("no se pudo auto-instalar (instala primero mise — ver enlace arriba).")
-    return code
+    if not getattr(args, "fix", False):
+        return code
+    from tramalia.core import installer
+    from tramalia.i18n import t
+    faltantes = [s.tool for s in report.statuses if not s.present]
+    plans = [(tool, best) for tool in faltantes
+             if (best := installer.best_auto(tool))]
+    manuales = [tool for tool in faltantes
+                if all(tool is not p[0] for p in plans)]
+    if manuales:
+        render.info(t("doctor.fix.manual",
+                      names=", ".join(m.cmd for m in manuales)))
+    if not plans:
+        return code
+    render.info(t("doctor.fix.plan",
+                  names=", ".join(f"{tl.cmd} ({opt.method})" for tl, opt in plans)))
+    # selección múltiple si hay terminal + questionary; si no, todas las auto.
+    elegidas = plans
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        try:
+            import questionary
+            marcadas = questionary.checkbox(
+                t("doctor.fix.pick"),
+                choices=[questionary.Choice(f"{tl.cmd} — {opt.display}",
+                                            value=i, checked=True)
+                         for i, (tl, opt) in enumerate(plans)],
+            ).ask()
+            if marcadas is None:
+                return code
+            elegidas = [plans[i] for i in marcadas]
+        except ImportError:
+            pass
+    for tool, opt in elegidas:
+        render.info(f"{tool.cmd} ← {opt.display}")
+        rc, out = installer.run_install(opt)
+        if rc == 0:
+            render.ok(tool.cmd)
+        else:
+            render.warn(f"{tool.cmd} exit {rc}")
+            for line in out.strip().splitlines()[-5:]:
+                render.info(f"  {line}")
+    render.info("re-evaluando…")
+    return render.doctor(doctor_core.diagnose(Path.cwd()))
 
 
 def cmd_detect(args) -> int:

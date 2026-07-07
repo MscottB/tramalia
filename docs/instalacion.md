@@ -56,13 +56,34 @@ Tramalia **orquesta** herramientas externas. No las necesitas todas para empezar
 !!! tip "¿Necesito Node?"
     Solo si usas `sync`, el gate `ux` o `context` con Repomix. En un proyecto sin frontend y sin `sync`, **nunca** necesitas Node. `tramalia doctor` marca esas filas como "requiere Node".
 
+## Instalación automatizada por sistema
+
+`tramalia doctor --fix` (y la tecla `i` en `tramalia ui`) **detectan tu sistema y qué gestores tienes** (winget/brew/choco/scoop, mise, uv, npm) y te dejan **seleccionar una o más** herramientas para instalar automatizado — cada una por su mejor vía disponible:
+
+| Herramienta | Windows | macOS | Linux |
+|---|---|---|---|
+| **mise** | `winget install jdx.mise` ✓ verificado | `brew install mise` | `curl https://mise.run \| sh` (manual) |
+| **git** | `winget install Git.Git` | `brew install git` | gestor de tu distro |
+| **uv** | `winget install astral-sh.uv` | `brew install uv` | script oficial (manual) |
+| **node** | `winget install OpenJS.NodeJS.LTS` | `brew install node` | `mise use node@22` |
+| gates/features | vía **mise** si está; si no, **uv** (`pipx:`) o **npm** (`npm:`, solo con Node presente) | ídem | ídem |
+
+Reglas del instalador: los `curl | sh` **nunca** se ejecutan automatizados (solo se muestran); las opciones **npm** solo aparecen si Node/npm está presente (verificador incluido); en Windows, para mise **winget es la vía verificada** — choco y scoop se listan como alternativa manual.
+
+!!! note "Instalé con mise y doctor no la ve"
+    Las herramientas que instala mise viven tras sus **shims**: hasta que actives mise (`mise activate` en tu shell) o reinicies la terminal, no están en el PATH. `doctor` ahora las detecta igual (consulta `mise which`) y te lo indica: *"instalada vía mise (shims)"*.
+
 ## Orden recomendado
 
 ```bash
-pip install "tramalia-cli[pretty,mcp]"   # 1. Tramalia
-# 2. Instala mise, git, uv (bootstrap; doctor te da el enlace)
-tramalia init                            # 3. genera la convención
-mise install                             #    mise instala lo declarado
+pip install tramalia-cli                 # 1. Tramalia
+tramalia init                            # 2. genera la convención
+tramalia doctor --fix                    # 3. selecciona e instala lo que falte
 mise use node@22                         # 4. solo si usarás sync / ux / repomix
 tramalia doctor                          # 5. verifica que no falte nada
 ```
+
+## Actualizar
+
+- **Tramalia (el CLI):** `pip install -U tramalia-cli` — el mismo comando de instalación con `-U`. Verifica con `tramalia --version`.
+- **Lo que Tramalia orquesta** (tools de mise + skills externas): `tramalia update`. Son cosas distintas: `update` no toca el propio paquete.

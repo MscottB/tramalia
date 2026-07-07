@@ -55,13 +55,34 @@ Tramalia **orchestrates** external tools. You don't need them all to start; `tra
 !!! tip "Do I need Node?"
     Only if you use `sync`, the `ux` gate, or `context` with Repomix. In a project with no frontend and no `sync`, you **never** need Node. `tramalia doctor` flags those rows as "requires Node".
 
+## Automated installation per system
+
+`tramalia doctor --fix` (and the `i` key in `tramalia ui`) **detect your OS and which managers you have** (winget/brew/choco/scoop, mise, uv, npm) and let you **select one or more** tools to install automatically — each through its best available route:
+
+| Tool | Windows | macOS | Linux |
+|---|---|---|---|
+| **mise** | `winget install jdx.mise` ✓ verified | `brew install mise` | `curl https://mise.run \| sh` (manual) |
+| **git** | `winget install Git.Git` | `brew install git` | your distro's manager |
+| **uv** | `winget install astral-sh.uv` | `brew install uv` | official script (manual) |
+| **node** | `winget install OpenJS.NodeJS.LTS` | `brew install node` | `mise use node@22` |
+| gates/features | via **mise** if present; else **uv** (`pipx:`) or **npm** (`npm:`, only with Node present) | same | same |
+
+Installer rules: `curl | sh` is **never** run automatically (display only); **npm** options only appear when Node/npm is present (checker included); on Windows, for mise **winget is the verified route** — choco and scoop are listed as manual alternatives.
+
+!!! note "Installed via mise but doctor doesn't see it"
+    Tools installed by mise live behind its **shims**: until you activate mise (`mise activate` in your shell) or restart the terminal, they're not on PATH. `doctor` now detects them anyway (it queries `mise which`) and tells you: *"installed via mise (shims)"*.
+
 ## Recommended order
 
 ```bash
-pip install "tramalia-cli[pretty,mcp]"   # 1. Tramalia
-# 2. Install mise, git, uv (bootstrap; doctor gives you the link)
-tramalia init                            # 3. generate the convention
-mise install                             #    mise installs what's declared
+pip install tramalia-cli                 # 1. Tramalia
+tramalia init                            # 2. generate the convention
+tramalia doctor --fix                    # 3. select and install what's missing
 mise use node@22                         # 4. only if you'll use sync / ux / repomix
 tramalia doctor                          # 5. verify nothing is missing
 ```
+
+## Updating
+
+- **Tramalia (the CLI):** `pip install -U tramalia-cli` — the install command with `-U`. Verify with `tramalia --version`.
+- **What Tramalia orchestrates** (mise tools + external skills): `tramalia update`. They're different things: `update` doesn't touch the package itself.

@@ -53,7 +53,9 @@ Reads each close's `metadata.json` and lists the closes (newest first) with thei
 
 ## doctor
 
-Classifies requirements into **bootstrap** (mise/git/uv), **stack** (node/dotnet…) and **feature/gate** (semgrep/sqlfluff/lighthouse…), bothering you only with what applies to your project. `--fix` delegates to `mise install` when mise is present.
+Classifies requirements into **bootstrap** (mise/git/uv), **stack** (node/dotnet…) and **feature/gate** (semgrep/sqlfluff/lighthouse…) — the table comes out **grouped** by those sections — bothering you only with what applies to your project. Install hints are **per operating system** (winget/brew/choco…) and per available manager.
+
+`--fix` builds the automated install plan (best route per tool: winget/brew, `mise use`, `uv tool`, `npm` only with Node) and, on an interactive terminal, lets you **select one or more** before running. Detail: [Installation](instalacion.md#automated-installation-per-system).
 
 ## init
 

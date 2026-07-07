@@ -1,0 +1,149 @@
+"""Instalación personalizada por SO y por gestor disponible.
+
+Tramalia no reimplementa gestores de paquetes: detecta el sistema y qué
+gestores hay (winget/brew/choco/scoop, mise, uv, npm) y arma para cada
+herramienta una lista ordenada de opciones — la primera disponible se puede
+ejecutar automatizada; el resto se muestra como alternativa manual.
+Reglas: npm solo si Node está presente; nada de `curl | sh` automatizado.
+"""
+
+from __future__ import annotations
+
+import platform
+import shutil
+import sys
+from dataclasses import dataclass
+
+from tramalia.core import proc
+from tramalia.core.tools import Tool
+
+
+def current_os() -> str:
+    s = platform.system().lower()
+    if "windows" in s:
+        return "windows"
+    if "darwin" in s:
+        return "macos"
+    return "linux"
+
+
+@dataclass(frozen=True)
+class InstallOption:
+    method: str            # "mise" | "uv" | "npm" | "pip" | "winget" | "brew" | ...
+    args: tuple[str, ...]  # comando ejecutable (vacío si es solo manual)
+    display: str           # cómo mostrarlo al usuario
+    requires: str = ""     # binario que debe existir para poder automatizarla
+    auto: bool = True      # False = solo se muestra (p. ej. curl | sh, URLs)
+
+    @property
+    def available(self) -> bool:
+        if not self.auto or not self.args:
+            return False
+        need = self.requires or self.method
+        return shutil.which(need) is not None
+
+
+def _winget(pkg_id: str) -> InstallOption:
+    args = ("winget", "install", "-e", "--id", pkg_id,
+            "--accept-source-agreements", "--accept-package-agreements")
+    return InstallOption("winget", args, f"winget install {pkg_id}", requires="winget")
+
+
+def _brew(pkg: str) -> InstallOption:
+    return InstallOption("brew", ("brew", "install", pkg), f"brew install {pkg}",
+                         requires="brew")
+
+
+def _manual(display: str) -> InstallOption:
+    return InstallOption("manual", (), display, auto=False)
+
+
+# bootstrap y runtimes: opciones por SO, en orden de preferencia.
+# En Windows, winget es la vía verificada para mise (scoop falló en pruebas
+# reales; choco sin verificar) — por eso va primero y las otras como alternativa.
+_SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
+    "mise": {
+        "windows": [_winget("jdx.mise"),
+                    InstallOption("choco", ("choco", "install", "mise", "-y"),
+                                  "choco install mise", requires="choco"),
+                    InstallOption("scoop", ("scoop", "install", "mise"),
+                                  "scoop install mise", requires="scoop")],
+        "macos": [_brew("mise"), _manual("curl https://mise.run | sh")],
+        "linux": [_manual("curl https://mise.run | sh")],
+    },
+    "git": {
+        "windows": [_winget("Git.Git")],
+        "macos": [_brew("git")],
+        "linux": [_manual("sudo apt install git (o el gestor de tu distro)")],
+    },
+    "uv": {
+        "windows": [_winget("astral-sh.uv")],
+        "macos": [_brew("uv"), _manual("curl -LsSf https://astral.sh/uv/install.sh | sh")],
+        "linux": [_manual("curl -LsSf https://astral.sh/uv/install.sh | sh")],
+    },
+    "node": {
+        "windows": [_winget("OpenJS.NodeJS.LTS")],
+        "macos": [_brew("node")],
+        "linux": [_manual("mise use node@22 (o el gestor de tu distro)")],
+    },
+}
+
+
+def _from_hint(tool: Tool) -> list[InstallOption]:
+    """Deriva opciones del install_hint del registro (mise use / uv / pip / npm)."""
+    hint = (tool.install_hint or "").strip()
+    opts: list[InstallOption] = []
+    if hint.startswith("mise use "):
+        spec = hint.removeprefix("mise use ").strip()
+        opts.append(InstallOption("mise", ("mise", "use", spec), hint, requires="mise"))
+        if spec.startswith("npm:"):
+            pkg = spec.removeprefix("npm:")
+            # npm solo si Node está: el verificador es el propio binario npm
+            opts.append(InstallOption("npm", ("npm", "install", "-g", pkg),
+                                      f"npm i -g {pkg}", requires="npm"))
+        elif spec.startswith("pipx:"):
+            pkg = spec.removeprefix("pipx:")
+            opts.append(InstallOption("uv", ("uv", "tool", "install", pkg),
+                                      f"uv tool install {pkg}", requires="uv"))
+    elif hint.startswith("uv tool install"):
+        opts.append(InstallOption("uv", tuple(hint.split()), hint, requires="uv"))
+    elif hint.startswith("npm i -g ") or hint.startswith("npm install -g "):
+        pkg = hint.split("-g", 1)[1].strip()
+        opts.append(InstallOption("npm", ("npm", "install", "-g", pkg), hint,
+                                  requires="npm"))
+    elif hint.startswith("pip install"):
+        pkg = hint.removeprefix("pip install").strip().strip('"').strip("'")
+        opts.append(InstallOption("uv", ("uv", "tool", "install", pkg),
+                                  f"uv tool install \"{pkg}\"", requires="uv"))
+        opts.append(InstallOption("pip", (sys.executable, "-m", "pip", "install", pkg),
+                                  hint, requires=sys.executable))
+    return opts
+
+
+def options_for(tool: Tool, os_name: str | None = None) -> list[InstallOption]:
+    """Opciones de instalación ordenadas (mejor primero) para esta herramienta."""
+    os_name = os_name or current_os()
+    opts = list(_SYSTEM.get(tool.key, {}).get(os_name, []))
+    opts += _from_hint(tool)
+    if not opts and tool.install_hint:
+        opts.append(_manual(tool.install_hint))
+    return opts
+
+
+def best_auto(tool: Tool, os_name: str | None = None) -> InstallOption | None:
+    """La primera opción ejecutable automatizada (su gestor está presente)."""
+    for opt in options_for(tool, os_name):
+        if opt.available:
+            return opt
+    return None
+
+
+def run_install(opt: InstallOption, timeout: int = 900) -> tuple[int, str]:
+    """Ejecuta una opción automatizada. Devuelve (exit_code, salida)."""
+    if not opt.args:
+        return 1, f"opción manual, no ejecutable: {opt.display}"
+    try:
+        cp = proc.run(list(opt.args), capture_output=True, text=True, timeout=timeout)
+        return cp.returncode, (cp.stdout or "") + (cp.stderr or "")
+    except Exception as exc:
+        return 1, str(exc)

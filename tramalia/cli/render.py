@@ -31,22 +31,6 @@ def _rich() -> bool:
     return _HAS_RICH and not _PLAIN
 
 
-_NEED = {"bootstrap": "base", "stack": "stack"}
-
-
-def _need_label(tool) -> str:
-    from tramalia.i18n import t
-    if tool.category == "feature":
-        return f"gate:{tool.feature}"
-    if tool.category == "agent":
-        return t("doctor.need.agent")
-    if tool.category == "bootstrap":
-        return t("doctor.need.base")
-    if tool.category == "stack":
-        return t("doctor.need.stack")
-    return _NEED.get(tool.category, tool.category)
-
-
 def header(project: str, stack: list[str], initialized: bool) -> None:
     estado = "inicializado" if initialized else "no inicializado"
     stack_txt = " · ".join(stack) if stack else "—"
@@ -62,46 +46,68 @@ def header(project: str, stack: list[str], initialized: bool) -> None:
         print("=" * 60)
 
 
+GROUP_ORDER = ("bootstrap", "stack", "feature", "agent")
+
+
+def group_statuses(statuses) -> list[tuple[str, list]]:
+    """Agrupa los statuses del doctor por categoría, en orden fijo."""
+    groups: list[tuple[str, list]] = []
+    for cat in GROUP_ORDER:
+        rows = [s for s in statuses if s.tool.category == cat]
+        if rows:
+            groups.append((cat, rows))
+    return groups
+
+
+def _hint_for(tool) -> str:
+    """La mejor sugerencia de instalación para ESTE sistema (no un hint fijo)."""
+    from tramalia.core import installer
+    best = installer.best_auto(tool)
+    if best:
+        return best.display
+    opts = installer.options_for(tool)
+    return opts[0].display if opts else tool.install_hint
+
+
 def doctor(report: Report) -> int:
-    """Imprime el diagnóstico. Devuelve el exit code (0 si nada bloqueante falta)."""
+    """Imprime el diagnóstico agrupado. Exit 0 si nada bloqueante falta."""
     stack_txt = " · ".join(report.stack) if report.stack else "—"
     from tramalia.i18n import t
+
+    def fila(s):
+        if s.present:
+            return t("tui.status.ok"), (s.version or "—")
+        estado = (t("tui.status.optional") if s.tool.category in ("feature", "agent")
+                  else t("tui.status.missing"))
+        return estado, _hint_for(s.tool)
+
     if _rich():
         table = Table(box=box.SIMPLE_HEAVY, expand=False)
         table.add_column(t("tui.col.tool"), style="bold")
         table.add_column(t("tui.col.purpose"), overflow="fold", max_width=32)
-        table.add_column("tipo", style="dim")
         table.add_column(t("tui.col.state"))
         table.add_column(t("tui.col.detail"), overflow="fold")
-        for s in report.statuses:
-            if s.present:
-                estado = t("tui.status.ok")
-                detalle = s.version or "—"
-            elif s.tool.category in ("feature", "agent"):
-                estado = t("tui.status.optional")
-                detalle = s.tool.install_hint
-            else:
-                estado = t("tui.status.missing")
-                detalle = s.tool.install_hint
-            if s.tool.runtime == "node":
-                detalle += "  [magenta]· Node[/magenta]"
-            table.add_row(s.tool.cmd, s.tool.role, _need_label(s.tool), estado, detalle)
+        for cat, rows in group_statuses(report.statuses):
+            table.add_row(f"[bold cyan]· {t('doctor.group.' + cat)}[/]", "", "", "")
+            for s in rows:
+                estado, detalle = fila(s)
+                if s.tool.runtime == "node" and not s.present:
+                    detalle += "  [magenta]· Node[/magenta]"
+                table.add_row(f"  {s.tool.cmd}", s.tool.role, estado, detalle)
         _console.print(f"\n[dim]{t('doctor.stack')}[/dim] {stack_txt}")
         _console.print(table)
     else:
         print(f"\n{t('doctor.stack')} {stack_txt}")
-        print(f"{'tool':<13}{'tipo':<15}{'estado':<10}para qué / detalle")
-        print("-" * 78)
-        for s in report.statuses:
-            if s.present:
-                estado, detalle = "ok", (s.version or "—")
-            elif s.tool.category in ("feature", "agent"):
-                estado, detalle = "opcional", s.tool.install_hint
-            else:
-                estado, detalle = "FALTA", s.tool.install_hint
-            if s.tool.runtime == "node":
-                detalle += "  · Node"
-            print(f"{s.tool.cmd:<13}{_need_label(s.tool):<15}{estado:<10}{s.tool.role} — {detalle}")
+        for cat, rows in group_statuses(report.statuses):
+            print(f"\n-- {t('doctor.group.' + cat)} " + "-" * 40)
+            for s in rows:
+                _, detalle = fila(s)
+                estado = ("ok" if s.present else
+                          "opcional" if s.tool.category in ("feature", "agent")
+                          else "FALTA")
+                if s.tool.runtime == "node" and not s.present:
+                    detalle += "  · Node"
+                print(f"{s.tool.cmd:<13}{estado:<10}{s.tool.role} — {detalle}")
 
     if report.needs_node:
         _warn(f"Node no está instalado y lo requieren: {', '.join(report.node_tools)}.")

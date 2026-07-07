@@ -16,14 +16,50 @@ from tramalia.i18n import t
 def build_app():
     from textual.app import App, ComposeResult
     from textual.containers import Horizontal, Vertical
+    from textual.screen import ModalScreen
     from textual.widgets import (Button, DataTable, Footer, Header, Input,
-                                 RichLog, Static, TabbedContent, TabPane)
+                                 RichLog, SelectionList, Static, TabbedContent,
+                                 TabPane)
+    from textual.widgets.selection_list import Selection
 
     from tramalia.core import doctor as doctor_core
-    from tramalia.core import governance, project
+    from tramalia.core import governance, installer, project
     from tramalia.core.detect import detect_stack
     from tramalia.core.scaffold import scaffold
     from tramalia.core.detect import enabled_features
+
+    class InstallScreen(ModalScreen):
+        """Selección múltiple de qué instalar (espacio marca, enter confirma)."""
+
+        CSS = """
+        InstallScreen { align: center middle; }
+        #inst-box { width: 90; max-height: 80%; border: round $primary;
+                    background: $surface; padding: 1 2; }
+        #inst-botones { height: 3; align-horizontal: right; }
+        #inst-botones Button { margin-left: 2; }
+        """
+
+        def __init__(self, plans):
+            super().__init__()
+            self._plans = plans  # [(tool, InstallOption)]
+
+        def compose(self) -> ComposeResult:
+            with Vertical(id="inst-box"):
+                yield Static(f"[b]{t('tui.install.title')}[/b]")
+                yield SelectionList(*[
+                    Selection(f"{tool.cmd} — {opt.display}", idx, True)
+                    for idx, (tool, opt) in enumerate(self._plans)
+                ])
+                with Horizontal(id="inst-botones"):
+                    yield Button(t("tui.install.button"), id="inst-ok", variant="primary")
+                    yield Button(t("tui.install.cancel"), id="inst-cancel")
+
+        def on_button_pressed(self, event) -> None:
+            if event.button.id == "inst-ok":
+                seleccion = self.query_one(SelectionList).selected
+                self.dismiss([self._plans[i] for i in seleccion])
+            else:
+                self.dismiss([])
 
     _LOG_MARKS = {
         "passed": t("log.passed"),
@@ -50,6 +86,7 @@ def build_app():
         #btn-close, #btn-init { margin: 1 1; }
         #taskinfo { padding: 0 1; color: $text-muted; max-height: 10; overflow-y: auto; }
         #salida { height: 1fr; margin: 0 1; border: round $primary; }
+        #instalador { height: 9; margin: 0 1; border: round $secondary; display: none; }
         #aviso-uninit, #aviso-audit { padding: 1 1; }
         DataTable { height: 1fr; }
         """
@@ -62,6 +99,8 @@ def build_app():
                     yield Static(id="gates-linea")
                     yield Static(id="lastclose")
                     yield DataTable(id="tabla-doctor", cursor_type="row")
+                    # salida del instalador (tecla i) — vive AQUÍ, no en Cierre
+                    yield RichLog(id="instalador", wrap=True, markup=True)
                 with TabPane(t("tui.tab.audit"), id="auditoria"):
                     yield Static(id="aviso-audit")
                     with Horizontal():
@@ -110,18 +149,27 @@ def build_app():
                          mark=_LOG_MARKS.get(e.get("status"), "○ —"))
             self.query_one("#lastclose", Static).update(last)
 
+            self._report = report  # lo usa el instalador (tecla i)
+            from tramalia.cli.render import group_statuses
             tabla = self.query_one("#tabla-doctor", DataTable)
             tabla.clear(columns=True)
             tabla.add_columns(t("tui.col.tool"), t("tui.col.purpose"),
                               t("tui.col.state"), t("tui.col.detail"))
-            for s in report.statuses:
-                if s.present:
-                    mark, detalle = t("tui.status.ok"), (s.version or "—")
-                elif s.tool.category in ("feature", "agent"):
-                    mark, detalle = t("tui.status.optional"), s.tool.install_hint
-                else:
-                    mark, detalle = t("tui.status.missing"), s.tool.install_hint
-                tabla.add_row(s.tool.cmd, s.tool.role, mark, detalle)
+            for cat, rows in group_statuses(report.statuses):
+                tabla.add_row(f"[bold cyan]· {t('doctor.group.' + cat)}[/]", "", "", "")
+                for s in rows:
+                    if s.present:
+                        mark, detalle = t("tui.status.ok"), (s.version or "—")
+                    else:
+                        best = installer.best_auto(s.tool)
+                        hint = best.display if best else (
+                            installer.options_for(s.tool)[0].display
+                            if installer.options_for(s.tool) else s.tool.install_hint)
+                        mark = (t("tui.status.optional")
+                                if s.tool.category in ("feature", "agent")
+                                else t("tui.status.missing"))
+                        detalle = hint
+                    tabla.add_row(f"  {s.tool.cmd}", s.tool.role, mark, detalle)
 
             self._refresh_audit(root, initialized, entries)
             self._refresh_close(root, initialized)
@@ -217,31 +265,58 @@ def build_app():
             self.action_refresh()
 
         # ------------------------------------------------------------ install
+        def _log_install(self) -> RichLog:
+            log = self.query_one("#instalador", RichLog)
+            log.display = True
+            return log
+
         def action_install_missing(self) -> None:
-            from tramalia.core import proc
-            salida = self.query_one("#salida", RichLog)
-            self.query_one(TabbedContent).active = "cierre"
-            if proc.which("mise") is None:
-                salida.write(t("tui.install.nomise"))
+            """Tecla i: selección múltiple de faltantes, instalación por SO."""
+            self.query_one(TabbedContent).active = "resumen"
+            log = self._log_install()
+            faltantes = [s.tool for s in getattr(self, "_report").statuses
+                         if not s.present]
+            plans, manuales = [], []
+            for tool in faltantes:
+                best = installer.best_auto(tool)
+                (plans.append((tool, best)) if best else manuales.append(tool))
+            for tool in manuales:
+                opts = installer.options_for(tool)
+                cmd = opts[0].display if opts else tool.install_hint
+                log.write(t("tui.install.manual", tool=tool.cmd, cmd=cmd))
+            if not plans:
+                log.write(t("tui.install.none"))
                 return
-            salida.write(t("tui.install.running"))
-            self.run_worker(self._mise_install, thread=True, exclusive=True)
+            self.push_screen(InstallScreen(plans), self._run_installs)
 
-        def _mise_install(self) -> None:
-            from tramalia.core import proc
-            try:
-                cp = proc.run(["mise", "install"], capture_output=True, text=True,
-                              timeout=900)
-                out = (cp.stdout or "") + (cp.stderr or "")
-            except Exception as exc:
-                out = str(exc)
-            self.call_from_thread(self._after_install, out)
+        def _run_installs(self, seleccion) -> None:
+            if not seleccion:
+                return
+            self.run_worker(lambda: self._install_worker(seleccion),
+                            thread=True, exclusive=True)
 
-        def _after_install(self, out: str) -> None:
-            salida = self.query_one("#salida", RichLog)
-            for line in out.strip().splitlines()[-15:]:
-                salida.write(line)
-            salida.write(t("tui.install.done"))
+        def _install_worker(self, seleccion) -> None:
+            for tool, opt in seleccion:
+                self.call_from_thread(
+                    self._log_write,
+                    t("tui.install.installing", tool=tool.cmd,
+                      method=opt.method, cmd=opt.display))
+                code, out = installer.run_install(opt)
+                tail = "\n".join(out.strip().splitlines()[-5:])
+                if code == 0:
+                    self.call_from_thread(
+                        self._log_write, t("tui.install.ok", tool=tool.cmd))
+                else:
+                    self.call_from_thread(
+                        self._log_write,
+                        t("tui.install.fail", tool=tool.cmd, code=code) + f"\n{tail}")
+            self.call_from_thread(self._after_installs)
+
+        def _log_write(self, msg: str) -> None:
+            self._log_install().write(msg)
+
+        def _after_installs(self) -> None:
+            self._log_install().write(t("tui.install.done"))
             self.action_refresh()
 
         # ------------------------------------------------------------ close

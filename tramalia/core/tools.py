@@ -124,9 +124,25 @@ class Status:
     version: str | None = None
 
 
+def _mise_has(cmd: str, timeout: float = 6.0) -> bool:
+    """¿La instaló mise? Sus shims no están en el PATH hasta `mise activate` /
+    reiniciar la terminal, así que `shutil.which` no las ve — `mise which` sí."""
+    if shutil.which("mise") is None:
+        return False
+    try:
+        cp = subprocess.run(["mise", "which", cmd], capture_output=True,
+                            text=True, timeout=timeout)
+        return cp.returncode == 0 and bool((cp.stdout or "").strip())
+    except Exception:
+        return False
+
+
 def probe(tool: Tool, timeout: float = 8.0) -> Status:
     """Comprueba si una herramienta está en el PATH y su versión."""
     if shutil.which(tool.cmd) is None:
+        if tool.managed_by_mise and _mise_has(tool.cmd):
+            from tramalia.i18n import t
+            return Status(tool, present=True, version=t("doctor.viamise"))
         return Status(tool, present=False)
     version = None
     try:

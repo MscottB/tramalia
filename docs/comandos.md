@@ -53,7 +53,9 @@ Lee el `metadata.json` de cada cierre y lista los cierres (más reciente primero
 
 ## doctor
 
-Clasifica los requisitos en **bootstrap** (mise/git/uv), **stack** (node/dotnet…) y **feature/gate** (semgrep/sqlfluff/lighthouse…), y solo molesta con lo que aplica a tu proyecto. `--fix` delega en `mise install` cuando mise ya está.
+Clasifica los requisitos en **bootstrap** (mise/git/uv), **stack** (node/dotnet…) y **feature/gate** (semgrep/sqlfluff/lighthouse…) — la tabla sale **agrupada** por esas secciones — y solo molesta con lo que aplica a tu proyecto. Los hints de instalación son **por sistema operativo** (winget/brew/choco…) y por gestor disponible.
+
+`--fix` arma el plan de instalación automatizado (mejor vía por herramienta: winget/brew, `mise use`, `uv tool`, `npm` solo con Node) y, con terminal interactiva, te deja **seleccionar una o más** antes de ejecutar. Detalle: [Instalación](instalacion.md#instalacion-automatizada-por-sistema).
 
 ## init
 

@@ -36,7 +36,7 @@ TRAMALIA_LANG=en tramalia ui        # por sesión
 - **Cabecera**: la **ruta completa** del proyecto (para saber siempre dónde estás), el stack detectado y el estado — `inicializado` o `SIN inicializar`.
 - **Gates del proyecto**: los gates **reales** leídos de tu `mise.toml` (`build · test · lint · security…`). Si no hay `mise.toml`, te indica ejecutar `init`.
 - **Último cierre**: el más reciente de la auditoría, con su estado.
-- **Tabla de herramientas** (el doctor en vivo), con cuatro columnas:
+- **Tabla de herramientas** (el doctor en vivo), **agrupada** en secciones — base (bootstrap) · stack del proyecto · gates y features · agentes CLI — con cuatro columnas:
   - *herramienta* — el comando.
   - *para qué* — su rol (gate de seguridad, contexto, agente CLI…).
   - *estado* — `✓ ok` (instalada y su versión) · `○ opcional` (solo si usas esa feature) · `✗ falta` (requerida).
@@ -46,13 +46,9 @@ La tabla incluye también los **agentes CLI detectados** en tu máquina (claude,
 
 ### Instalar desde la interfaz (`i`)
 
-Pulsa `i` y Tramalia ejecuta **`mise install`** (instala todo lo declarado en `mise.toml`) mostrando la salida en vivo, y refresca la tabla al terminar. Si **mise** no está (es bootstrap: no puede instalarse solo), la interfaz te muestra el comando para tu sistema:
+Pulsa `i` y se abre un **selector múltiple** con las herramientas faltantes que se pueden instalar automatizado en **tu sistema** (espacio marca, enter confirma). Cada una se instala por su mejor vía disponible — winget/brew para binarios, `mise use` para gates, `uv tool` para Python, `npm` solo si Node está presente — y la salida corre en vivo en un panel **dentro del Resumen** (ya no salta de pestaña). Las que no tienen vía automatizada aparecen en el panel con su comando manual.
 
-```text
-Windows:     winget install jdx.mise
-Linux/macOS: curl https://mise.run | sh
-macOS:       brew install mise
-```
+Al terminar, la tabla se refresca de verdad: las herramientas que mise instala viven tras sus **shims** (no están en el PATH hasta `mise activate` o reiniciar la terminal), y ahora el doctor las detecta igual consultando `mise which` — verás *"instalada vía mise (shims)"* en vez de un falso "falta". Detalle de vías por SO: [Instalación](instalacion.md#instalacion-automatizada-por-sistema).
 
 ## Pestaña Auditoría
 

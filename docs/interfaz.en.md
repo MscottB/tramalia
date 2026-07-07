@@ -36,7 +36,7 @@ TRAMALIA_LANG=en tramalia ui        # per session
 - **Header**: the project's **full path** (so you always know where you are), the detected stack, and the state — `initialized` or `NOT initialized`.
 - **Project gates**: the **real** gates read from your `mise.toml` (`build · test · lint · security…`). If there's no `mise.toml`, it tells you to run `init`.
 - **Last close**: the most recent one from the audit, with its status.
-- **Tools table** (the live doctor), with four columns:
+- **Tools table** (the live doctor), **grouped** into sections — base (bootstrap) · project stack · gates & features · agent CLIs — with four columns:
   - *tool* — the command.
   - *what for* — its role (security gate, context, agent CLI…).
   - *status* — `✓ ok` (installed, with version) · `○ optional` (only if you use that feature) · `✗ missing` (required).
@@ -46,13 +46,9 @@ The table also includes the **agent CLIs detected** on your machine (claude, cod
 
 ### Installing from the interface (`i`)
 
-Press `i` and Tramalia runs **`mise install`** (installs everything declared in `mise.toml`) streaming the output, and refreshes the table when done. If **mise** is missing (it's bootstrap: it can't install itself), the interface shows the command for your system:
+Press `i` and a **multi-selector** opens with the missing tools that can be installed automatically on **your system** (space marks, enter confirms). Each one installs through its best available route — winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present — and the output streams live in a panel **inside Overview** (no more tab jumping). Tools without an automated route show up in the panel with their manual command.
 
-```text
-Windows:     winget install jdx.mise
-Linux/macOS: curl https://mise.run | sh
-macOS:       brew install mise
-```
+When it finishes, the table refreshes for real: tools installed by mise live behind its **shims** (not on PATH until `mise activate` or a terminal restart), and the doctor now detects them anyway by querying `mise which` — you'll see *"installed via mise (shims)"* instead of a false "missing". Per-OS routes: [Installation](instalacion.md#automated-installation-per-system).
 
 ## Audit tab
 
