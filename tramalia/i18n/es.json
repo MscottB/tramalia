@@ -67,6 +67,7 @@
   "tui.audit.select": "selecciona un cierre →",
   "tui.audit.uninit": "este proyecto no está inicializado: no hay auditoría que mostrar.\nVe a Resumen y pulsa el botón Inicializar (o `tramalia init`).",
   "tui.binding.cancel": "Cancelar instalación",
+  "tui.binding.closepanels": "Cerrar panel",
   "tui.binding.docs": "Docs de la herramienta",
   "tui.binding.install": "Instalar faltantes",
   "tui.binding.quit": "Salir",

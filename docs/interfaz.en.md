@@ -33,6 +33,7 @@ TRAMALIA_LANG=en tramalia ui        # per session
 | `s` | **sync declared skills** (Skills tab) |
 | `d` | open the selected tool's **documentation** |
 | `c` | **cancel** the running install (moves on to the next) |
+| `Esc` | **close** the install/skills panel if it's left open |
 
 ## Overview tab
 
@@ -65,7 +66,7 @@ When it finishes, the table refreshes **for real** — the doctor also detects w
 | **uv** | `~/.local/bin` never enters PATH on Windows (even after restart) unless `uv tool update-shell` | checks the folder directly |
 | **Serena** (uvx) | never installed: ephemeral | `✓ via uvx — no install needed` |
 
-Per-OS routes: [Installation](instalacion.md#automated-installation-per-system). The **`d`** key opens the selected tool's official documentation in your browser.
+Per-OS routes: [Installation](instalacion.md#automated-installation-per-system). The **`d`** key opens the selected tool's official documentation in your browser (a brief toast, no panel involved); **Esc** closes the install panel if it's left open.
 
 ## Skills tab
 

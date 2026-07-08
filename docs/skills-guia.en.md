@@ -15,6 +15,15 @@ flowchart TB
 
 **Golden rule**: an *own* skill exists only if it's **anchored to a Tramalia command, gate or evidence**. Deep knowledge (architecture patterns, exhaustive UX guides, detailed OWASP) comes from **specialized external repos** that update themselves — Tramalia doesn't freeze encyclopedias.
 
+## What about the skills my CLI already has? (Claude Code, Codex…)
+
+**Tramalia doesn't touch them, read them, or analyze them.** They're completely separate systems:
+
+- **Native CLI skills/plugins** (e.g. Claude Code's plugin marketplace, or skills you installed with `/plugin`) live in *that tool's* own configuration (`~/.claude/`, etc.) and are managed by it — Tramalia never scans those folders or knows what you have installed there.
+- **Tramalia's skills** are its own concept: versioned `SKILL.md` files **inside your repo**, in `.tramalia/skills/`, that any agent reads because `AGENTS.md` tells it to — independent of which CLI you use or its marketplace.
+
+Why separate instead of integrated? Because **governance lives in the repo, not on your machine** (the repo-first principle behind the whole tool): if you switch CLIs or PCs tomorrow, Tramalia's skills travel with `git clone`; a skill installed only in your CLI's marketplace doesn't. Both systems **coexist without conflict** — you can have native Claude Code plugins *and* Tramalia's 16 skills at once; they simply don't mix or sync with each other.
+
 ## The 16 own skills, by area
 
 | Area | Skills | Anchored to |

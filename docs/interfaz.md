@@ -33,6 +33,7 @@ TRAMALIA_LANG=en tramalia ui        # por sesión
 | `s` | **sincronizar skills** declaradas (pestaña Skills) |
 | `d` | abrir la **documentación** de la herramienta seleccionada |
 | `c` | **cancelar** la instalación en curso (sigue con la próxima) |
+| `Esc` | **cerrar** el panel de instalación/skills si quedó abierto |
 
 ## Pestaña Resumen
 
@@ -65,7 +66,7 @@ Al terminar, la tabla se refresca **de verdad** — el doctor detecta también l
 | vía **uv** | `~/.local/bin` no entra al PATH en Windows (ni reiniciando) salvo `uv tool update-shell` | revisa la carpeta directamente |
 | **Serena** (uvx) | no se instala: es efímera | `✓ vía uvx — no requiere instalación` |
 
-Detalle de vías por SO: [Instalación](instalacion.md#instalacion-automatizada-por-sistema). Con la tecla **`d`** abres la documentación oficial de la herramienta seleccionada en el navegador.
+Detalle de vías por SO: [Instalación](instalacion.md#instalacion-automatizada-por-sistema). Con la tecla **`d`** abres la documentación oficial de la herramienta seleccionada en el navegador (aviso breve, no ocupa panel); con **Esc** cierras el panel de instalación si quedó abierto.
 
 ## Pestaña Skills
 

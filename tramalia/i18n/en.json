@@ -67,6 +67,7 @@
   "tui.audit.select": "select a close →",
   "tui.audit.uninit": "this project is not initialized: there is no audit to show.\nGo to Overview and press the Initialize button (or `tramalia init`).",
   "tui.binding.cancel": "Cancel install",
+  "tui.binding.closepanels": "Close panel",
   "tui.binding.docs": "Tool docs",
   "tui.binding.install": "Install missing",
   "tui.binding.quit": "Quit",

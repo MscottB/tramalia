@@ -2,6 +2,32 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.21.1] - 2026-07-07
+
+Fix de la TUI reportado en uso real: la tecla `d` (docs) dejaba un panel
+bloqueado, imposible de cerrar. Más una aclaración de documentación pendiente.
+
+### Fix: panel de la tecla `d` sin forma de cerrarse
+- `d` reutilizaba el panel del instalador (`#instalador`) y lo dejaba en
+  `display: True` para siempre — no había ninguna acción que lo ocultara.
+- Ahora `d` usa una **notificación** (toast, se cierra sola) en vez de abrir
+  el panel — que debe aparecer solo durante una instalación real.
+- Nueva tecla **`Esc`**: cierra el panel del instalador y el de skills si
+  quedaron abiertos tras una instalación o un sync — cubre también ese caso
+  simétrico (mismo patrón, mismo bug latente).
+- 2 tests nuevos con el harness de Textual (`run_test`/Pilot) que verifican
+  el comportamiento real de los paneles, no solo que la app construya.
+
+### Documentación: skills propias vs. skills nativas del CLI
+- Nueva sección en la guía de skills aclarando que Tramalia **no analiza ni
+  toca** las skills/plugins nativos de tu CLI (p. ej. el marketplace de
+  Claude Code): son sistemas separados que conviven sin sincronizarse — las
+  de Tramalia viven versionadas en el repo (`.tramalia/skills/`), las
+  nativas viven en la configuración de tu CLI.
+
+### Calidad
+- 156 tests con pytest (2 nuevos en `tests/test_v021b.py`).
+
 ## [0.21.0] - 2026-07-07
 
 Agentes conscientes de las herramientas + skills por URL + página de Ayuda.

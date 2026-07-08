@@ -82,6 +82,7 @@ def build_app():
             ("s", "skills_sync", t("tui.binding.skills")),
             ("d", "open_docs", t("tui.binding.docs")),
             ("c", "cancel_install", t("tui.binding.cancel")),
+            ("escape", "close_panels", t("tui.binding.closepanels")),
         ]
         CSS = """
         #estado, #gates-linea, #lastclose { padding: 0 1; }
@@ -423,7 +424,11 @@ def build_app():
 
         # ------------------------------------------------------------ docs
         def action_open_docs(self) -> None:
-            """Tecla d: abre la documentación de la herramienta seleccionada."""
+            """Tecla d: abre la documentación de la herramienta seleccionada.
+
+            Usa una notificación (toast, se cierra sola) — NO el panel del
+            instalador, que solo debe aparecer durante una instalación real.
+            """
             import webbrowser
             from tramalia.core.tools import REGISTRY, docs_url
             tabla = self.query_one("#tabla-doctor", DataTable)
@@ -434,12 +439,19 @@ def build_app():
             cmd = str(fila[0]).strip()
             tool = next((x for x in REGISTRY if x.cmd == cmd), None)
             url = docs_url(tool) if tool else ""
-            log = self._log_install()
             if url:
                 webbrowser.open(url)
-                log.write(t("tui.docs.opened", url=url))
+                self.notify(t("tui.docs.opened", url=url), markup=False)
             else:
-                log.write(t("tui.docs.none"))
+                self.notify(t("tui.docs.none"), severity="warning", markup=False)
+
+        def action_close_panels(self) -> None:
+            """Tecla Escape: oculta los paneles de log (instalador/skills) si
+            quedaron abiertos — la salida de una instalación/sync ya cumplió
+            su propósito y hay que poder cerrarla."""
+            for panel_id in ("#instalador", "#skills-log"):
+                panel = self.query_one(panel_id, RichLog)
+                panel.display = False
 
         def _log_write(self, msg: str) -> None:
             self._log_install().write(msg)
