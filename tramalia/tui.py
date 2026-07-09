@@ -18,13 +18,17 @@ def build_app():
     from textual.containers import Horizontal, Vertical
     from textual.screen import ModalScreen
     from textual.widgets import (Button, DataTable, Footer, Header, Input,
-                                 RichLog, SelectionList, Static, TabbedContent,
-                                 TabPane)
+                                 OptionList, RichLog, SelectionList, Static,
+                                 TabbedContent, TabPane)
+    from textual.widgets.option_list import Option
     from textual.widgets.selection_list import Selection
+
+    import shutil as _shutil
 
     from tramalia.core import doctor as doctor_core
     from tramalia.core import governance, installer, project
     from tramalia.core import skills as skills_core
+    from tramalia.core.context_backend import BACKENDS
     from tramalia.core.detect import detect_stack
     from tramalia.core.scaffold import scaffold
     from tramalia.core.detect import enabled_features
@@ -72,6 +76,43 @@ def build_app():
             else:
                 self.dismiss([])
 
+    class ContextBackendScreen(ModalScreen):
+        """Selección ÚNICA del backend de contexto activo (tecla b), con el
+        alcance y el caso de uso ideal de cada opción para decidir con info."""
+
+        CSS = """
+        ContextBackendScreen { align: center middle; }
+        #ctx-box { width: 100; max-height: 85%; border: round $primary;
+                   background: $surface; padding: 1 2; }
+        #ctx-box OptionList { height: auto; max-height: 20; }
+        #ctx-botones { height: 3; align-horizontal: right; }
+        """
+
+        def __init__(self, current: str):
+            super().__init__()
+            self._current = current
+
+        def compose(self) -> ComposeResult:
+            with Vertical(id="ctx-box"):
+                yield Static(f"[b]{t('tui.ctxbackend.title')}[/b]")
+                opciones = OptionList()
+                for key, meta in BACKENDS.items():
+                    marca = "→ " if key == self._current else "  "
+                    estado = "✓" if _shutil.which(meta["tool"]) else "○"
+                    texto = (f"{marca}{estado} [b]{meta['label']}[/b]\n"
+                            f"   {meta['scope']}\n"
+                            f"   {t('tui.ctxbackend.ideal')}: {meta['ideal']}")
+                    opciones.add_option(Option(texto, id=key))
+                yield opciones
+                with Horizontal(id="ctx-botones"):
+                    yield Button(t("tui.install.cancel"), id="ctx-cancel")
+
+        def on_option_list_option_selected(self, event) -> None:
+            self.dismiss(event.option.id)
+
+        def on_button_pressed(self, event) -> None:
+            self.dismiss(None)
+
     _LOG_MARKS = {
         "passed": t("log.passed"),
         "passed_with_exceptions": t("log.exceptions"),
@@ -94,6 +135,7 @@ def build_app():
             ("s", "skills_sync", t("tui.binding.skills")),
             ("d", "open_docs", t("tui.binding.docs")),
             ("c", "cancel_install", t("tui.binding.cancel")),
+            ("b", "context_backend", t("tui.binding.contextbackend")),
             ("escape", "close_panels", t("tui.binding.closepanels")),
         ]
         CSS = """
@@ -119,6 +161,7 @@ def build_app():
                     yield Static(id="gates-linea")
                     yield Static(id="lastclose")
                     yield Static(id="pathaviso")
+                    yield Static(id="ctxbackend")
                     # tabla | log del instalador lado a lado (el log aparece al usar `i`)
                     with Horizontal(id="resumen-cuerpo"):
                         yield DataTable(id="tabla-doctor", cursor_type="row")
@@ -181,6 +224,13 @@ def build_app():
             self.query_one("#pathaviso", Static).update(
                 "" if report.uv_bin_on_path
                 else f"[yellow]▲ {t('doctor.path.uv.missing')}[/yellow]")
+
+            # backend de contexto activo (config.json → context.backend)
+            if initialized:
+                self.query_one("#ctxbackend", Static).update(
+                    t("tui.ctxbackend.line", name=project.context_backend(root)))
+            else:
+                self.query_one("#ctxbackend", Static).update("")
 
             self._report = report  # lo usa el instalador (tecla i)
             from tramalia.cli.render import group_statuses
@@ -482,6 +532,26 @@ def build_app():
             for panel_id in ("#instalador", "#skills-log"):
                 panel = self.query_one(panel_id, RichLog)
                 panel.display = False
+
+        # ------------------------------------------------------------ backend
+        def action_context_backend(self) -> None:
+            """Tecla b: elegir el backend de contexto activo del proyecto."""
+            root = Path.cwd()
+            if not project.is_initialized(root):
+                self.notify(t("tui.close.uninit"), severity="warning", markup=False)
+                return
+            actual = project.context_backend(root)
+            self.push_screen(ContextBackendScreen(actual), self._on_backend_chosen)
+
+        def _on_backend_chosen(self, chosen: str | None) -> None:
+            if not chosen:
+                return
+            root = Path.cwd()
+            if project.set_context_backend(root, chosen):
+                self.notify(t("tui.ctxbackend.ok", name=chosen), markup=False)
+                self.action_refresh()
+            else:
+                self.notify(t("tui.ctxbackend.fail"), severity="error", markup=False)
 
         def _log_write(self, msg: str) -> None:
             self._log_install().write(msg)

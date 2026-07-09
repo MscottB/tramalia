@@ -40,8 +40,8 @@ flowchart LR
 ## CodeGraph — pre-indexed graph with auto-sync (CLI + MCP)
 
 - **What it is / scope:** a **pre-built** dependency graph in SQLite (FTS5): the `codegraph_explore` tool returns *"verbatim source + call flow + blast radius"* in **a single call**, 20+ languages, with file-watchers keeping the index current.
-- **Requires:** nothing (binary; official installer in its repo).
-- **Install:** see [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph); `codegraph init` in the project. **Caution:** its `codegraph install` auto-configures agents — as with codebase-memory-mcp, use only its query MCP server and leave the rules to `AGENTS.md`.
+- **Requires:** nothing extra (the binary installs via npm; Node is only needed to install it, not at runtime).
+- **Install:** `npm i -g @colbymchenry/codegraph` (automated by `doctor`/`tramalia ui`), then `codegraph init` in the project. **Caution:** the `codegraph install` wiring auto-configures agents — Tramalia does **not** automate that step; run only its query MCP server and leave the rules to `AGENTS.md`.
 - **Tramalia uses it in:** `doctor` detects it (feature `context`); alternative/complement to Serena and codebase-memory-mcp.
 
 ## Graphify — knowledge graph from code/docs/schemas (CLI + MCP + skill)
@@ -68,6 +68,29 @@ flowchart LR
   "notebooklm": { "command": "npx", "args": ["notebooklm-mcp@latest"] }
   ```
 - **Tramalia and the hard rule:** it does **not** appear in `doctor` nor in the generated `.mcp.json` (it runs via `npx` and is a cloud service). Use it **only with public third-party documentation** — never upload private code, evidence or repo secrets. It's a different slot: not repo context nor memory — it's *what others documented*.
+
+## With several installed, which does the agent use? (`context.backend`)
+
+Serena, CodeGraph, codebase-memory-mcp and Graphify **compete for the same
+role** — "what do I read to understand the code". If an agent alternates
+between them within the same project (one on one task, another on the next),
+the indexes drift and context becomes only half-reliable. Tramalia fixes **one
+active backend per project**, in `.tramalia/config.json`:
+
+```json
+{ "context": { "backend": "serena" } }
+```
+
+- **Choose it**: `tramalia context set <backend>` (CLI) or the **`b` key** in
+  `tramalia ui` — a selector with each option's scope and ideal use case, so
+  you decide with information, not blindly.
+- **See it**: `tramalia context list` shows all 4 options (installed or not)
+  and which is active; it's also in `.tramalia/context/tools.json →
+  context_backend`, which agents already consult (`AGENTS.md` tells them to).
+- **Default**: `serena` — the only one with no index to maintain or disk footprint.
+- **Repomix and markitdown don't compete**: they're point-in-time utilities
+  (full snapshot / document ingestion) used whenever they apply, regardless of
+  the active backend.
 
 ## The criterion: which to mount and which to use
 

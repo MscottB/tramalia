@@ -67,6 +67,7 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
     """
     import datetime
     import json
+    from tramalia.core import project as project_core
     if not (root / ".tramalia").is_dir():
         return None
     dest = root / ".tramalia" / "context"
@@ -78,6 +79,7 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
         "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "stack": report.stack,
         "uv_bin_on_path": report.uv_bin_on_path,
+        "context_backend": project_core.context_backend(root),
         "tools": [
             {"key": s.tool.key, "cmd": s.tool.cmd, "installed": s.present,
              "version": s.version, "category": s.tool.category,

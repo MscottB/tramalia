@@ -108,11 +108,15 @@ _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
                   _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
                   _manual("binario de github.com/Gentleman-Programming/engram/releases")],
     },
-    # codegraph (grafo de contexto): su instalador oficial; visible aunque sea manual.
-    "codegraph": {
-        "windows": [_manual("instalador oficial: github.com/colbymchenry/codegraph (usa --skip-config)")],
-        "macos": [_manual("instalador oficial: github.com/colbymchenry/codegraph (usa --skip-config)")],
-        "linux": [_manual("instalador oficial: github.com/colbymchenry/codegraph (usa --skip-config)")],
+    # codegraph: el binario SÍ se automatiza vía npm (_from_hint lo deriva del
+    # install_hint del registro); aquí no hace falta _SYSTEM. El wiring a agentes
+    # (`codegraph install --skip-config`) es un paso aparte, nunca automatizado.
+    # Antigravity CLI (agy): scripts oficiales curl|sh / irm|iex — NUNCA se
+    # ejecutan automatizados (regla dura); se muestran exactos por SO.
+    "antigravity": {
+        "windows": [_manual("irm https://antigravity.google/cli/install.ps1 | iex")],
+        "macos": [_manual("curl -fsSL https://antigravity.google/cli/install.sh | bash")],
+        "linux": [_manual("curl -fsSL https://antigravity.google/cli/install.sh | bash")],
     },
 }
 

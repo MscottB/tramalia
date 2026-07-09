@@ -144,8 +144,44 @@ def cmd_gates(args) -> int:
 
 
 def cmd_context(args) -> int:
+    from tramalia.core import project
+    from tramalia.core.context_backend import BACKENDS, UTILITIES
+    from tramalia.i18n import t
+    root = Path.cwd()
+    action = getattr(args, "action", None) or "build"
+
+    if action == "list":
+        actual = project.context_backend(root)
+        render.info(t("context.backend.current", name=actual))
+        for key, meta in BACKENDS.items():
+            marca = "→" if key == actual else " "
+            estado = "✓" if shutil.which(meta["tool"]) else "○"
+            render.ok(f"{marca} {estado} {key:<20}{meta['label']}")
+            render.info(f"      {meta['scope']}")
+            render.info(f"      {t('context.ideal')}: {meta['ideal']}")
+        render.info(t("context.util.header"))
+        for key, meta in UTILITIES.items():
+            estado = "✓" if shutil.which(meta["tool"]) else "○"
+            render.ok(f"    {estado} {key:<20}{meta['label']} — {meta['ideal']}")
+        return 0
+
+    if action == "set":
+        name = getattr(args, "name", None)
+        if not name:
+            render.err(t("context.set.needname"))
+            return 1
+        if project.set_context_backend(root, name):
+            render.ok(t("context.set.ok", name=name))
+            return 0
+        if name not in BACKENDS:
+            render.err(t("context.set.invalid", name=name,
+                         opts=", ".join(BACKENDS)))
+        else:
+            render.err(t("context.set.noconfig"))
+        return 1
+
     from tramalia.core import context
-    results = context.build_context(Path.cwd())
+    results = context.build_context(root)
     for rel in results:
         render.ok(f"generado  .tramalia/context/{rel}")
     if shutil.which("repomix") is None:

@@ -49,6 +49,12 @@ externas adicionales: .tramalia/skills.toml (se clonan con `tramalia skills`).
 - Usa primero las herramientas **locales instaladas** antes de leer archivos completos
   o consultar servicios cloud: .tramalia/context/ → Serena/grafo de código (impacto:
   "¿qué rompo si toco X?") → recién entonces lectura directa.
+- **Backend de navegación de código ACTIVO**: el que fija `.tramalia/config.json →
+  context.backend` (default: `serena`; también en `tools.json → context_backend`).
+  Serena, CodeGraph, codebase-memory-mcp y Graphify compiten por el mismo rol —
+  **no alternes entre ellos** dentro del mismo proyecto. Para cambiarlo:
+  `tramalia context set <backend>`. Repomix y markitdown son utilidades puntuales
+  (snapshot completo / ingesta de documentos) y no compiten con el backend activo.
 - Si hay memoria N2 instalada (Engram), consúltala al iniciar y registra decisiones
   al cerrar; usa **una sola** memoria activa.
 - Si una herramienta de contexto/memoria **no está instalada, prosigue con

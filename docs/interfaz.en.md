@@ -34,6 +34,7 @@ TRAMALIA_LANG=en tramalia ui        # per session
 | `d` | open the selected tool's **documentation** |
 | `c` | **cancel** the running install (moves on to the next) |
 | `Esc` | **close** the install/skills panel if it's left open |
+| `b` | choose the project's active **context backend** (see below) |
 
 ## Overview tab
 
@@ -69,6 +70,25 @@ When it finishes, the table refreshes **for real** — the doctor also detects w
 | **Serena** (uvx) | never installed: ephemeral | `✓ via uvx — no install needed` |
 
 Per-OS routes: [Installation](instalacion.md#automated-installation-per-system). The **`d`** key opens the selected tool's official documentation in your browser (a brief toast, no panel involved); **Esc** closes the install panel if it's left open.
+
+## Context backend (`b` key)
+
+If you have several code-navigation tools installed (Serena, CodeGraph,
+codebase-memory-mcp, Graphify), the `b` key opens a **single-select** picker
+(not multi, unlike the installer) with:
+
+- Each one's **scope** (what it actually does) and its **ideal use case**
+  (what kind of project it fits), so you choose with information.
+- Which is **installed** (`✓`/`○`) and which is **active now** (`→`).
+
+The choice is **saved in the project** (`.tramalia/config.json →
+context.backend`) — it's not a preference on your machine, it travels with
+the repo. A line in Overview (*"context: X (active)"*) always shows what's set.
+CLI equivalent: `tramalia context set <backend>` / `context list`.
+
+Repomix and markitdown don't show up in this picker: they're point-in-time
+utilities (full snapshot / document ingestion), they don't compete for the
+backend role.
 
 ## Skills tab
 

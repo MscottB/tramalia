@@ -34,6 +34,7 @@ TRAMALIA_LANG=en tramalia ui        # por sesión
 | `d` | abrir la **documentación** de la herramienta seleccionada |
 | `c` | **cancelar** la instalación en curso (sigue con la próxima) |
 | `Esc` | **cerrar** el panel de instalación/skills si quedó abierto |
+| `b` | elegir el **backend de contexto** activo del proyecto (ver abajo) |
 
 ## Pestaña Resumen
 
@@ -69,6 +70,24 @@ Al terminar, la tabla se refresca **de verdad** — el doctor detecta también l
 | **Serena** (uvx) | no se instala: es efímera | `✓ vía uvx — no requiere instalación` |
 
 Detalle de vías por SO: [Instalación](instalacion.md#instalacion-automatizada-por-sistema). Con la tecla **`d`** abres la documentación oficial de la herramienta seleccionada en el navegador (aviso breve, no ocupa panel); con **Esc** cierras el panel de instalación si quedó abierto.
+
+## Backend de contexto (tecla `b`)
+
+Si tienes instaladas varias herramientas de navegación de código (Serena,
+CodeGraph, codebase-memory-mcp, Graphify), la tecla `b` abre un selector
+**único** (no múltiple, a diferencia del instalador) con:
+
+- El **alcance** de cada una (qué hace exactamente) y su **caso de uso ideal**
+  (para qué tipo de proyecto conviene), para elegir con información.
+- Cuál está **instalada** (`✓`/`○`) y cuál es la **activa ahora** (`→`).
+
+La elección se **guarda en el proyecto** (`.tramalia/config.json →
+context.backend`) — no es una preferencia de tu máquina, viaja con el repo.
+Una línea en el Resumen (*"contexto: X (activo)"*) siempre muestra cuál está
+fijada. Equivalente CLI: `tramalia context set <backend>` / `context list`.
+
+Repomix y markitdown no aparecen en este selector: son utilidades puntuales
+(snapshot completo / ingesta de documentos), no compiten por el rol de backend.
 
 ## Pestaña Skills
 

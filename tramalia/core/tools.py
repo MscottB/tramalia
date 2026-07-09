@@ -88,9 +88,11 @@ REGISTRY: list[Tool] = [
          "feature", feature="specs", managed_by_mise=False,
          install_hint="uv tool install specify-cli --from git+https://github.com/github/spec-kit.git"),
     # grafo de código pre-indexado (contexto quirúrgico en una llamada, opcional).
+    # binario vía npm (@colbymchenry/codegraph); el wiring a agentes es aparte:
+    # `codegraph install --skip-config` (nunca automatizado por Tramalia).
     Tool("codegraph", "codegraph", "grafo de código pre-indexado (contexto, opcional)",
          "feature", feature="context", managed_by_mise=False,
-         install_hint="ver github.com/colbymchenry/codegraph (instalar con --skip si no quieres que configure agentes)"),
+         install_hint="npm i -g @colbymchenry/codegraph"),
     # grafo de conocimiento desde código/docs/schemas (CLI+MCP+skill, opcional).
     Tool("graphify", "graphify", "grafo de conocimiento del proyecto (contexto, opcional)",
          "feature", feature="context", managed_by_mise=False,
@@ -109,8 +111,11 @@ REGISTRY: list[Tool] = [
          managed_by_mise=False, install_hint="https://claude.com/claude-code"),
     Tool("codex", "codex", "OpenAI Codex (agente CLI)", "agent",
          managed_by_mise=False, install_hint="npm i -g @openai/codex"),
-    Tool("antigravity", "antigravity", "Google Antigravity (agente CLI; absorbió Gemini CLI)",
-         "agent", managed_by_mise=False, install_hint="instalador oficial de Antigravity"),
+    # el binario real en PATH se llama "agy" (no "antigravity"); Antigravity CLI
+    # reemplazó oficialmente a Gemini CLI (descontinuado 2026-06-18).
+    Tool("antigravity", "agy", "Google Antigravity CLI — comando `agy` (agente CLI; ex-Gemini CLI)",
+         "agent", managed_by_mise=False,
+         install_hint="instalador oficial (agy) — ver antigravity.google/docs/cli-install"),
     Tool("opencode", "opencode", "OpenCode (agente CLI)", "agent",
          managed_by_mise=False, install_hint="npm i -g opencode-ai"),
     Tool("openclaw", "openclaw", "OpenClaw (gateway multi-modelo)", "agent",
@@ -139,7 +144,8 @@ DOCS: dict[str, str] = {
     "markitdown": "https://github.com/microsoft/markitdown",
     "databricks": "https://docs.databricks.com/dev-tools/cli/",
     "claude": "https://code.claude.com/docs", "codex": "https://developers.openai.com/codex",
-    "antigravity": "https://antigravity.google", "opencode": "https://opencode.ai/docs",
+    "antigravity": "https://antigravity.google/docs/cli-getting-started",
+    "opencode": "https://opencode.ai/docs",
     "openclaw": "https://github.com/openclaw", "hermes": "https://hermes.nousresearch.com",
 }
 

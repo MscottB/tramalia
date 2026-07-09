@@ -33,7 +33,11 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--with-notebook-exec", action="store_true",
                      help="agrega un gate que EJECUTA los notebooks (jupyter execute); opt-in, requiere datos/entorno")
     sub.add_parser("gates", help="ejecuta quality gates (mise run gates)")
-    sub.add_parser("context", help="genera contexto / token-saver (repomix + serena)")
+    ctx = sub.add_parser("context",
+                         help="contexto/token-saver: build (default) | list | set <backend>")
+    ctx.add_argument("action", nargs="?", choices=["build", "list", "set"], default="build")
+    ctx.add_argument("name", nargs="?", default=None,
+                     help="nombre del backend (para `set`; ver `context list`)")
     ev = sub.add_parser("evidence", help="genera el evidence pack (ej: tramalia evidence TASK-001)")
     ev.add_argument("task_pos", nargs="?", metavar="TAREA", default=None,
                     help="ID de la tarea; si se omite, se usa .tramalia/current-task.md")

@@ -2,6 +2,45 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.24.0] - 2026-07-08
+
+CodeGraph automatizable + fix de detección de Antigravity (agy) + backend de
+contexto seleccionable por proyecto (CLI y TUI).
+
+### CodeGraph: automatizable de verdad
+- Tenía paquete npm real (`@colbymchenry/codegraph`) que no estábamos usando —
+  quedaba marcado "solo manual" sin comprobarlo. Ahora se automatiza igual que
+  repomix/opencode (con Node; si falta, el selector ofrece instalarlo).
+
+### Antigravity: el binario se llama `agy`, no `antigravity`
+- Verificado en fuentes oficiales: el comando real en PATH tras instalar
+  Antigravity CLI es **`agy`** (reemplazó a Gemini CLI, descontinuada
+  2026-06-18). La detección buscaba el nombre equivocado — corregido.
+- La instalación sigue siendo **manual a propósito**: scripts oficiales
+  `curl`/`irm` nunca se ejecutan automatizados (regla dura), y requiere login
+  interactivo con Google después de instalar.
+
+### Backend de contexto: uno activo por proyecto, elegible con info
+- Nuevo `.tramalia/config.json → context.backend` (default `serena`): fija
+  **cuál** de Serena/CodeGraph/codebase-memory-mcp/Graphify usan los agentes,
+  para que no alternen entre índices inconsistentes dentro del mismo proyecto.
+- **CLI**: `tramalia context list` (alcance + caso de uso ideal + instalada/
+  activa de cada uno) y `tramalia context set <backend>`.
+- **TUI**: tecla **`b`** abre un selector único con la misma información;
+  línea en Resumen muestra el backend activo.
+- Se refleja en `.tramalia/context/tools.json → context_backend` (que los
+  agentes ya consultan) y en una regla nueva de `AGENTS.md`.
+- Repomix y markitdown quedan explícitamente fuera de la selección: son
+  utilidades puntuales, no compiten por el rol de backend.
+
+### Documentación
+- Interop-contexto, interfaz, comandos, instalación y Ayuda (FAQ) actualizados
+  en ES/EN; corregido de paso "tres vistas" → "cuatro vistas" en `comandos.md`.
+
+### Calidad
+- 186 tests con pytest (15 nuevos en `tests/test_v024.py`, incl. 2 con el
+  harness real de Textual).
+
 ## [0.23.0] - 2026-07-08
 
 Versión visible en el UI + prerequisitos de runtime (Node/Go) transparentes.

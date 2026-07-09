@@ -34,6 +34,20 @@ Su única vía automatizable necesita ese runtime, que no tienes. Desde v0.23 el
 **¿Dónde veo la versión de Tramalia?**
 En el título de la cabecera de `tramalia ui`, en el panel de `tramalia doctor`/`detect`, y con `tramalia --version`. Actualiza el CLI con `pip install -U tramalia-cli`.
 
+**CodeGraph aparecía como "solo manual" y no se podía automatizar.**
+Era un error nuestro: sí tiene paquete npm (`@colbymchenry/codegraph`). Desde v0.24 se automatiza igual que repomix/opencode — si Node falta, el selector ofrece instalarlo primero.
+
+**Antigravity aparece como "falta" aunque lo instalé.**
+El binario real que queda en el PATH se llama **`agy`**, no `antigravity` (Antigravity CLI reemplazó a Gemini CLI, descontinuado el 18-06-2026). La detección buscaba el nombre equivocado — corregido en v0.24. La instalación (script oficial `curl`/`irm`) sigue siendo manual a propósito: nunca ejecutamos scripts remotos automatizados, y además requiere login interactivo con Google después.
+
+## Contexto: cuál herramienta de navegación usar
+
+**Tengo Serena, CodeGraph, codebase-memory-mcp y Graphify instalados — ¿cuál usa el agente?**
+La que fija `.tramalia/config.json → context.backend` (default `serena`). Es un valor **por proyecto**, no una decisión que el agente tome cada vez — evita que alterne entre índices inconsistentes. Cámbialo con `tramalia context set <backend>` o la tecla `b` en `tramalia ui` (te muestra el alcance y el caso de uso ideal de cada uno antes de elegir). Ver `tramalia context list` para el detalle completo.
+
+**¿Repomix y markitdown también hay que elegirlos?**
+No — son utilidades puntuales (snapshot completo / ingesta de documentos), no compiten por el backend activo. Se usan cuando corresponde, sin importar cuál sea el backend de navegación.
+
 ## Cierre y gates
 
 **`close` me da exit 1 con "proyecto no está inicializado".**

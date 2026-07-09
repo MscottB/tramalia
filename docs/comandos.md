@@ -14,7 +14,7 @@ El **núcleo de gobierno** (`init`, `doctor`, `close`, `log`, `evidence`, `hando
 | `tramalia evidence [TAREA]` | crea el evidence pack de cierre | core |
 | `tramalia handoff [TAREA]` | traspaso multiagente | core |
 | `tramalia gates` | ejecuta los quality gates | interop (mise) |
-| `tramalia context` | genera memoria derivada (token-saver) | interop (repomix + stdlib) |
+| `tramalia context [build\|list\|set <backend>]` | genera memoria derivada; ve o fija el backend de navegación activo | interop (repomix + stdlib) |
 | `tramalia sync [--to --features]` | propaga AGENTS.md **y subagentes** a otros agentes | interop (rulesync) |
 | `tramalia skills [sync\|list\|enable\|disable]` | administra skills: catálogo con estados, activar/desactivar, clonar/actualizar | interop (git) |
 | `tramalia update` | actualiza todo | interop (mise + copier + skills) |
@@ -67,7 +67,16 @@ Flags opt-in: `--with-headroom` (compresión) y `--with-ponytail` (MCP del rules
 
 ## ui — el dashboard TUI
 
-`tramalia ui` abre un panel en la terminal (Textual; si falta, `tramalia ui` **ofrece instalarlo** ahí mismo) con tres vistas: **Resumen** (doctor en vivo + gates aplicables), **Auditoría** (los cierres de `log`, navegables; Enter muestra el `metadata.json`) y **Cierre** (formulario tarea/agente/revisor + salida de gates). Solo lee e invoca el core — cero lógica nueva. Guía completa de la interfaz: [La interfaz (TUI)](interfaz.md).
+`tramalia ui` abre un panel en la terminal (Textual; si falta, `tramalia ui` **ofrece instalarlo** ahí mismo) con cuatro vistas: **Resumen** (doctor en vivo + gates aplicables + backend de contexto), **Skills** (administrar propias y externas), **Auditoría** (los cierres de `log`, navegables; Enter muestra el `metadata.json`) y **Cierre** (formulario tarea/agente/revisor + salida de gates). Solo lee e invoca el core — cero lógica nueva. Guía completa de la interfaz: [La interfaz (TUI)](interfaz.md).
+
+## context
+
+`tramalia context` (sin argumento, o `build`) genera `.tramalia/context/` (project-map, tech-stack) — snapshot completo si hay Repomix, árbol stdlib si no. Además administra el **backend de navegación de código activo** del proyecto:
+
+- **`tramalia context list`** — las 4 opciones que compiten por ese rol (Serena, CodeGraph, codebase-memory-mcp, Graphify) con su alcance, caso de uso ideal, cuál está instalada y cuál activa.
+- **`tramalia context set <backend>`** — la fija en `.tramalia/config.json → context.backend` (default `serena`); queda también en `tools.json` para que los agentes la lean.
+
+Por qué importa: si tienes varias instaladas y un agente alterna entre ellas de tarea en tarea, los índices quedan inconsistentes. Ver [Contexto e inteligencia de código](interop-contexto.md#si-tengo-varios-instalados-cual-usa-el-agente-contextbackend).
 
 ## evidence y handoff
 

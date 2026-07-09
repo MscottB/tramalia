@@ -56,6 +56,9 @@ Tramalia **orquesta** herramientas externas. No las necesitas todas para empezar
 !!! tip "¿Necesito Node?"
     Solo si usas `sync`, el gate `ux` o `context` con Repomix. En un proyecto sin frontend y sin `sync`, **nunca** necesitas Node. `tramalia doctor` marca esas filas como "requiere Node".
 
+!!! tip "Node y Go se pueden instalar SOLOS"
+    Si una herramienta solo se automatiza con un runtime que te falta (npm → **Node**; `go install` → **Go**, p. ej. engram), el selector de instalación (tecla `i` en la TUI, o `doctor --fix`) **ofrece instalar ese runtime primero** — lo instalas, repites la instalación, y la herramienta pasa a automatizable. Node y Go son instalables por winget/brew igual que el resto. Detalle: [Ayuda → prerequisitos de runtime](ayuda.md#instalacion-y-doctor).
+
 ## Instalación automatizada por sistema
 
 `tramalia doctor --fix` (y la tecla `i` en `tramalia ui`) **detectan tu sistema y qué gestores tienes** (winget/brew/choco/scoop, mise, uv, npm) y te dejan **seleccionar una o más** herramientas para instalar automatizado — cada una por su mejor vía disponible:

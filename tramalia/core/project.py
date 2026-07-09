@@ -45,6 +45,32 @@ def default_agents(root: Path) -> tuple[str, str]:
     return (str(agents.get("primary") or ""), str(agents.get("reviewer") or ""))
 
 
+def context_backend(root: Path) -> str:
+    """Backend de navegación de código ACTIVO para este proyecto
+    (config.json → context.backend). Default: serena (sin huella ni indexado)."""
+    from tramalia.core.context_backend import DEFAULT
+    ctx = read_config(root).get("context", {})
+    return str(ctx.get("backend") or DEFAULT)
+
+
+def set_context_backend(root: Path, name: str) -> bool:
+    """Fija el backend de contexto en config.json. False si el nombre no es
+    válido o si el proyecto no está inicializado (sin config.json)."""
+    from tramalia.core.context_backend import BACKENDS
+    if name not in BACKENDS:
+        return False
+    f = root / ".tramalia" / "config.json"
+    if not f.exists():
+        return False
+    try:
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    data.setdefault("context", {})["backend"] = name
+    f.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return True
+
+
 def current_task_id(root: Path) -> str | None:
     """ID declarado en .tramalia/current-task.md, o None si sigue en placeholder."""
     f = root / ".tramalia" / "current-task.md"
