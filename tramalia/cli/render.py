@@ -32,17 +32,18 @@ def _rich() -> bool:
 
 
 def header(project: str, stack: list[str], initialized: bool) -> None:
+    from tramalia import __version__
     estado = "inicializado" if initialized else "no inicializado"
     stack_txt = " · ".join(stack) if stack else "—"
     if _rich():
         _console.print(Panel(
             f"proyecto [bold]{project}[/bold]   stack [bold]{stack_txt}[/bold]   "
             f"estado [{'green' if initialized else 'yellow'}]{estado}[/]",
-            title="Tramalia", border_style="cyan", box=box.ROUNDED,
+            title=f"Tramalia v{__version__}", border_style="cyan", box=box.ROUNDED,
         ))
     else:
         print("=" * 60)
-        print(f"Tramalia · proyecto {project} · stack {stack_txt} · {estado}")
+        print(f"Tramalia v{__version__} · proyecto {project} · stack {stack_txt} · {estado}")
         print("=" * 60)
 
 
@@ -82,6 +83,18 @@ def _hint_for(tool) -> str:
     return opts[0].display if opts else tool.install_hint
 
 
+def _runtime_note(tool, plain: bool = False) -> str:
+    """Si automatizar la tool requiere un runtime ausente (Node/Go), avisarlo."""
+    from tramalia.core import installer
+    rt = installer.blocking_runtime(tool)
+    if not rt:
+        return ""
+    name = installer._RUNTIME_NAME.get(rt, rt)
+    if plain:
+        return f"  · requiere {name}"
+    return f"  [magenta]· requiere {name}[/magenta]"
+
+
 def doctor(report: Report) -> int:
     """Imprime el diagnóstico agrupado. Exit 0 si nada bloqueante falta."""
     stack_txt = " · ".join(report.stack) if report.stack else "—"
@@ -104,8 +117,8 @@ def doctor(report: Report) -> int:
             table.add_row(f"[bold cyan]· {t('doctor.group.' + cat)}[/]", "", "", "")
             for s in rows:
                 estado, detalle = fila(s)
-                if s.tool.runtime == "node" and not s.present:
-                    detalle += "  [magenta]· Node[/magenta]"
+                if not s.present:
+                    detalle += _runtime_note(s.tool)
                 table.add_row(f"  {s.tool.cmd}", s.tool.role, estado, detalle)
         _console.print(f"\n[dim]{t('doctor.stack')}[/dim] {stack_txt}")
         _console.print(table)
@@ -118,8 +131,8 @@ def doctor(report: Report) -> int:
                 estado = ("instalada" if s.present else
                           "no-inst(opc)" if s.tool.category in ("feature", "agent")
                           else "NO INSTALADA")
-                if s.tool.runtime == "node" and not s.present:
-                    detalle += "  · Node"
+                if not s.present:
+                    detalle += _runtime_note(s.tool, plain=True)
                 print(f"{s.tool.cmd:<13}{estado:<14}{s.tool.role} — {detalle}")
 
     if not getattr(report, "uv_bin_on_path", True):

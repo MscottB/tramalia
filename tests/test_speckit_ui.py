@@ -46,4 +46,4 @@ def test_tui_construye():
     from tramalia.tui import build_app
     app_cls = build_app()
     app = app_cls()  # instanciar no levanta la UI
-    assert app.TITLE == "Tramalia"
+    assert app.TITLE.startswith("Tramalia v")  # muestra la versión en el UI

@@ -80,8 +80,10 @@ def build_app():
         None: "○ —",
     }
 
+    from tramalia import __version__ as _tramalia_version
+
     class TramaliaApp(App):
-        TITLE = "Tramalia"
+        TITLE = f"Tramalia v{_tramalia_version}"
         SUB_TITLE = t("tui.subtitle")
         # la command palette de Textual está en inglés: fuera, por coherencia i18n
         ENABLE_COMMAND_PALETTE = False
@@ -387,15 +389,19 @@ def build_app():
             self.query_one(TabbedContent).active = "resumen"
             report = getattr(self, "_report")
             faltantes = [s.tool for s in report.statuses if not s.present]
-            plans, manuals = [], []
-            for tool in faltantes:
-                best = installer.best_auto(tool)
-                if best:
-                    plans.append((tool.cmd, best))
-                else:
-                    opts = installer.options_for(tool)
-                    cmd = opts[0].display if opts else tool.install_hint
-                    manuals.append((tool.cmd, cmd))
+            auto, manual, runtime_offers = installer.plan_for(faltantes)
+            plans = list(auto)
+            # ofrecer instalar el runtime (Node/Go) que desbloquea otras herramientas
+            for name, opt, enables in runtime_offers:
+                plans.append((t("tui.install.runtime", rt=name,
+                                tools=", ".join(enables)), opt))
+            # manuales: anotar "requiere X" si un runtime falta
+            manuals = []
+            for cmd, display, rt in manual:
+                label = (cmd if not rt else
+                         t("tui.install.needs", tool=cmd,
+                           rt=installer._RUNTIME_NAME.get(rt, rt)))
+                manuals.append((label, display))
             # acción de PATH: si uv está pero su bin no está en el PATH
             if not report.uv_bin_on_path and installer.shutil.which("uv"):
                 plans.append((t("tui.install.pathfix"), installer.pathfix_option()))

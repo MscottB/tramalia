@@ -28,6 +28,12 @@ Since v0.22 the selector shows **all** missing tools: the automatable ones as se
 **A tool says "○ not installed (optional)": is it there or not?**
 It's not installed. "Optional" only means you don't need it unless you use its gate/feature. The status always says it explicitly: `✓ installed` · `○ not installed (optional)` · `✗ not installed (required)`.
 
+**A tool says "requires Go" (or Node) and I can't install it automatically.**
+Its only automatable route needs that runtime, which you don't have. Since v0.23 the selector (`i` key) **offers to install the runtime** (⬇ install Go → enables engram): install it, press `i` again, and the tool becomes automatable. In the CLI: `tramalia doctor --fix` includes the runtime in the plan. Runtimes that enable automation: **Node.js** (npm tools) and **Go** (engram).
+
+**Where do I see the Tramalia version?**
+In the `tramalia ui` header title, in the `tramalia doctor`/`detect` panel, and with `tramalia --version`. Update the CLI with `pip install -U tramalia-cli`.
+
 ## Close & gates
 
 **`close` exits 1 with "project not initialized".**

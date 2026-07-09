@@ -41,17 +41,22 @@ def cmd_doctor(args) -> int:
     from tramalia.core import installer
     from tramalia.i18n import t
     faltantes = [s.tool for s in report.statuses if not s.present]
-    plans = [(tool, best) for tool in faltantes
-             if (best := installer.best_auto(tool))]
-    manuales = [tool for tool in faltantes
-                if all(tool is not p[0] for p in plans)]
-    if manuales:
-        render.info(t("doctor.fix.manual",
-                      names=", ".join(m.cmd for m in manuales)))
+    auto, manual, runtime_offers = installer.plan_for(faltantes)
+    # plans: [(label, opt)] — automatizables + runtimes que desbloquean otras tools
+    plans = list(auto)
+    for name, opt, enables in runtime_offers:
+        plans.append((t("tui.install.runtime", rt=name, tools=", ".join(enables)), opt))
+    bloqueadas = [f"{cmd} → {installer._RUNTIME_NAME.get(rt, rt)}"
+                  for cmd, _d, rt in manual if rt]
+    manuales_puras = [cmd for cmd, _d, rt in manual if not rt]
+    if bloqueadas:
+        render.info(t("doctor.fix.needsruntime", items=", ".join(bloqueadas)))
+    if manuales_puras:
+        render.info(t("doctor.fix.manual", names=", ".join(manuales_puras)))
     if not plans:
         return code
     render.info(t("doctor.fix.plan",
-                  names=", ".join(f"{tl.cmd} ({opt.method})" for tl, opt in plans)))
+                  names=", ".join(f"{lbl} ({opt.method})" for lbl, opt in plans)))
     # selección múltiple si hay terminal + questionary; si no, todas las auto.
     elegidas = plans
     if sys.stdin.isatty() and sys.stdout.isatty():
@@ -59,22 +64,22 @@ def cmd_doctor(args) -> int:
             import questionary
             marcadas = questionary.checkbox(
                 t("doctor.fix.pick"),
-                choices=[questionary.Choice(f"{tl.cmd} — {opt.display}",
+                choices=[questionary.Choice(f"{lbl} — {opt.display}",
                                             value=i, checked=True)
-                         for i, (tl, opt) in enumerate(plans)],
+                         for i, (lbl, opt) in enumerate(plans)],
             ).ask()
             if marcadas is None:
                 return code
             elegidas = [plans[i] for i in marcadas]
         except ImportError:
             pass
-    for tool, opt in elegidas:
-        render.info(f"{tool.cmd} ← {opt.display}")
+    for label, opt in elegidas:
+        render.info(f"{label} ← {opt.display}")
         rc, out = installer.run_install(opt)
         if rc == 0:
-            render.ok(tool.cmd)
+            render.ok(label)
         else:
-            render.warn(f"{tool.cmd} exit {rc}")
+            render.warn(f"{label} exit {rc}")
             for line in out.strip().splitlines()[-5:]:
                 render.info(f"  {line}")
     # configurar el PATH de uv si sus binarios no están accesibles

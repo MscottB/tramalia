@@ -28,6 +28,12 @@ Desde v0.22 el selector muestra **todas** las faltantes: las automatizables como
 **Una herramienta dice "○ no instalada (opcional)": ¿está o no?**
 No está instalada. "Opcional" solo significa que no la necesitas salvo que uses su gate/feature. El estado siempre dice explícito: `✓ instalada` · `○ no instalada (opcional)` · `✗ no instalada (requerida)`.
 
+**Una herramienta dice "requiere Go" (o Node) y no la puedo instalar automático.**
+Su única vía automatizable necesita ese runtime, que no tienes. Desde v0.23 el selector (tecla `i`) te **ofrece instalar el runtime** (⬇ instalar Go → habilita engram): instálalo, vuelve a pulsar `i` y la herramienta ya es automatizable. En CLI: `tramalia doctor --fix` incluye el runtime en el plan. Runtimes que habilitan automatización: **Node.js** (herramientas npm) y **Go** (engram).
+
+**¿Dónde veo la versión de Tramalia?**
+En el título de la cabecera de `tramalia ui`, en el panel de `tramalia doctor`/`detect`, y con `tramalia --version`. Actualiza el CLI con `pip install -U tramalia-cli`.
+
 ## Cierre y gates
 
 **`close` me da exit 1 con "proyecto no está inicializado".**

@@ -92,6 +92,11 @@ _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
         "macos": [_brew("node")],
         "linux": [_manual("mise use node@22 (o el gestor de tu distro)")],
     },
+    "go": {
+        "windows": [_winget("GoLang.Go")],
+        "macos": [_brew("go")],
+        "linux": [_manual("ver https://go.dev/doc/install (o el gestor de tu distro)")],
+    },
     # engram (memoria N2): brew en mac; `go install` multiplataforma (incl. Windows)
     # si Go está presente; binario de releases como último recurso manual.
     "engram": {
@@ -178,6 +183,68 @@ def best_auto(tool: Tool, os_name: str | None = None) -> InstallOption | None:
         if opt.available:
             return opt
     return None
+
+
+# runtimes que habilitan automatización (npm→Node, go→Go): nombre legible + su key
+# en el registro/_SYSTEM para poder instalarlos y así desbloquear la herramienta.
+_RUNTIME_NAME = {"npm": "Node.js", "go": "Go"}
+_RUNTIME_KEY = {"npm": "node", "go": "go"}
+
+
+def blocking_runtime(tool: Tool, os_name: str | None = None) -> str | None:
+    """Si la mejor vía automatizable de `tool` NO está disponible SOLO porque
+    falta un runtime (Node/Go), devuelve ese runtime (`npm`/`go`); None si ya es
+    automatizable o si no depende de un runtime que se pueda instalar."""
+    if best_auto(tool, os_name):
+        return None
+    for opt in options_for(tool, os_name):
+        if (opt.auto and opt.requires in _RUNTIME_NAME
+                and shutil.which(opt.requires) is None):
+            return opt.requires
+    return None
+
+
+def runtime_install_option(requires: str, os_name: str | None = None) -> InstallOption | None:
+    """La mejor opción para instalar el runtime (`npm`→node, `go`→go)."""
+    key = _RUNTIME_KEY.get(requires)
+    if not key:
+        return None
+    opts = _SYSTEM.get(key, {}).get(os_name or current_os(), [])
+    for o in opts:
+        if o.available:
+            return o
+    return opts[0] if opts else None
+
+
+def plan_for(tools, os_name: str | None = None):
+    """Arma el plan de instalación para una lista de Tools faltantes.
+
+    Devuelve (auto, manual, runtime_offers):
+    - auto: [(label, InstallOption)] automatizables ya.
+    - manual: [(label, comando, runtime_bloqueante|None)] visibles pero no auto.
+    - runtime_offers: [(nombre_runtime, InstallOption, [tools que habilita])] —
+      instalar ese runtime (Node/Go) vuelve automatizables a esas herramientas.
+    """
+    os_name = os_name or current_os()
+    auto, manual = [], []
+    blocked: dict[str, list[str]] = {}
+    for tool in tools:
+        best = best_auto(tool, os_name)
+        if best:
+            auto.append((tool.cmd, best))
+            continue
+        rt = blocking_runtime(tool, os_name)
+        opts = options_for(tool, os_name)
+        cmd = opts[0].display if opts else tool.install_hint
+        manual.append((tool.cmd, cmd, rt))
+        if rt:
+            blocked.setdefault(rt, []).append(tool.cmd)
+    runtime_offers = []
+    for rt, enables in blocked.items():
+        opt = runtime_install_option(rt, os_name)
+        if opt and opt.available:
+            runtime_offers.append((_RUNTIME_NAME[rt], opt, enables))
+    return auto, manual, runtime_offers
 
 
 def run_install(opt: InstallOption, timeout: int = 900) -> tuple[int, str]:

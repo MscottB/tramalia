@@ -2,6 +2,30 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.23.0] - 2026-07-08
+
+Versión visible en el UI + prerequisitos de runtime (Node/Go) transparentes.
+
+### Versión en el UI
+- La **versión de Tramalia** aparece en el título de `tramalia ui` y en el panel
+  de `tramalia doctor`/`detect` (además de `tramalia --version`).
+
+### Prerequisitos de runtime: visibles y facilitados
+- Si una herramienta solo se automatiza con un runtime ausente (engram vía
+  `go install` → **Go**; opencode/repomix vía npm → **Node.js**), el doctor lo
+  **marca en el detalle** (*«· requiere Go»*) y el selector la lista en el bloque
+  manual anotada como *«requiere Go»* — ya no parece que "no se pueda instalar".
+- El selector (tecla `i`) y `doctor --fix` **ofrecen instalar el runtime**
+  (⬇ instalar Go → habilita engram): lo instalas, repites `i` y la herramienta
+  pasa a automatizable. **Go** ahora es instalable (winget/brew) como Node.
+
+### Documentación
+- Interfaz y Ayuda (FAQ) documentan los prerequisitos de runtime y dónde ver
+  la versión. Checklist de docs ampliado (FAQ + READMEs + MkDocs).
+
+### Calidad
+- 171 tests con pytest (7 nuevos en `tests/test_v023.py`).
+
 ## [0.22.1] - 2026-07-08
 
 engram SÍ se automatiza en Windows (`go install`) + FAQ al día.

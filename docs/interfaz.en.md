@@ -1,6 +1,6 @@
 # The interface (TUI) explained
 
-`tramalia ui` opens the terminal dashboard (Textual). This page explains **every element** of the interface, what it means and what you can do from it.
+`tramalia ui` opens the terminal dashboard (Textual; the **Tramalia version** shows in the header title). This page explains **every element** of the interface, what it means and what you can do from it.
 
 ```mermaid
 flowchart LR
@@ -51,6 +51,8 @@ The table also includes the **agent CLIs detected** on your machine (claude, cod
 ### Installing from the interface (`i`)
 
 Press `i` and a **multi-selector** opens with **all** missing tools (space marks, enter confirms). The ones **automatable on your system** appear selectable — each via its best route (winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present); the ones with **only a manual route** (e.g. codegraph, hermes) are listed separately with their command, so none is silently omitted. If the uv PATH needs configuring, the selector also includes that action (`uv tool update-shell`).
+
+**Runtime prerequisites**: some tools only automate with a runtime (e.g. **engram** via `go install` needs **Go**; opencode/repomix via npm need **Node.js**). If that runtime is missing, the tool appears in the manual list marked *“requires Go”* and the selector **offers to install the runtime** (⬇ install Go → enables engram): install it, press `i` again, and the tool becomes automatable. In the doctor table, the *detail* column also marks *“· requires Go/Node”* when the runtime is absent.
 
 Output streams **line by line, live**, in a panel beside the table — if an install gets stuck or asks for permissions, you see it instantly:
 
