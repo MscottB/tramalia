@@ -50,7 +50,7 @@ The table also includes the **agent CLIs detected** on your machine (claude, cod
 
 ### Installing from the interface (`i`)
 
-Press `i` and a **multi-selector** opens with **all** missing tools (space marks, enter confirms). The ones **automatable on your system** appear selectable — each via its best route (winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present); the ones with **only a manual route** (e.g. engram on Windows, codegraph, hermes) are listed separately with their command, so none is silently omitted. If the uv PATH needs configuring, the selector also includes that action (`uv tool update-shell`).
+Press `i` and a **multi-selector** opens with **all** missing tools (space marks, enter confirms). The ones **automatable on your system** appear selectable — each via its best route (winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present); the ones with **only a manual route** (e.g. codegraph, hermes) are listed separately with their command, so none is silently omitted. If the uv PATH needs configuring, the selector also includes that action (`uv tool update-shell`).
 
 Output streams **line by line, live**, in a panel beside the table — if an install gets stuck or asks for permissions, you see it instantly:
 

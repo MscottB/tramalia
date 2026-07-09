@@ -29,11 +29,26 @@ def test_grupos_respetan_orden():
 
 
 # ---------------------------------------------------------------- engram/codegraph
-def test_engram_instalable_en_mac_visible_en_windows():
+def test_engram_instalable_en_mac_y_en_windows_con_go():
     mac = installer.options_for(_tool("engram"), os_name="macos")
     assert any(o.method == "brew" and o.auto for o in mac)
+    # Windows: automatizable vía `go install` (si Go está) + binario manual de respaldo
     win = installer.options_for(_tool("engram"), os_name="windows")
-    assert win and all(not o.auto for o in win)           # visible pero manual
+    go = next(o for o in win if o.method == "go")
+    assert go.auto and go.requires == "go" and "engram" in go.args[2]
+    assert any(not o.auto for o in win)                   # respaldo manual visible
+
+
+def test_probe_detecta_engram_instalado_por_go(tmp_path, monkeypatch):
+    import pathlib
+    from tramalia.core import tools
+    (tmp_path / "go" / "bin").mkdir(parents=True)
+    (tmp_path / "go" / "bin" / "engram.exe").write_bytes(b"")
+    monkeypatch.delenv("GOPATH", raising=False)
+    monkeypatch.setattr(pathlib.Path, "home", staticmethod(lambda: tmp_path))
+    monkeypatch.setattr(tools.shutil, "which", lambda _n: None)
+    st = tools.probe(_tool("engram"))
+    assert st.present is True and "go" in (st.version or "")
 
 
 def test_codegraph_siempre_visible_como_manual():
@@ -65,4 +80,4 @@ def test_selector_incluye_todas_las_faltantes():
         best = installer.best_auto(tool)
         opts = installer.options_for(tool)
         # o tiene vía automatizable, o al menos una opción manual visible
-        assert best is not None or (opts and not opts[0].auto)
+        assert best is not None or any(not o.auto for o in opts), key

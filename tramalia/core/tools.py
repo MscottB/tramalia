@@ -179,6 +179,16 @@ def _uv_has(cmd: str) -> bool:
     return any((base / f"{cmd}{ext}").is_file() for ext in (".exe", ".cmd", ""))
 
 
+def _go_has(cmd: str) -> bool:
+    """¿La instaló `go install`? Deja el binario en ~/go/bin (o $GOPATH/bin),
+    que a menudo tampoco está en el PATH — se revisa la carpeta directamente."""
+    import os
+    from pathlib import Path
+    gopath = os.environ.get("GOPATH")
+    base = (Path(gopath) / "bin") if gopath else (Path.home() / "go" / "bin")
+    return any((base / f"{cmd}{ext}").is_file() for ext in (".exe", ""))
+
+
 def probe(tool: Tool, timeout: float = 8.0) -> Status:
     """Comprueba si una herramienta está disponible y su versión."""
     from tramalia.i18n import t
@@ -190,6 +200,8 @@ def probe(tool: Tool, timeout: float = 8.0) -> Status:
             return Status(tool, present=True, version=t("doctor.viamise"))
         if _uv_has(tool.cmd):
             return Status(tool, present=True, version=t("doctor.viauv"))
+        if _go_has(tool.cmd):
+            return Status(tool, present=True, version=t("doctor.viago"))
         return Status(tool, present=False)
     version = None
     try:

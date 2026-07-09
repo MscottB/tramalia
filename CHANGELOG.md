@@ -2,6 +2,24 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.22.1] - 2026-07-08
+
+engram SÍ se automatiza en Windows (`go install`) + FAQ al día.
+
+### engram instalable en cualquier SO
+- brew era solo macOS; ahora el instalador ofrece **`go install github.com/
+  Gentleman-Programming/engram/cmd/engram@latest`** en Windows/mac/linux si Go
+  está presente (binario de releases como respaldo manual).
+- El doctor detecta engram instalado por go en `~/go/bin` (o `$GOPATH/bin`)
+  aunque no esté en el PATH — estado *"instalada vía go"* (mismo patrón que uv/mise).
+
+### Documentación
+- **Ayuda (FAQ)** actualizada: engram en Windows, el selector que muestra todas
+  las faltantes, y qué significa "○ no instalada (opcional)".
+
+### Calidad
+- 164 tests con pytest (1 nuevo: probe detecta go-install; engram-windows ajustado).
+
 ## [0.22.0] - 2026-07-08
 
 Doctor por dominio, estado instalada/no claro, selector completo + PATH de uv,

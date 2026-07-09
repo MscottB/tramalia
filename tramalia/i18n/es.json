@@ -24,6 +24,7 @@
   "doctor.path.uv.missing": "herramientas de uv (~/.local/bin) no están en tu PATH — corre `uv tool update-shell` (o en la TUI: i → configurar PATH), luego reinicia la terminal",
   "doctor.pathfix.done": "PATH de uv configurado — reinicia la terminal para que tome efecto",
   "doctor.stack": "stack detectado:",
+  "doctor.viago": "instalada vía go (~/go/bin) — agrégalo al PATH si tu shell no lo tiene",
   "doctor.viamise": "instalada vía mise (shims) — actívala con `mise activate` o reinicia la terminal",
   "doctor.viauv": "instalada vía uv (~/.local/bin) — agrégala al PATH con `uv tool update-shell`",
   "guided.agent": "agente ejecutor",

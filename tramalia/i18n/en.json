@@ -24,6 +24,7 @@
   "doctor.path.uv.missing": "uv tools (~/.local/bin) aren't on your PATH — run `uv tool update-shell` (or in the TUI: i → configure PATH), then restart the terminal",
   "doctor.pathfix.done": "uv PATH configured — restart the terminal for it to take effect",
   "doctor.stack": "detected stack:",
+  "doctor.viago": "installed via go (~/go/bin) — add it to PATH if your shell lacks it",
   "doctor.viamise": "installed via mise (shims) — activate with `mise activate` or restart the terminal",
   "doctor.viauv": "installed via uv (~/.local/bin) — add it to PATH with `uv tool update-shell`",
   "guided.agent": "executing agent",

@@ -19,6 +19,15 @@ Almost always elevation: administrator terminal and retry. The install panel war
 **Serena shows "no install needed" — is that a bug?**
 No: Serena runs via `uvx` (ephemeral). With uv present, it's ready — `init` already wired it in `.mcp.json`.
 
+**Can engram be installed on Windows? / it wasn't showing in the selector.**
+Yes. brew is macOS-only, but engram installs on **any OS with `go install github.com/Gentleman-Programming/engram/cmd/engram@latest`** — since v0.22.1 the selector (`i` key) offers it automated if you have **Go** installed (otherwise it shows the manual route: binary from its *releases*). The binary lands in `~/go/bin`; the doctor detects it there even if it's not on your PATH (`installed via go`). If your shell can't find it, add `~/go/bin` to PATH.
+
+**Some tools (engram, codegraph, hermes…) weren't showing in the install selector (`i`).**
+Since v0.22 the selector shows **all** missing tools: the automatable ones as selectable and the manual-only ones listed separately with their command. Before, those without an automatic installer on your system were silently omitted.
+
+**A tool says "○ not installed (optional)": is it there or not?**
+It's not installed. "Optional" only means you don't need it unless you use its gate/feature. The status always says it explicitly: `✓ installed` · `○ not installed (optional)` · `✗ not installed (required)`.
+
 ## Close & gates
 
 **`close` exits 1 with "project not initialized".**

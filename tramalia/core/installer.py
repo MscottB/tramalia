@@ -58,6 +58,12 @@ def _manual(display: str) -> InstallOption:
     return InstallOption("manual", (), display, auto=False)
 
 
+def _go_install(pkg: str) -> InstallOption:
+    # requiere Go; el binario queda en ~/go/bin (probe lo detecta aunque no esté en PATH)
+    return InstallOption("go", ("go", "install", pkg),
+                         f"go install {pkg}", requires="go")
+
+
 # bootstrap y runtimes: opciones por SO, en orden de preferencia.
 # En Windows, winget es la vía verificada para mise (scoop falló en pruebas
 # reales; choco sin verificar) — por eso va primero y las otras como alternativa.
@@ -86,12 +92,16 @@ _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
         "macos": [_brew("node")],
         "linux": [_manual("mise use node@22 (o el gestor de tu distro)")],
     },
-    # engram (memoria N2): brew en mac/linux; Windows sin vía automatizable → manual visible.
+    # engram (memoria N2): brew en mac; `go install` multiplataforma (incl. Windows)
+    # si Go está presente; binario de releases como último recurso manual.
     "engram": {
-        "windows": [_manual("binario de github.com/gentleman-programming/engram/releases")],
-        "macos": [_brew("gentleman-programming/tap/engram")],
+        "windows": [_go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
+                    _manual("binario de github.com/Gentleman-Programming/engram/releases")],
+        "macos": [_brew("gentleman-programming/tap/engram"),
+                  _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest")],
         "linux": [_brew("gentleman-programming/tap/engram"),
-                  _manual("binario de github.com/gentleman-programming/engram/releases")],
+                  _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
+                  _manual("binario de github.com/Gentleman-Programming/engram/releases")],
     },
     # codegraph (grafo de contexto): su instalador oficial; visible aunque sea manual.
     "codegraph": {
