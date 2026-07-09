@@ -1,4 +1,11 @@
 {
+  "agents.cap.current": "tope de modelos activo: {cap}",
+  "agents.cap.equivhint": "equivalencia del tope en otros hosts (Tramalia no los configura):",
+  "agents.cap.invalid": "'{name}' no es un tope válido. Opciones: {opts}",
+  "agents.cap.needvalue": "falta el tope: tramalia agents cap <{opts}>",
+  "agents.cap.noconfig": "no hay .tramalia/config.json (¿corriste `tramalia init`?)",
+  "agents.cap.set": "tope de modelos fijado: {cap} — aplicado a los subagentes",
+  "agents.none": "no hay subagentes (.claude/agents/) — ¿corriste `tramalia init`?",
   "close.done": "tarea {task} cerrada con evidencia verificable.",
   "close.done.nogates": "tarea {task} cerrada con EXCEPCIÓN documentada (sin gates — instala mise para validación real).",
   "close.uninit": "este proyecto no está inicializado: no hay convención que gobernar. Ejecuta `tramalia init` primero.",

@@ -1,4 +1,11 @@
 {
+  "agents.cap.current": "active model cap: {cap}",
+  "agents.cap.equivhint": "the cap's equivalent on other hosts (Tramalia doesn't configure them):",
+  "agents.cap.invalid": "'{name}' isn't a valid cap. Options: {opts}",
+  "agents.cap.needvalue": "missing cap: tramalia agents cap <{opts}>",
+  "agents.cap.noconfig": "no .tramalia/config.json (did you run `tramalia init`?)",
+  "agents.cap.set": "model cap set: {cap} — applied to the subagents",
+  "agents.none": "no subagents (.claude/agents/) — did you run `tramalia init`?",
   "close.done": "task {task} closed with verifiable evidence.",
   "close.done.nogates": "task {task} closed with a documented EXCEPTION (no gates — install mise for real validation).",
   "close.uninit": "this project is not initialized: there is no convention to govern. Run `tramalia init` first.",

@@ -60,6 +60,16 @@ externas adicionales: .tramalia/skills.toml (se clonan con `tramalia skills`).
 - Si una herramienta de contexto/memoria **no está instalada, prosigue con
   normalidad** — son aceleradores, no requisitos. No pidas instalarlas para avanzar.
 
+## Tope de modelos (opcional, portable entre hosts)
+- Si `.tramalia/config.json → agents.model_cap` (también en `tools.json`) está
+  definido y **no** es `"none"`, **ningún rol usa un modelo por encima de ese tope**.
+- En **Claude Code** ya está aplicado en los frontmatter de `.claude/agents/`.
+- En hosts **sin ruteo por rol** (Codex, Antigravity `agy`, gateways): respétalo al
+  elegir perfil/modelo — no uses una capacidad mayor que el tope para este repo.
+  La equivalencia por proveedor está en la doc "Modelos y esfuerzo por host".
+- Los 5 archivos de `.claude/agents/` son **tuyos**: edítalos si quieres; `tramalia
+  init` es idempotente y nunca los pisa. `tramalia agents cap <nivel>` los gestiona.
+
 ## Prohibiciones
 - No exponer secretos, tokens ni credenciales; avisa antes de leer .env o certificados.
 - No ejecutar comandos destructivos sin confirmación.

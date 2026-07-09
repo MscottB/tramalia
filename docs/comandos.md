@@ -15,6 +15,7 @@ El **núcleo de gobierno** (`init`, `doctor`, `close`, `log`, `evidence`, `hando
 | `tramalia handoff [TAREA]` | traspaso multiagente | core |
 | `tramalia gates` | ejecuta los quality gates | interop (mise) |
 | `tramalia context [build\|list\|set <backend>]` | genera memoria derivada; ve o fija el backend de navegación activo | interop (repomix + stdlib) |
+| `tramalia agents [list\|cap <nivel>]` | ve o fija el tope de modelos de los subagentes | core |
 | `tramalia sync [--to --features]` | propaga AGENTS.md **y subagentes** a otros agentes | interop (rulesync) |
 | `tramalia skills [sync\|list\|enable\|disable]` | administra skills: catálogo con estados, activar/desactivar, clonar/actualizar | interop (git) |
 | `tramalia update` | actualiza todo | interop (mise + copier + skills) |
@@ -68,6 +69,10 @@ Flags opt-in: `--with-headroom` (compresión) y `--with-ponytail` (MCP del rules
 ## ui — el dashboard TUI
 
 `tramalia ui` abre un panel en la terminal (Textual; si falta, `tramalia ui` **ofrece instalarlo** ahí mismo) con cuatro vistas: **Resumen** (doctor en vivo + gates aplicables + backend de contexto), **Skills** (administrar propias y externas), **Auditoría** (los cierres de `log`, navegables; Enter muestra el `metadata.json`) y **Cierre** (formulario tarea/agente/revisor + salida de gates). Solo lee e invoca el core — cero lógica nueva. Guía completa de la interfaz: [La interfaz (TUI)](interfaz.md).
+
+## agents
+
+`tramalia agents list` muestra los 5 subagentes con su modelo actual (y el default de cada rol) más el tope activo. `tramalia agents cap <fable\|opus\|sonnet\|haiku\|none>` fija un **tope**: ningún rol usa un modelo por encima; lo inferior se conserva (`inherit` no se toca). Se guarda en `.tramalia/config.json → agents.model_cap`, se aplica a los frontmatter de Claude Code, e imprime la equivalencia por nivel para Codex/Antigravity (que Tramalia no configura). Default `none`. Detalle y matriz por host: [Modelos y esfuerzo por host](multi-host.md#tope-de-modelos-portable-entre-proveedores).
 
 ## context
 

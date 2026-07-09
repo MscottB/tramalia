@@ -71,6 +71,29 @@ def set_context_backend(root: Path, name: str) -> bool:
     return True
 
 
+def agents_model_cap(root: Path) -> str:
+    """Tope de modelos activo (config.json → agents.model_cap). 'none' si no hay."""
+    return str(read_config(root).get("agents", {}).get("model_cap") or "none")
+
+
+def set_agents_model_cap(root: Path, cap: str) -> bool:
+    """Fija el tope de modelos en config.json. False si el valor no es válido o si
+    el proyecto no está inicializado (sin config.json)."""
+    from tramalia.core.model_cap import CAPS
+    if cap not in (*CAPS, "none"):
+        return False
+    f = root / ".tramalia" / "config.json"
+    if not f.exists():
+        return False
+    try:
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    data.setdefault("agents", {})["model_cap"] = cap
+    f.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return True
+
+
 def current_task_id(root: Path) -> str | None:
     """ID declarado en .tramalia/current-task.md, o None si sigue en placeholder."""
     f = root / ".tramalia" / "current-task.md"

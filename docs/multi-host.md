@@ -43,6 +43,62 @@ Todo lo anterior aplica **igual** a las apps: Claude Code desktop usa el mismo m
 
 Encaja directo con el rol `revisor` de Tramalia: **dos modelos de proveedores distintos revisando el mismo evidence pack**, y ambos veredictos quedan en el handoff.
 
+### Receta: planificar con Claude, ejecutar con Codex
+
+1. Planificas en Claude Code (subagente `planificador`) → el plan queda en `specs/tasks.md`.
+2. `/codex:transfer` traslada la sesión a Codex con el mismo contexto.
+3. Ejecutas la tarea en Codex.
+4. Cierras con `tramalia close --agent codex --model <el-que-usaste>` — la auditoría
+   registra el cruce de proveedores; `tramalia log` muestra la historia mezclada.
+
+Es un **workflow humano** (los plugins se invocan desde la conversación, no desde
+la definición de un subagente); Tramalia lo gobierna en el cierre, no lo automatiza.
+
+## Tope de modelos, portable entre proveedores
+
+Los 5 subagentes que genera `init` traen un ruteo por rol (planificador/revisor →
+opus, ejecutor → inherit, documentador → haiku, resolutor-profundo → fable). Pero
+quizás **no tienes acceso a opus/fable**, o quieres bajar costo. El tope opcional
+—`tramalia agents cap <nivel>`— hace que **ningún rol use un modelo por encima del
+tope**; lo inferior se conserva. Ejemplo con tope `sonnet`:
+
+| Rol | Sin tope | Tope `sonnet` |
+|---|---|---|
+| planificador | opus | **sonnet** |
+| revisor | opus | **sonnet** |
+| resolutor-profundo | fable | **sonnet** |
+| documentador | haiku | haiku (ya está debajo) |
+| ejecutor | inherit | inherit (sigue tu sesión) |
+
+Ranking de capacidad: **fable > opus > sonnet > haiku**. Default: `none` (sin tope,
+el ruteo completo). Se fija con `tramalia agents cap sonnet` o `init --model-cap sonnet`,
+y se guarda en `.tramalia/config.json → agents.model_cap`.
+
+**Cómo aplica en cada host** (enforcement donde se puede, convención donde no):
+
+| Host | Cómo recibe el tope |
+|---|---|
+| **Claude Code** (CLI y app) | **Aplicado**: Tramalia reescribe el `model:` de `.claude/agents/` |
+| **Codex** (CLI y app) | **Convención**: la regla de `AGENTS.md` le dice que respete el tope al elegir perfil/modelo — Tramalia **no** escribe su `~/.codex/config.toml` |
+| **Antigravity `agy`** | Convención, ídem (modelo por sesión) |
+| **OpenClaw / Hermes / gateways / otros** | Convención — leen `AGENTS.md` plano, así que hasta hosts no contemplados quedan cubiertos |
+
+Como no escribimos configs de terceros (frontera con Gentle-AI), `agents cap` **imprime
+la equivalencia por nivel de capacidad** para que la pegues tú (o Gentle-AI):
+
+```text
+tope sonnet → nivel estándar
+  Codex: perfil estándar (model_reasoning_effort = medium)
+  Antigravity (agy): modelo estándar (no el de razonamiento profundo)
+```
+
+Se expresa por **nivel de capacidad**, no por nombre de modelo de terceros (que
+cambia seguido) — así los servicios que aún no existen mapean solos.
+
+!!! tip "Los 5 archivos de agentes son tuyos"
+    `.claude/agents/*.md` son editables a mano; `tramalia init` es idempotente y
+    **nunca los pisa**. `agents cap` solo gestiona la línea `model:`; el resto es tuyo.
+
 ## Equivalencias de esfuerzo (chuleta)
 
 | Quieres… | Claude Code | Codex CLI |

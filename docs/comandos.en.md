@@ -15,6 +15,7 @@ The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`
 | `tramalia handoff [TASK]` | multi-agent handoff | core |
 | `tramalia gates` | run the quality gates | interop (mise) |
 | `tramalia context [build\|list\|set <backend>]` | generate derived memory; view or set the active navigation backend | interop (repomix + stdlib) |
+| `tramalia agents [list\|cap <level>]` | view or set the subagents' model cap | core |
 | `tramalia sync [--to --features]` | propagate AGENTS.md **and subagents** to other agents | interop (rulesync) |
 | `tramalia skills [sync\|list\|enable\|disable]` | manage skills: catalog with states, enable/disable, clone/update | interop (git) |
 | `tramalia update` | update everything | interop (mise + copier + skills) |
@@ -68,6 +69,10 @@ Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimal
 ## ui — the TUI dashboard
 
 `tramalia ui` opens a terminal panel (Textual; if missing, `tramalia ui` **offers to install it** right there) with four views: **Overview** (live doctor + applicable gates + context backend), **Skills** (manage own and external), **Audit** (the closes from `log`, browsable; Enter shows the `metadata.json`) and **Close** (task/agent/reviewer form + gates output). It only reads and invokes the core — zero new logic. Full interface guide: [The interface (TUI)](interfaz.md).
+
+## agents
+
+`tramalia agents list` shows the 5 subagents with their current model (and each role's default) plus the active cap. `tramalia agents cap <fable\|opus\|sonnet\|haiku\|none>` sets a **cap**: no role uses a model above it; anything below is kept (`inherit` untouched). It's saved in `.tramalia/config.json → agents.model_cap`, applied to the Claude Code frontmatters, and it prints the per-level equivalence for Codex/Antigravity (which Tramalia doesn't configure). Default `none`. Detail and per-host matrix: [Models & effort per host](multi-host.md#model-cap-portable-across-providers).
 
 ## context
 

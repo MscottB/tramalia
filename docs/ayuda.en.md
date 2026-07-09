@@ -78,7 +78,16 @@ You defined `.tramalia/thresholds.json` and a metric in `.tramalia/metrics.json`
 Run `tramalia doctor`: it generates `.tramalia/context/tools.json`, and the `AGENTS.md` rule tells the agent to consult it before invoking — if `installed` is false, use the alternative or continue without it.
 
 **Does it work with Claude Code desktop / Codex desktop / Antigravity IDE?**
-Yes — they read `AGENTS.md` and run shell just like their CLIs; `tramalia close` works identically. See [Models & effort per host](multi-host.md).
+Yes — they read `AGENTS.md` and run shell just like their CLIs; `tramalia close` works identically (there's no "app version" and "CLI version": everything lives in the repo). See [Models & effort per host](multi-host.md).
+
+**I only want to use Sonnet — the subagents are on opus/fable and I don't have them.**
+`tramalia agents cap sonnet`: lowers everything above to sonnet (planner, reviewer, deep-solver) and **keeps what's below** (documenter stays on haiku); `executor` (inherit) follows your session. Default is `none` (no cap). `tramalia agents cap none` restores the original routing. Also `tramalia init --model-cap sonnet` from the start.
+
+**Can I edit the 5 `.claude/agents/` files?**
+Yes, they're **yours** — `tramalia init` is idempotent and never overwrites them. Edit the `model:` or the body by hand if you like; `agents cap` only manages the `model:` line of the 5 roles.
+
+**I set the cap in Claude but I use Codex/Antigravity — is it respected?**
+On those hosts there's no per-role routing Tramalia can rewrite (and we don't touch your `~/.codex/config.toml` — that's Gentle-AI's territory). The cap travels as a **rule in `AGENTS.md`** (which the agent reads) + `model_cap` in `tools.json`; and `agents cap` prints the capability-level equivalence for you to paste. See the per-host matrix in [Models & effort per host → Model cap](multi-host.md#model-cap-portable-across-providers).
 
 ## Interface & language
 

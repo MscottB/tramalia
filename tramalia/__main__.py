@@ -32,6 +32,14 @@ def build_parser() -> argparse.ArgumentParser:
                      help="integra el gobierno en un AGENTS.md/.mcp.json existentes (merge no destructivo)")
     ini.add_argument("--with-notebook-exec", action="store_true",
                      help="agrega un gate que EJECUTA los notebooks (jupyter execute); opt-in, requiere datos/entorno")
+    ini.add_argument("--model-cap", default=None,
+                     choices=["fable", "opus", "sonnet", "haiku", "none"],
+                     help="tope de modelos para los subagentes (default: none = sin tope)")
+    ag = sub.add_parser("agents",
+                        help="subagentes: list | cap <fable|opus|sonnet|haiku|none>")
+    ag.add_argument("action", nargs="?", choices=["list", "cap"], default="list")
+    ag.add_argument("name", nargs="?", default=None,
+                    help="tope de modelos (para `cap`): fable|opus|sonnet|haiku|none")
     sub.add_parser("gates", help="ejecuta quality gates (mise run gates)")
     ctx = sub.add_parser("context",
                          help="contexto/token-saver: build (default) | list | set <backend>")

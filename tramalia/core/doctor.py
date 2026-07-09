@@ -80,6 +80,7 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
         "stack": report.stack,
         "uv_bin_on_path": report.uv_bin_on_path,
         "context_backend": project_core.context_backend(root),
+        "model_cap": project_core.agents_model_cap(root),
         "tools": [
             {"key": s.tool.key, "cmd": s.tool.cmd, "installed": s.present,
              "version": s.version, "category": s.tool.category,

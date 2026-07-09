@@ -2,6 +2,37 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.25.0] - 2026-07-09
+
+Tope de modelos para los subagentes: opt-in, por niveles, portable entre
+proveedores (Claude/Codex/Antigravity/gateways).
+
+### `tramalia agents cap <nivel>`
+- Fija un **tope**: ningún rol usa un modelo por encima; lo inferior se conserva.
+  Ejemplo `cap sonnet`: planificador/revisor/resolutor → sonnet, documentador
+  sigue en haiku, ejecutor (inherit) intacto. Ranking: fable > opus > sonnet > haiku.
+- `tramalia agents list` muestra rol → modelo actual → default + el tope activo.
+- Se guarda en `.tramalia/config.json → agents.model_cap` (default `none`) y se
+  refleja en `.tramalia/context/tools.json → model_cap`.
+- `init --model-cap <nivel>` para fijarlo de entrada; `cap none` restaura los defaults.
+
+### Portabilidad multi-proveedor (enforcement donde se puede, convención donde no)
+- **Claude Code**: aplicado — Tramalia reescribe el `model:` de `.claude/agents/`.
+- **Codex / Antigravity (`agy`) / gateways**: regla portable en `AGENTS.md` +
+  `model_cap` en `tools.json`; `agents cap` **imprime la equivalencia por nivel
+  de capacidad** (no por nombre de modelo) para que el usuario/Gentle-AI la
+  aplique — Tramalia NO escribe configs de terceros (frontera con Gentle-AI).
+
+### Documentación
+- Nueva sección "Tope de modelos, portable entre proveedores" en Modelos y
+  esfuerzo por host (ES/EN) con la matriz por host, la receta
+  "planificar con Claude → ejecutar con Codex" (codex-plugin-cc), y la
+  aclaración de que los 5 archivos de agentes son editables.
+- interop-agentes, comandos y Ayuda (FAQ) actualizados.
+
+### Calidad
+- 198 tests con pytest (12 nuevos en `tests/test_v025.py`).
+
 ## [0.24.0] - 2026-07-08
 
 CodeGraph automatizable + fix de detección de Antigravity (agy) + backend de

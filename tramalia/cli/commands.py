@@ -126,6 +126,14 @@ def cmd_init(args) -> int:
     extra = f", {adaptados} adaptados" if adaptados else ""
     ya = len(results) - creados - adaptados
     render.ok(f"init listo: {creados} creados{extra}, {ya} ya existían.")
+    # tope de modelos opcional: aplica sobre los frontmatter recién generados.
+    cap = getattr(args, "model_cap", None)
+    if cap and cap != "none":
+        from tramalia.core import model_cap as mc
+        from tramalia.core import project as proj
+        if proj.set_agents_model_cap(root, cap):
+            for role, modelo in mc.apply_to_agents(root, cap):
+                render.info(f"tope {cap}: {role} → {modelo}")
     # aviso de adopción: hay archivos que el repo ya posee y que sin --adopt se saltan.
     if not adopt:
         agents = root / "AGENTS.md"
@@ -187,6 +195,50 @@ def cmd_context(args) -> int:
     if shutil.which("repomix") is None:
         render.info("repomix ausente: project-map se generó con el árbol stdlib.")
         render.info("para snapshot completo: `mise use npm:repomix`.")
+    return 0
+
+
+def cmd_agents(args) -> int:
+    from tramalia.core import model_cap, project
+    from tramalia.i18n import t
+    root = Path.cwd()
+    action = getattr(args, "action", None) or "list"
+
+    if action == "list":
+        cap = project.agents_model_cap(root)
+        actuales = model_cap.current_agent_models(root)
+        if not actuales:
+            render.err(t("agents.none"))
+            return 1
+        render.info(t("agents.cap.current", cap=cap))
+        for role, default in model_cap.ROLE_DEFAULTS.items():
+            ahora = actuales.get(role, "?")
+            extra = "" if ahora == default else f"  (default: {default})"
+            render.ok(f"{role:<20}{ahora}{extra}")
+        if cap != "none":
+            render.info(t("agents.cap.equivhint"))
+            for line in model_cap.equivalence_lines(cap):
+                render.info(f"  {line}")
+        return 0
+
+    # action == "cap"
+    cap = getattr(args, "name", None)
+    if not cap:
+        render.err(t("agents.cap.needvalue", opts=", ".join((*model_cap.CAPS, "none"))))
+        return 1
+    if not project.set_agents_model_cap(root, cap):
+        if cap not in (*model_cap.CAPS, "none"):
+            render.err(t("agents.cap.invalid", name=cap,
+                         opts=", ".join((*model_cap.CAPS, "none"))))
+        else:
+            render.err(t("agents.cap.noconfig"))
+        return 1
+    resultados = model_cap.apply_to_agents(root, cap)
+    render.ok(t("agents.cap.set", cap=cap))
+    for role, modelo in resultados:
+        render.ok(f"  {role:<20}→ {modelo}")
+    for line in model_cap.equivalence_lines(cap):
+        render.info(f"  {line}")
     return 0
 
 
@@ -539,6 +591,7 @@ _HANDLERS = {
     "init": cmd_init,
     "gates": cmd_gates,
     "context": cmd_context,
+    "agents": cmd_agents,
     "evidence": cmd_evidence,
     "handoff": cmd_handoff,
     "close": cmd_close,

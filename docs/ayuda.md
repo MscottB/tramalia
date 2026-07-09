@@ -78,7 +78,16 @@ Definiste `.tramalia/thresholds.json` y una métrica de `.tramalia/metrics.json`
 Corre `tramalia doctor`: genera `.tramalia/context/tools.json` y la regla de `AGENTS.md` le indica al agente consultarlo antes de invocar — si `installed` es false, usa la alternativa o continúa sin ella.
 
 **¿Sirve con Claude Code desktop / Codex desktop / Antigravity IDE?**
-Sí — leen `AGENTS.md` y ejecutan shell igual que sus CLI; `tramalia close` corre idéntico. Ver [Modelos y esfuerzo por host](multi-host.md).
+Sí — leen `AGENTS.md` y ejecutan shell igual que sus CLI; `tramalia close` corre idéntico (no hay versión "para app" y otra "para CLI": todo vive en el repo). Ver [Modelos y esfuerzo por host](multi-host.md).
+
+**Solo quiero usar Sonnet — los subagentes están en opus/fable y no los tengo.**
+`tramalia agents cap sonnet`: baja a sonnet todo lo que esté por encima (planificador, revisor, resolutor-profundo) y **conserva lo de abajo** (documentador sigue en haiku); `ejecutor` (inherit) sigue tu sesión. Default es `none` (sin tope). `tramalia agents cap none` restaura el ruteo original. También `tramalia init --model-cap sonnet` de entrada.
+
+**¿Los 5 archivos de `.claude/agents/` los puedo editar?**
+Sí, son **tuyos** — `tramalia init` es idempotente y nunca los pisa. Edita el `model:` o el cuerpo a mano si quieres; `agents cap` solo gestiona la línea `model:` de los 5 roles.
+
+**Tengo el tope en Claude pero uso Codex/Antigravity — ¿se respeta?**
+En esos hosts no hay ruteo por rol que Tramalia pueda reescribir (y no tocamos tu `~/.codex/config.toml` — eso es territorio de Gentle-AI). El tope viaja como **regla en `AGENTS.md`** (que el agente lee) + `model_cap` en `tools.json`; y `agents cap` te imprime la equivalencia por nivel de capacidad para que la pegues. Ver la matriz por host en [Modelos y esfuerzo por host → Tope de modelos](multi-host.md#tope-de-modelos-portable-entre-proveedores).
 
 ## Interfaz e idioma
 

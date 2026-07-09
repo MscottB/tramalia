@@ -56,6 +56,8 @@ How Tramalia propagates rules to multiple agents, scaffolding and spec-driven, a
 
 **How routing works:** your `/model` controls the main conversation *always*; the agent's `model:` applies only inside the delegated task (isolated context, billed at its own model's rate). Precedence: invocation override > frontmatter > `inherit`.
 
+**No opus/fable access, or want to cut cost?** The 5 files are **yours** (editable; `init` won't overwrite them), and there's an **optional cap**: `tramalia agents cap sonnet` lowers everything above to sonnet and keeps what's below (haiku), without touching `inherit`. It's portable to other hosts as a convention — see [Models & effort per host → Model cap](multi-host.md#model-cap-portable-across-providers).
+
 **Multi-host:** `tramalia sync` propagates the subagents via rulesync (`--features rules,subagents`) to Copilot, Cursor, Cline and other supported targets. It's idempotent: if you already have your own agents, `init` won't overwrite them.
 
 **Audit:** `tramalia close --model <model>` records in `metadata.json` which model closed the task — key when you route cheap models and want to know which closes deserve a closer look.

@@ -43,6 +43,62 @@ Everything above applies **equally** to the apps: Claude Code desktop uses the s
 
 It fits directly with Tramalia's `revisor` role: **two models from different providers reviewing the same evidence pack**, with both verdicts recorded in the handoff.
 
+### Recipe: plan with Claude, execute with Codex
+
+1. You plan in Claude Code (the `planificador` subagent) → the plan lands in `specs/tasks.md`.
+2. `/codex:transfer` moves the session to Codex with the same context.
+3. You execute the task in Codex.
+4. You close with `tramalia close --agent codex --model <the-one-you-used>` — the audit
+   records the cross-provider handoff; `tramalia log` shows the mixed history.
+
+It's a **human workflow** (plugins are invoked from the conversation, not from a
+subagent definition); Tramalia governs it at the close, it doesn't automate it.
+
+## Model cap, portable across providers
+
+The 5 subagents `init` generates ship with per-role routing (planner/reviewer →
+opus, executor → inherit, documenter → haiku, deep-solver → fable). But maybe you
+**don't have access to opus/fable**, or want to cut cost. The optional cap —
+`tramalia agents cap <level>` — makes **no role use a model above the cap**;
+anything below is kept. Example with cap `sonnet`:
+
+| Role | No cap | Cap `sonnet` |
+|---|---|---|
+| planner | opus | **sonnet** |
+| reviewer | opus | **sonnet** |
+| deep-solver | fable | **sonnet** |
+| documenter | haiku | haiku (already below) |
+| executor | inherit | inherit (follows your session) |
+
+Capability ranking: **fable > opus > sonnet > haiku**. Default: `none` (no cap, full
+routing). Set it with `tramalia agents cap sonnet` or `init --model-cap sonnet`, saved
+in `.tramalia/config.json → agents.model_cap`.
+
+**How it applies per host** (enforcement where possible, convention where not):
+
+| Host | How it receives the cap |
+|---|---|
+| **Claude Code** (CLI and app) | **Applied**: Tramalia rewrites the `model:` in `.claude/agents/` |
+| **Codex** (CLI and app) | **Convention**: the `AGENTS.md` rule tells it to respect the cap when choosing profile/model — Tramalia does **not** write its `~/.codex/config.toml` |
+| **Antigravity `agy`** | Convention, same (model per session) |
+| **OpenClaw / Hermes / gateways / others** | Convention — they read plain `AGENTS.md`, so even hosts not yet contemplated are covered |
+
+Since we don't write third-party configs (the Gentle-AI boundary), `agents cap`
+**prints the equivalence by capability level** for you (or Gentle-AI) to paste:
+
+```text
+cap sonnet → standard level
+  Codex: standard profile (model_reasoning_effort = medium)
+  Antigravity (agy): standard model (not the deep-reasoning one)
+```
+
+It's expressed by **capability level**, not by third-party model name (which changes
+often) — so services that don't exist yet map on their own.
+
+!!! tip "The 5 agent files are yours"
+    `.claude/agents/*.md` are hand-editable; `tramalia init` is idempotent and
+    **never overwrites them**. `agents cap` only manages the `model:` line; the rest is yours.
+
 ## Effort equivalences (cheat sheet)
 
 | You want… | Claude Code | Codex CLI |
