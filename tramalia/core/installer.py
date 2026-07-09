@@ -86,7 +86,39 @@ _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
         "macos": [_brew("node")],
         "linux": [_manual("mise use node@22 (o el gestor de tu distro)")],
     },
+    # engram (memoria N2): brew en mac/linux; Windows sin vía automatizable → manual visible.
+    "engram": {
+        "windows": [_manual("binario de github.com/gentleman-programming/engram/releases")],
+        "macos": [_brew("gentleman-programming/tap/engram")],
+        "linux": [_brew("gentleman-programming/tap/engram"),
+                  _manual("binario de github.com/gentleman-programming/engram/releases")],
+    },
+    # codegraph (grafo de contexto): su instalador oficial; visible aunque sea manual.
+    "codegraph": {
+        "windows": [_manual("instalador oficial: github.com/colbymchenry/codegraph (usa --skip-config)")],
+        "macos": [_manual("instalador oficial: github.com/colbymchenry/codegraph (usa --skip-config)")],
+        "linux": [_manual("instalador oficial: github.com/colbymchenry/codegraph (usa --skip-config)")],
+    },
 }
+
+
+def uv_bin_dir() -> "Path":
+    from pathlib import Path
+    return Path.home() / ".local" / "bin"
+
+
+def uv_bin_on_path() -> bool:
+    """¿Está ~/.local/bin (donde uv deja los binarios) en el PATH del proceso?"""
+    import os
+    target = str(uv_bin_dir()).lower()
+    entries = [p.strip().lower().rstrip("\\/") for p in os.environ.get("PATH", "").split(os.pathsep)]
+    return target.rstrip("\\/") in entries
+
+
+def pathfix_option() -> InstallOption:
+    """Acción para agregar los binarios de uv al PATH (uv tool update-shell)."""
+    return InstallOption("uv", ("uv", "tool", "update-shell"),
+                         "uv tool update-shell", requires="uv")
 
 
 def _from_hint(tool: Tool) -> list[InstallOption]:

@@ -30,33 +30,43 @@ def build_app():
     from tramalia.core.detect import enabled_features
 
     class InstallScreen(ModalScreen):
-        """Selección múltiple de qué instalar (espacio marca, enter confirma)."""
+        """Selección múltiple de qué instalar. Muestra TODAS las faltantes:
+        las automatizables como opciones marcables, y las que solo tienen vía
+        manual como lista visible (con su comando), para que ninguna se omita.
+        """
 
         CSS = """
         InstallScreen { align: center middle; }
-        #inst-box { width: 90; max-height: 80%; border: round $primary;
+        #inst-box { width: 96; max-height: 85%; border: round $primary;
                     background: $surface; padding: 1 2; }
+        #inst-manual { color: $text-muted; padding: 1 0 0 0; }
         #inst-botones { height: 3; align-horizontal: right; }
         #inst-botones Button { margin-left: 2; }
         """
 
-        def __init__(self, plans):
+        def __init__(self, plans, manuals):
             super().__init__()
-            self._plans = plans  # [(tool, InstallOption)]
+            self._plans = plans      # [(label, InstallOption)] automatizables
+            self._manuals = manuals  # [(label, comando_str)] solo manual
 
         def compose(self) -> ComposeResult:
             with Vertical(id="inst-box"):
                 yield Static(f"[b]{t('tui.install.title')}[/b]")
-                yield SelectionList(*[
-                    Selection(f"{tool.cmd} — {opt.display}", idx, True)
-                    for idx, (tool, opt) in enumerate(self._plans)
-                ])
+                if self._plans:
+                    yield SelectionList(*[
+                        Selection(f"{label} — {opt.display}", idx, True)
+                        for idx, (label, opt) in enumerate(self._plans)
+                    ])
+                if self._manuals:
+                    lineas = "\n".join(f"  • {label} — {cmd}" for label, cmd in self._manuals)
+                    yield Static(f"[dim]{t('tui.install.manual.header')}\n{lineas}[/dim]",
+                                 id="inst-manual")
                 with Horizontal(id="inst-botones"):
                     yield Button(t("tui.install.button"), id="inst-ok", variant="primary")
                     yield Button(t("tui.install.cancel"), id="inst-cancel")
 
         def on_button_pressed(self, event) -> None:
-            if event.button.id == "inst-ok":
+            if event.button.id == "inst-ok" and self._plans:
                 seleccion = self.query_one(SelectionList).selected
                 self.dismiss([self._plans[i] for i in seleccion])
             else:
@@ -106,6 +116,7 @@ def build_app():
                     yield Static(id="estado")
                     yield Static(id="gates-linea")
                     yield Static(id="lastclose")
+                    yield Static(id="pathaviso")
                     # tabla | log del instalador lado a lado (el log aparece al usar `i`)
                     with Horizontal(id="resumen-cuerpo"):
                         yield DataTable(id="tabla-doctor", cursor_type="row")
@@ -163,6 +174,11 @@ def build_app():
                 last = t("tui.lastclose", id=e["id"],
                          mark=_LOG_MARKS.get(e.get("status"), "○ —"))
             self.query_one("#lastclose", Static).update(last)
+
+            # aviso de PATH de uv (si sus binarios no están en el PATH)
+            self.query_one("#pathaviso", Static).update(
+                "" if report.uv_bin_on_path
+                else f"[yellow]▲ {t('doctor.path.uv.missing')}[/yellow]")
 
             self._report = report  # lo usa el instalador (tecla i)
             from tramalia.cli.render import group_statuses
@@ -365,20 +381,28 @@ def build_app():
             return log
 
         def action_install_missing(self) -> None:
-            """Tecla i: selección múltiple de faltantes, instalación por SO.
-
-            Las vías manuales NO se vuelcan al log (ya están en la columna
-            detalle de la tabla): el log es solo para instalaciones en curso.
-            """
+            """Tecla i: selección múltiple de faltantes. Muestra TODAS las que
+            faltan — automatizables como marcables, manuales como lista visible —
+            más la acción de configurar el PATH de uv si hace falta."""
             self.query_one(TabbedContent).active = "resumen"
-            faltantes = [s.tool for s in getattr(self, "_report").statuses
-                         if not s.present]
-            plans = [(tool, best) for tool in faltantes
-                     if (best := installer.best_auto(tool))]
-            if not plans:
+            report = getattr(self, "_report")
+            faltantes = [s.tool for s in report.statuses if not s.present]
+            plans, manuals = [], []
+            for tool in faltantes:
+                best = installer.best_auto(tool)
+                if best:
+                    plans.append((tool.cmd, best))
+                else:
+                    opts = installer.options_for(tool)
+                    cmd = opts[0].display if opts else tool.install_hint
+                    manuals.append((tool.cmd, cmd))
+            # acción de PATH: si uv está pero su bin no está en el PATH
+            if not report.uv_bin_on_path and installer.shutil.which("uv"):
+                plans.append((t("tui.install.pathfix"), installer.pathfix_option()))
+            if not plans and not manuals:
                 self._log_install().write(t("tui.install.none"))
                 return
-            self.push_screen(InstallScreen(plans), self._run_installs)
+            self.push_screen(InstallScreen(plans, manuals), self._run_installs)
 
         def _run_installs(self, seleccion) -> None:
             if not seleccion:
@@ -395,11 +419,11 @@ def build_app():
                 ev.set()
 
         def _install_worker(self, seleccion) -> None:
-            for tool, opt in seleccion:
+            for label, opt in seleccion:
                 self._cancel.clear()  # cancelar aplica a UNA herramienta, no a todas
                 self.call_from_thread(
                     self._log_write,
-                    t("tui.install.installing", tool=tool.cmd,
+                    t("tui.install.installing", tool=label,
                       method=opt.method, cmd=opt.display))
                 code, out = installer.run_install_streaming(
                     opt, on_line=lambda ln: self.call_from_thread(
@@ -407,19 +431,19 @@ def build_app():
                     cancel=self._cancel)
                 if code == 0:
                     self.call_from_thread(
-                        self._log_write, t("tui.install.ok", tool=tool.cmd))
+                        self._log_write, t("tui.install.ok", tool=label))
                 elif code == 130:
                     self.call_from_thread(
-                        self._log_write, t("tui.install.cancelled", tool=tool.cmd))
+                        self._log_write, t("tui.install.cancelled", tool=label))
                 elif code == 124:
                     self.call_from_thread(
-                        self._log_write, t("tui.install.timeout", tool=tool.cmd))
+                        self._log_write, t("tui.install.timeout", tool=label))
                 else:
                     self.call_from_thread(
-                        self._log_write, t("tui.install.fail", tool=tool.cmd, code=code))
+                        self._log_write, t("tui.install.fail", tool=label, code=code))
                     if installer.needs_admin(out):
                         self.call_from_thread(
-                            self._log_write, t("tui.install.admin", tool=tool.cmd))
+                            self._log_write, t("tui.install.admin", tool=label))
             self.call_from_thread(self._after_installs)
 
         # ------------------------------------------------------------ docs

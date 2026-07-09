@@ -2,6 +2,44 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.22.0] - 2026-07-08
+
+Doctor por dominio, estado instalada/no claro, selector completo + PATH de uv,
+y el principio "analiza antes de intervenir" como convención de primera clase.
+
+### Doctor: grupos por dominio y estado real
+- La tabla se **subdivide por dominio** (contexto · memoria · seguridad · base de
+  datos · UX/UI · analítica · convención), no un genérico "features" — así sabes
+  qué es de cada cosa. (CLI y TUI.)
+- El estado dice **instalada o no** sin ambigüedad: `✓ instalada` /
+  `○ no instalada (opcional)` / `✗ no instalada (requerida)` (antes "opcional"
+  se confundía con "no está").
+
+### Instalador: nada se omite + PATH de uv
+- **Bug corregido**: el selector solo mostraba las herramientas automatizables,
+  omitiendo en silencio engram/codegraph/hermes/etc. Ahora lista **todas** las
+  faltantes — las automatizables marcables, las manuales visibles con su comando.
+- **engram** instalable vía brew (mac/linux); **codegraph** visible como manual.
+- **PATH de uv**: el doctor detecta si `~/.local/bin` está en tu PATH y ofrece
+  configurarlo (`uv tool update-shell`) — en `doctor --fix` y en el selector `i`.
+- `.tramalia/context/tools.json` ahora incluye `uv_bin_on_path`.
+
+### Principio "analiza y planifica antes de intervenir código"
+- Nueva regla central en la plantilla `AGENTS.md`: antes de tocar código,
+  producir análisis + plan con subpuntos (en `specs/tasks.md`) + riesgos, y en
+  tareas no triviales esperar confirmación. Reforzado en la skill `01-spec-governance`.
+- Nueva página de docs **"Cómo trabaja una IA con Tramalia"** (ES/EN): el flujo
+  analizar→plan→considerar→ejecutar→cerrar, y proyecto nuevo vs. existente.
+
+### Documentación (revisión general)
+- **Auditoría vs. Cierre** aclarado con tabla (acción que produce evidencia vs.
+  lectura que la consulta).
+- Conteos explícitos: `docs/ai/` son **14 archivos (00–13)**, skills son **16**.
+- interfaz/comandos actualizados a los grupos por dominio y el estado nuevo.
+
+### Calidad
+- 163 tests con pytest (7 nuevos en `tests/test_v022.py`).
+
 ## [0.21.1] - 2026-07-07
 
 Fix de la TUI reportado en uso real: la tecla `d` (docs) dejaba un panel

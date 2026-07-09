@@ -22,6 +22,7 @@ class Report:
     statuses: list[Status]
     node_present: bool = True
     node_tools: list[str] = field(default_factory=list)
+    uv_bin_on_path: bool = True
 
     @property
     def missing_blocking(self) -> list[Status]:
@@ -47,8 +48,14 @@ def diagnose(root: Path | None = None,
     statuses = [probe(t) for t in relevant_tools(stack, feats)]
     node_tools = [s.tool.cmd for s in statuses if s.tool.runtime == "node"]
     node_present = shutil.which("node") is not None
+    # PATH de uv: solo es un problema si uv está presente pero su bin no está en PATH
+    from tramalia.core import installer
+    uv_ok = True
+    if shutil.which("uv") is not None:
+        uv_ok = installer.uv_bin_on_path()
     return Report(stack=stack, features=feats, statuses=statuses,
-                  node_present=node_present, node_tools=node_tools)
+                  node_present=node_present, node_tools=node_tools,
+                  uv_bin_on_path=uv_ok)
 
 
 def write_snapshot(report: Report, root: Path) -> Path | None:
@@ -70,6 +77,7 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
                   "o continúa sin ella"),
         "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "stack": report.stack,
+        "uv_bin_on_path": report.uv_bin_on_path,
         "tools": [
             {"key": s.tool.key, "cmd": s.tool.cmd, "installed": s.present,
              "version": s.version, "category": s.tool.category,

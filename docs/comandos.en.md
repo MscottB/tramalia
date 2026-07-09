@@ -53,9 +53,9 @@ Reads each close's `metadata.json` and lists the closes (newest first) with thei
 
 ## doctor
 
-Classifies requirements into **bootstrap** (mise/git/uv), **stack** (node/dotnet…) and **feature/gate** (semgrep/sqlfluff/lighthouse…) — the table comes out **grouped** by those sections — bothering you only with what applies to your project. Install hints are **per operating system** (winget/brew/choco…) and per available manager.
+Classifies requirements and the table comes out **grouped by domain** — base (bootstrap) · stack · **context · memory · security · database · UX/UI · analytics** · convention · agent CLIs — bothering you only with what applies to your project. The status clearly says **installed or not** (`✓ installed` / `○ not installed (optional)` / `✗ not installed (required)`). Install hints are **per operating system** (winget/brew/choco…) and per available manager; it also warns if the uv PATH needs `uv tool update-shell`.
 
-`--fix` builds the automated install plan (best route per tool: winget/brew, `mise use`, `uv tool`, `npm` only with Node) and, on an interactive terminal, lets you **select one or more** before running. Detail: [Installation](instalacion.md#automated-installation-per-system).
+`--fix` builds the automated install plan (best route per tool: winget/brew, `mise use`, `uv tool`, `npm` only with Node), lets you **select one or more** before running, and configures the uv PATH if needed. In the TUI (`i` key), the selector shows **all** missing tools — the automatable ones selectable and the manual ones listed separately. Detail: [Installation](instalacion.md#automated-installation-per-system).
 
 ## init
 

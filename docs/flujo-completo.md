@@ -57,7 +57,7 @@ Deja en tu repo, idempotente (no pisa lo existente):
 ```text
 AGENTS.md              # reglas únicas para todos los agentes
 CLAUDE.md              # → @AGENTS.md (sin duplicar)
-docs/ai/               # convención completa 00-13 (arquitectura, reglas por stack, deploy, analítica…)
+docs/ai/               # convención completa (14 archivos, 00-13: arquitectura, reglas por stack, deploy, analítica…)
 specs/                 # constitution · specification · plan · tasks · checklist
 .claude/agents/        # 5 subagentes con ruteo de modelo (planificador→opus, ejecutor→inherit…)
 mise.toml              # tools + gates a la medida del stack detectado

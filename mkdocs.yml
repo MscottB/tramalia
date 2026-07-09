@@ -56,6 +56,7 @@ plugins:
             Flujo completo: Full workflow
             Ejemplo completo: Full example
             Adoptar un repo existente: Adopting an existing repo
+            Cómo trabaja una IA: How an AI works
             La interfaz (TUI): The interface (TUI)
             Modelos y esfuerzo por host: Models & effort per host
             Analítica (Python/Databricks): Analytics (Python/Databricks)
@@ -109,6 +110,7 @@ nav:
       - Flujo completo: flujo-completo.md
       - Ejemplo completo: ejemplo-completo.md
       - Adoptar un repo existente: adopcion.md
+      - Cómo trabaja una IA: como-trabaja-ia.md
       - La interfaz (TUI): interfaz.md
   - Conceptos:
       - Arquitectura: arquitectura.md

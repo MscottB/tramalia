@@ -40,17 +40,17 @@ TRAMALIA_LANG=en tramalia ui        # per session
 - **Header**: the project's **full path** (so you always know where you are), the detected stack, and the state — `initialized` or `NOT initialized`.
 - **Project gates**: the **real** gates read from your `mise.toml` (`build · test · lint · security…`). If there's no `mise.toml`, it tells you to run `init`.
 - **Last close**: the most recent one from the audit, with its status.
-- **Tools table** (the live doctor), **grouped** into sections — base (bootstrap) · project stack · gates & features · agent CLIs — with four columns:
+- **Tools table** (the live doctor), **grouped by domain** — base (bootstrap) · project stack · **context · memory · security · database · UX/UI · analytics** · convention · agent CLIs — with four columns:
   - *tool* — the command.
   - *what for* — its role (security gate, context, agent CLI…).
-  - *status* — `✓ ok` (installed, with version) · `○ optional` (only if you use that feature) · `✗ missing` (required).
+  - *status* — clearly says installed or not: `✓ installed` (with version) · `○ not installed (optional)` · `✗ not installed (required)`.
   - *detail / how to get it* — detected version or the exact install command.
 
 The table also includes the **agent CLIs detected** on your machine (claude, codex, antigravity, opencode, openclaw, hermes) — detection only: Tramalia never configures them.
 
 ### Installing from the interface (`i`)
 
-Press `i` and a **multi-selector** opens with the missing tools that can be installed automatically on **your system** (space marks, enter confirms). Each one installs through its best available route — winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present. Tools without an automated route show their manual command in the table's *detail* column.
+Press `i` and a **multi-selector** opens with **all** missing tools (space marks, enter confirms). The ones **automatable on your system** appear selectable — each via its best route (winget/brew for binaries, `mise use` for gates, `uv tool` for Python, `npm` only when Node is present); the ones with **only a manual route** (e.g. engram on Windows, codegraph, hermes) are listed separately with their command, so none is silently omitted. If the uv PATH needs configuring, the selector also includes that action (`uv tool update-shell`).
 
 Output streams **line by line, live**, in a panel beside the table — if an install gets stuck or asks for permissions, you see it instantly:
 
@@ -80,6 +80,19 @@ Manage skills without editing files by hand (the visual counterpart of [the skil
 There's also a **URL input**: paste any skill's git URL and Enter adds it to the manifest (then `s` clones it).
 
 CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` · `add <url>` · `sync`.
+
+## Audit vs. Close (two different things)
+
+Easy to confuse, but they're complementary opposites:
+
+| | **Close** (Close tab) | **Audit** (Audit tab) |
+|---|---|---|
+| What it is | an **action**: closing a task | a **read**: the history |
+| What it does | runs gates → writes evidence → handoff, and **blocks** if a gate fails | shows past closes (`tramalia log`) for inspection |
+| When | when you finish a task | when you want to review what was done and how it turned out |
+| Writes | creates a new evidence pack | writes nothing (read-only) |
+
+In one line: **Close produces the evidence; Audit consults it.**
 
 ## Audit tab
 

@@ -46,16 +46,29 @@ def header(project: str, stack: list[str], initialized: bool) -> None:
         print("=" * 60)
 
 
-GROUP_ORDER = ("bootstrap", "stack", "feature", "agent")
+# los "feature" se subdividen por dominio para saber qué es contexto/memoria/etc.
+_FEATURE_GROUP = {
+    "context": "context", "memory": "memory", "security": "security",
+    "database": "database", "ux": "ux", "databricks": "analytics",
+    "init": "convention", "sync": "convention", "specs": "convention",
+}
+GROUP_ORDER = ("bootstrap", "stack", "context", "memory", "security",
+               "database", "ux", "analytics", "convention", "agent")
+
+
+def group_of(tool) -> str:
+    if tool.category == "feature":
+        return _FEATURE_GROUP.get(tool.feature, "convention")
+    return tool.category
 
 
 def group_statuses(statuses) -> list[tuple[str, list]]:
-    """Agrupa los statuses del doctor por categoría, en orden fijo."""
+    """Agrupa los statuses del doctor por dominio, en orden fijo."""
     groups: list[tuple[str, list]] = []
-    for cat in GROUP_ORDER:
-        rows = [s for s in statuses if s.tool.category == cat]
+    for g in GROUP_ORDER:
+        rows = [s for s in statuses if group_of(s.tool) == g]
         if rows:
-            groups.append((cat, rows))
+            groups.append((g, rows))
     return groups
 
 
@@ -102,12 +115,15 @@ def doctor(report: Report) -> int:
             print(f"\n-- {t('doctor.group.' + cat)} " + "-" * 40)
             for s in rows:
                 _, detalle = fila(s)
-                estado = ("ok" if s.present else
-                          "opcional" if s.tool.category in ("feature", "agent")
-                          else "FALTA")
+                estado = ("instalada" if s.present else
+                          "no-inst(opc)" if s.tool.category in ("feature", "agent")
+                          else "NO INSTALADA")
                 if s.tool.runtime == "node" and not s.present:
                     detalle += "  · Node"
-                print(f"{s.tool.cmd:<13}{estado:<10}{s.tool.role} — {detalle}")
+                print(f"{s.tool.cmd:<13}{estado:<14}{s.tool.role} — {detalle}")
+
+    if not getattr(report, "uv_bin_on_path", True):
+        _warn(t("doctor.path.uv.missing"))
 
     if report.needs_node:
         _warn(f"Node no está instalado y lo requieren: {', '.join(report.node_tools)}.")

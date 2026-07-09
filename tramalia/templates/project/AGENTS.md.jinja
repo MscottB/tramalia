@@ -8,17 +8,27 @@
 
 Stack detectado: {{ stack }}
 
+## Analiza y planifica ANTES de intervenir código (regla central)
+Antes de escribir o modificar código, SIEMPRE produce primero, en la respuesta:
+1. **Análisis**: qué pide la tarea y qué toca (archivos, módulos, datos).
+2. **Plan con subpuntos**: los pasos concretos, escritos en `specs/tasks.md`.
+3. **Puntos considerados y riesgos**: qué podría romperse, qué se descarta y por qué.
+No intervengas el código hasta tener esos tres; en tareas no triviales, espera la
+confirmación humana. El objetivo de Tramalia es que el trabajo agéntico sea
+**deliberado y auditable**, no reactivo.
+
 ## Orden obligatorio antes de modificar código
 1. Leer docs/ai/00-resumen-proyecto.md
 2. Leer docs/ai/01-arquitectura.md
 3. Leer .tramalia/current-task.md y specs/tasks.md
-4. Si tocas código → docs/ai/02-reglas-codigo.md
-5. Si tocas base de datos → docs/ai/03-reglas-base-datos.md
-6. Si tocas seguridad (auth/PII/permisos) → docs/ai/04-reglas-seguridad.md + skill 16
-7. Si tocas interfaz → docs/ai/11-reglas-ux-ui.md
-8. Si vas a desplegar → docs/ai/12-deploy-release.md + skill 14
-9. Si tocas notebooks/pipelines/datos → docs/ai/13-analitica-datos.md + skill 15
-10. Revisar docs/ai/06-intentos-fallidos.md
+4. Consultar .tramalia/context/tools.json antes de invocar una herramienta externa
+5. Si tocas código → docs/ai/02-reglas-codigo.md
+6. Si tocas base de datos → docs/ai/03-reglas-base-datos.md
+7. Si tocas seguridad (auth/PII/permisos) → docs/ai/04-reglas-seguridad.md + skill 16
+8. Si tocas interfaz → docs/ai/11-reglas-ux-ui.md
+9. Si vas a desplegar → docs/ai/12-deploy-release.md + skill 14
+10. Si tocas notebooks/pipelines/datos → docs/ai/13-analitica-datos.md + skill 15
+11. Revisar docs/ai/06-intentos-fallidos.md
 
 ## Skills del proyecto
 En .tramalia/skills/ hay 16 skills numeradas (01-spec-governance … 16-threat-modeling)

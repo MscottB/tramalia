@@ -85,6 +85,7 @@ En una frase: **Gentle-AI** habilita *con qué* agentes trabajar, **Engram** ayu
 - :material-download: [__Instalación y requisitos__](instalacion.md) — qué instalar y por qué (incluido cuándo necesitas Node).
 - :material-sitemap: [__Flujo completo__](flujo-completo.md) — de `init` a `close`, paso a paso con ejemplos.
 - :material-school: [__Ejemplo completo__](ejemplo-completo.md) — un proyecto real de punta a punta: cada opción propia y cada herramienta de terceros en acción.
+- :material-robot: [__Cómo trabaja una IA__](como-trabaja-ia.md) — analiza y planifica antes de intervenir; proyecto nuevo vs. existente.
 - :material-monitor-dashboard: [__La interfaz (TUI)__](interfaz.md) — el dashboard bilingüe (es/en), pestaña por pestaña.
 - :material-tools: [__Herramientas__](herramientas.md) — cada pieza interna y externa, su alcance y licencia.
 - :material-vector-link: [__Integraciones__](interop.md) — cómo instalar e integrar cada herramienta con Tramalia.

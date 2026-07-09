@@ -57,7 +57,7 @@ Drops into your repo, idempotent (never overwrites existing files):
 ```text
 AGENTS.md              # single rules for all agents
 CLAUDE.md              # → @AGENTS.md (no duplication)
-docs/ai/               # full convention 00-13 (architecture, stack-aware rules, deploy, analytics…)
+docs/ai/               # full convention (14 files, 00-13: architecture, stack-aware rules, deploy, analytics…)
 specs/                 # constitution · specification · plan · tasks · checklist
 .claude/agents/        # 5 subagents with model routing (planner→opus, executor→inherit…)
 mise.toml              # tools + gates tailored to the detected stack

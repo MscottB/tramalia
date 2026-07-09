@@ -73,10 +73,12 @@ def test_best_auto_elige_el_primero_disponible(monkeypatch):
 def test_doctor_agrupado_orden_fijo():
     from tramalia.cli.render import group_statuses
     from tramalia.core.tools import Status
+    # semgrep=security, serena=context, engram=memory: cada feature en su dominio
     statuses = [Status(_tool("claude"), False), Status(_tool("mise"), True),
+                Status(_tool("engram"), False), Status(_tool("serena"), False),
                 Status(_tool("semgrep"), False), Status(_tool("node"), False)]
     grupos = [cat for cat, _ in group_statuses(statuses)]
-    assert grupos == ["bootstrap", "stack", "feature", "agent"]
+    assert grupos == ["bootstrap", "stack", "context", "memory", "security", "agent"]
 
 
 def test_current_os_valores():

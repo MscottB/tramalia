@@ -53,9 +53,9 @@ Lee el `metadata.json` de cada cierre y lista los cierres (más reciente primero
 
 ## doctor
 
-Clasifica los requisitos en **bootstrap** (mise/git/uv), **stack** (node/dotnet…) y **feature/gate** (semgrep/sqlfluff/lighthouse…) — la tabla sale **agrupada** por esas secciones — y solo molesta con lo que aplica a tu proyecto. Los hints de instalación son **por sistema operativo** (winget/brew/choco…) y por gestor disponible.
+Clasifica los requisitos y la tabla sale **agrupada por dominio** — base (bootstrap) · stack · **contexto · memoria · seguridad · base de datos · UX/UI · analítica** · convención · agentes CLI — y solo molesta con lo que aplica a tu proyecto. El estado dice claro si está **instalada o no** (`✓ instalada` / `○ no instalada (opcional)` / `✗ no instalada (requerida)`). Los hints de instalación son **por sistema operativo** (winget/brew/choco…) y por gestor disponible; también avisa si el PATH de uv necesita `uv tool update-shell`.
 
-`--fix` arma el plan de instalación automatizado (mejor vía por herramienta: winget/brew, `mise use`, `uv tool`, `npm` solo con Node) y, con terminal interactiva, te deja **seleccionar una o más** antes de ejecutar. Detalle: [Instalación](instalacion.md#instalacion-automatizada-por-sistema).
+`--fix` arma el plan de instalación automatizado (mejor vía por herramienta: winget/brew, `mise use`, `uv tool`, `npm` solo con Node), te deja **seleccionar una o más** antes de ejecutar, y configura el PATH de uv si hace falta. En la TUI (tecla `i`), el selector muestra **todas** las faltantes — las automatizables marcables y las manuales listadas aparte. Detalle: [Instalación](instalacion.md#instalacion-automatizada-por-sistema).
 
 ## init
 

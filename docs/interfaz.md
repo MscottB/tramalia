@@ -40,17 +40,17 @@ TRAMALIA_LANG=en tramalia ui        # por sesión
 - **Cabecera**: la **ruta completa** del proyecto (para saber siempre dónde estás), el stack detectado y el estado — `inicializado` o `SIN inicializar`.
 - **Gates del proyecto**: los gates **reales** leídos de tu `mise.toml` (`build · test · lint · security…`). Si no hay `mise.toml`, te indica ejecutar `init`.
 - **Último cierre**: el más reciente de la auditoría, con su estado.
-- **Tabla de herramientas** (el doctor en vivo), **agrupada** en secciones — base (bootstrap) · stack del proyecto · gates y features · agentes CLI — con cuatro columnas:
+- **Tabla de herramientas** (el doctor en vivo), **agrupada por dominio** — base (bootstrap) · stack del proyecto · **contexto · memoria · seguridad · base de datos · UX/UI · analítica** · convención · agentes CLI — con cuatro columnas:
   - *herramienta* — el comando.
   - *para qué* — su rol (gate de seguridad, contexto, agente CLI…).
-  - *estado* — `✓ ok` (instalada y su versión) · `○ opcional` (solo si usas esa feature) · `✗ falta` (requerida).
+  - *estado* — dice claramente si está o no: `✓ instalada` (con su versión) · `○ no instalada (opcional)` · `✗ no instalada (requerida)`.
   - *detalle / cómo obtenerla* — versión detectada o el comando de instalación exacto.
 
 La tabla incluye también los **agentes CLI detectados** en tu máquina (claude, codex, antigravity, opencode, openclaw, hermes) — solo detección informativa: Tramalia nunca los configura.
 
 ### Instalar desde la interfaz (`i`)
 
-Pulsa `i` y se abre un **selector múltiple** con las herramientas faltantes que se pueden instalar automatizado en **tu sistema** (espacio marca, enter confirma). Cada una se instala por su mejor vía disponible — winget/brew para binarios, `mise use` para gates, `uv tool` para Python, `npm` solo si Node está presente. Las que no tienen vía automatizada muestran su comando manual en la columna *detalle* de la tabla.
+Pulsa `i` y se abre un **selector múltiple** con **todas** las herramientas faltantes (espacio marca, enter confirma). Las **automatizables en tu sistema** aparecen marcables — cada una por su mejor vía (winget/brew para binarios, `mise use` para gates, `uv tool` para Python, `npm` solo si Node está presente); las que **solo tienen vía manual** (p. ej. engram en Windows, codegraph, hermes) aparecen listadas aparte con su comando, para que ninguna se omita en silencio. Si el PATH de uv necesita configurarse, el selector incluye también esa acción (`uv tool update-shell`).
 
 La salida corre **línea a línea en vivo** en un panel al costado de la tabla — si una instalación se queda pegada o pide permisos, lo ves al instante:
 
@@ -80,6 +80,19 @@ Administra las skills sin editar archivos a mano (la contraparte visual de [la g
 Hay además un **input de URL**: pega la URL git de cualquier skill y Enter la agrega al manifiesto (luego `s` la clona).
 
 Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `add <url>` · `sync`.
+
+## Auditoría vs. Cierre (dos cosas distintas)
+
+Se confunden fácil, pero son opuestos complementarios:
+
+| | **Cierre** (pestaña Cierre) | **Auditoría** (pestaña Auditoría) |
+|---|---|---|
+| Qué es | una **acción**: cerrar una tarea | una **lectura**: el historial |
+| Qué hace | corre gates → escribe evidencia → handoff, y **bloquea** si un gate falla | muestra los cierres pasados (`tramalia log`) para inspeccionarlos |
+| Cuándo | al terminar una tarea | cuando quieres revisar qué se hizo y cómo quedó |
+| Escribe | crea un evidence pack nuevo | no escribe nada (solo lee) |
+
+En una frase: **Cierre produce la evidencia; Auditoría la consulta.**
 
 ## Pestaña Auditoría
 

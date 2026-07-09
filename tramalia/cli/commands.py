@@ -77,6 +77,12 @@ def cmd_doctor(args) -> int:
             render.warn(f"{tool.cmd} exit {rc}")
             for line in out.strip().splitlines()[-5:]:
                 render.info(f"  {line}")
+    # configurar el PATH de uv si sus binarios no están accesibles
+    if not report.uv_bin_on_path and installer.shutil.which("uv"):
+        render.info("uv tool update-shell (PATH de uv)")
+        rc, _ = installer.run_install(installer.pathfix_option())
+        (render.ok if rc == 0 else render.warn)(t("doctor.pathfix.done") if rc == 0
+                                                else "uv tool update-shell falló")
     render.info("re-evaluando…")
     return render.doctor(doctor_core.diagnose(Path.cwd()))
 
