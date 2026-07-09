@@ -4,6 +4,16 @@ Respuestas a los tropiezos reales más comunes. Si el tuyo no está: [abre un is
 
 ## Instalación y doctor
 
+**Al actualizar (`pip install -U tramalia-cli`) aparece "WARNING: Ignoring invalid distribution ~ramalia-cli".**
+No es un problema de Tramalia — es un artefacto de pip en Windows. Si `tramalia ui` (u otro proceso) tenía el paquete en uso durante una actualización *anterior*, pip no pudo borrar la versión vieja y la dejó **renombrada con `~`** en tu carpeta `site-packages` (`~ramalia` y `~ramalia_cli-X.YY.Z.dist-info`, donde `X.YY.Z` es la versión que quedó a medio borrar) en vez de eliminarla del todo. La instalación **nueva queda sana igual** — confírmalo con `tramalia --version` — el warning es solo ruido de esas carpetas huérfanas.
+
+Para limpiarlo: cierra cualquier `tramalia ui` abierto y borra las carpetas `~ramalia*` de tu `site-packages` (la ruta exacta la ves en el propio warning):
+```powershell
+Remove-Item -Recurse -Force "<ruta-a-site-packages>\~ramalia"
+Remove-Item -Recurse -Force "<ruta-a-site-packages>\~ramalia_cli-X.YY.Z.dist-info"
+```
+Sustituye `X.YY.Z` por el número de versión real que aparece en el nombre de la carpeta.
+
 **Instalé una herramienta con uv y sigue apareciendo como "falta", incluso tras reiniciar la terminal.**
 `uv tool install` deja los binarios en `~/.local/bin`, que en Windows **no entra al PATH** (ni reiniciando) salvo que corras `uv tool update-shell`. Desde v0.20 el doctor revisa esa carpeta directamente y la marca *"instalada vía uv"*; para usarla desde tu shell, corre `uv tool update-shell` una vez.
 
