@@ -2,6 +2,42 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.30.0] - 2026-07-10
+
+Ciclo de vida del proyecto: **`tramalia upgrade`** para repos ya inicializados,
+botón de init en Resumen, y fan-out multi-agente sugerido. Cuarto entregable (R4).
+
+### `tramalia upgrade` (no-destructivo)
+- Nuevo comando para poner al día un repo ya generado tras actualizar el CLI:
+  **agrega** los archivos nuevos que falten y refresca el bloque de `.gitignore`,
+  **sin tocar** nada existente (jamás pisa tus ediciones). Reporta el balance
+  (`N nuevos, M sin cambios`) y apunta al CHANGELOG por cambios de plantilla.
+- Nuevo marcador `.tramalia/version`: registra con qué versión se generó/actualizó
+  el repo (lo escriben `init` y `upgrade`).
+- El merge de 3 vías del contenido editado (estilo `copier update`) queda para
+  el futuro; por ahora upgrade es aditivo + refresco de bloques gestionados.
+
+### Botón de init en Resumen
+- El botón **⚙ Inicializar** ahora vive también en la pestaña **Resumen**, justo
+  donde dice "sin inicializar" — no había que ir a Cierre para inicializar.
+
+### Fan-out multi-agente
+- `init` (y `upgrade`) **detectan** los agentes CLI instalados y **sugieren**
+  `tramalia sync` para propagar `AGENTS.md` a sus formatos (`.cursor/rules`,
+  `.github/…`, `.clinerules`…). Nueva sección de docs "por qué init solo genera
+  `.claude/`" + cómo **agregar tu propio agente** (`sync --to <target>`).
+
+### Documentación
+- Nueva doc de `upgrade` (comandos ES/EN), fila en las tablas de los READMEs, y
+  FAQ: actualizar un repo, por qué solo `.claude/`, y **por qué `docs/`/`specs/`/
+  `.mcp.json`/`mise.toml` NO se mueven a `.tramalia/`** (los leen sus consumidores
+  en la raíz; repo-first). Corregidos conteos stale en READMEs (00-13, 16 skills).
+
+### Calidad
+- 236 tests con pytest (6 nuevos en `tests/test_v030.py`: upgrade recrea lo que
+  falta sin pisar lo editado, marcador de versión, y botón init en Resumen con
+  Pilot real).
+
 ## [0.29.0] - 2026-07-10
 
 Skills: instalar en un paso y **skills externas fuera del repo sin perderlas**.

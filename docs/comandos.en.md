@@ -66,6 +66,18 @@ Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimal
 
 **`--adopt`** — for repos that **already have an agent**: it integrates governance into an existing `AGENTS.md`/`.mcp.json`/`CLAUDE.md` with a non-destructive marker-based merge instead of skipping them. Without `--adopt`, a normal `init` that detects an `AGENTS.md` without governance tells you how. Detail: [Adopting an existing repo](adopcion.md).
 
+When it finishes, `init` records the version in `.tramalia/version` and — if it detects other agent CLIs installed — suggests `tramalia sync` to propagate your rules to their formats (see [`sync`](#sync) and [why only `.claude/` is generated](interop-agentes.md#why-init-only-generates-claude)).
+
+## upgrade — update an already-initialized repo
+
+When you update Tramalia (`pip install -U tramalia-cli`), your already-generated repos **don't change on their own**. `tramalia upgrade` brings them up to date **without overwriting your work**:
+
+- **Adds** the new files that are missing (skills, `docs/ai/` pages, etc. that your version didn't have) and refreshes the `.gitignore` block.
+- **Doesn't touch** any file that already exists — it never overwrites your edits.
+- Records the version in `.tramalia/version` and reports the balance (`N new, M unchanged`), pointing to the CHANGELOG for template changes you may want to adopt by hand.
+
+It's idempotent: run it after each CLI update. For a 3-way merge of edited content (`copier update` style) it'll lean on copier in the future; for now, template changes to files you edited are reviewed by hand with the CHANGELOG as a guide.
+
 ## ui — the TUI dashboard
 
 `tramalia ui` opens a terminal panel (Textual; if missing, `tramalia ui` **offers to install it** right there) with four views: **Overview** (live doctor + applicable gates + context backend), **Skills** (manage own and external), **Audit** (the closes from `log`, browsable; Enter shows the `metadata.json`) and **Close** (task/agent/reviewer form + gates output). It only reads and invokes the core — zero new logic. Full interface guide: [The interface (TUI)](interfaz.md).

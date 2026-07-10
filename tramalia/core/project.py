@@ -94,6 +94,23 @@ def set_agents_model_cap(root: Path, cap: str) -> bool:
     return True
 
 
+def scaffolded_version(root: Path) -> str | None:
+    """Versión de Tramalia con la que se generó/actualizó este proyecto
+    (.tramalia/version). None si nunca se registró (repo anterior a esta feature)."""
+    f = root / ".tramalia" / "version"
+    if not f.exists():
+        return None
+    v = f.read_text(encoding="utf-8").strip()
+    return v or None
+
+
+def set_scaffolded_version(root: Path, version: str) -> None:
+    """Registra en .tramalia/version la versión de Tramalia actual (init/upgrade)."""
+    f = root / ".tramalia" / "version"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(version + "\n", encoding="utf-8")
+
+
 def current_task_id(root: Path) -> str | None:
     """ID declarado en .tramalia/current-task.md, o None si sigue en placeholder."""
     f = root / ".tramalia" / "current-task.md"

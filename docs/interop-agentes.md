@@ -133,6 +133,14 @@ Si corres Tramalia en un loop tipo Ralph, cada iteración sería: leer `specs/ta
 
 Antigravity trae **tres superficies** (2.0 desktop, IDE, y CLI `agy`); el binario del CLI se llama `agy`, no `antigravity` (reemplazó a Gemini CLI, descontinuado el 2026-06-18). Las apps de escritorio no tienen comando en PATH, así que `doctor` las verifica con `winget list` en vez de con un `--version`.
 
+## Por qué init solo genera .claude
+
+`tramalia init` deja `.claude/agents/` con los 5 subagentes porque Claude Code los lee **nativamente**. Los demás agentes **no** traen un formato propio que Tramalia embarque como plantilla: consumen la **fuente única `AGENTS.md`**, y Tramalia la propaga a los formatos de cada uno con `rulesync` **cuando lo pides** — no genera carpetas por-agente "por si acaso" (eso sería acoplarse a cada host; Ponytail/YAGNI).
+
+**Generar las carpetas de otros agentes** (`.cursor/rules`, `.github/copilot-instructions.md`, `.clinerules`, `antigravity-cli`…): corre `tramalia sync` (requiere `rulesync` + Node). `init` te lo **sugiere** si detecta esos agentes instalados. Targets por defecto: `copilot,cursor,cline`; cámbialos con `tramalia sync --to <targets>`.
+
+**Agregar tu propio agente** (p. ej. un compañero trabaja con Antigravity mientras tú usas Claude y Codex): no edites configs a mano — agrega su target a `tramalia sync --to …` y vuelve a correrlo. Como todo vive en el repo, tu compañero clona, corre `tramalia sync` con su target y trabaja **bajo las mismas reglas**. `AGENTS.md` sigue siendo la única fuente; los formatos por-agente son copias derivadas que `sync` regenera (nunca las edites a mano: se sobrescriben).
+
 ## En una frase
 
 rulesync **propaga** las reglas, copier/Spec Kit **estructuran**, Gentle-AI **prepara** los agentes, y los **agentes** ejecutan — todo bajo la convención que Tramalia mantiene y audita.

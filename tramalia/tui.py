@@ -156,7 +156,7 @@ def build_app():
         #estado, #gates-linea, #lastclose { padding: 0 1; }
         #detalle-log { padding: 0 1; height: 1fr; overflow-y: auto; }
         #cierre-form Input { margin: 0 1; }
-        #btn-close, #btn-init { margin: 1 1; }
+        #btn-close, #btn-init, #btn-init-resumen { margin: 1 1; }
         #taskinfo { padding: 0 1; color: $text-muted; max-height: 10; overflow-y: auto; }
         #salida { height: 1fr; margin: 0 1; border: round $primary; }
         #resumen-cuerpo { height: 1fr; }
@@ -172,6 +172,9 @@ def build_app():
             with TabbedContent(initial="resumen"):
                 with TabPane(t("tui.tab.summary"), id="resumen"):
                     yield Static(id="estado")
+                    # botón de inicializar aquí mismo cuando el repo no está gobernado
+                    yield Button(t("tui.close.init.button"), id="btn-init-resumen",
+                                 variant="warning")
                     yield Static(id="gates-linea")
                     yield Static(id="lastclose")
                     yield Static(id="pathaviso")
@@ -219,6 +222,8 @@ def build_app():
             self.query_one("#estado", Static).update(
                 t("tui.header", path=str(root), stack=", ".join(stack) or "—",
                   estado=estado))
+            # el botón de init vive aquí (Resumen): visible solo si falta inicializar
+            self.query_one("#btn-init-resumen", Button).display = not initialized
 
             # gates REALES del proyecto (mise.toml), no features internas
             gates = governance.gate_tasks(root)
@@ -452,7 +457,7 @@ def build_app():
             self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
 
         def on_button_pressed(self, event) -> None:
-            if event.button.id == "btn-init":
+            if event.button.id in ("btn-init", "btn-init-resumen"):
                 self._run_init(event.button)
             elif event.button.id == "btn-close":
                 self._start_close(event.button)
@@ -467,6 +472,7 @@ def build_app():
                 "features": enabled_features(stack),
                 "primary_agent": "codex", "reviewer_agent": "claude",
             })
+            project.set_scaffolded_version(root, _tramalia_version)
             button.disabled = False
             self.notify(t("tui.init.done"), markup=False)
             self.action_refresh()

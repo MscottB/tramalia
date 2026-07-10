@@ -66,6 +66,18 @@ Flags opt-in: `--with-headroom` (compresión) y `--with-ponytail` (MCP del rules
 
 **`--adopt`** — para repos que **ya tienen agente**: integra el gobierno en un `AGENTS.md`/`.mcp.json`/`CLAUDE.md` existentes con un merge por marcadores (no destructivo) en vez de saltarlos. Sin `--adopt`, un `init` normal que detecta un `AGENTS.md` sin gobierno te avisa cómo hacerlo. Detalle: [Adoptar un repo existente](adopcion.md).
 
+Al terminar, `init` registra la versión en `.tramalia/version` y —si detecta otros agentes CLI instalados— sugiere `tramalia sync` para propagar tus reglas a sus formatos (ver [`sync`](#sync) y [por qué solo se genera `.claude/`](interop-agentes.md#por-que-init-solo-genera-claude)).
+
+## upgrade — actualizar un repo ya inicializado
+
+Cuando actualizas Tramalia (`pip install -U tramalia-cli`), tus repos ya generados **no cambian solos**. `tramalia upgrade` los pone al día **sin pisar tu trabajo**:
+
+- **Agrega** los archivos nuevos que falten (skills, páginas de `docs/ai/`, etc. que tu versión no tenía) y refresca el bloque de `.gitignore`.
+- **No toca** ningún archivo que ya exista — nunca sobrescribe tus ediciones.
+- Registra la versión en `.tramalia/version` y te reporta el balance (`N nuevos, M sin cambios`), apuntando al CHANGELOG por cambios de plantilla que quizás quieras adoptar a mano.
+
+Es idempotente: córrelo tras cada actualización del CLI. Para el merge de 3 vías del contenido editado (estilo `copier update`) se apoyará a futuro en copier; por ahora, los cambios de plantilla sobre archivos que editaste se revisan a mano con el CHANGELOG como guía.
+
 ## ui — el dashboard TUI
 
 `tramalia ui` abre un panel en la terminal (Textual; si falta, `tramalia ui` **ofrece instalarlo** ahí mismo) con cuatro vistas: **Resumen** (doctor en vivo + gates aplicables + backend de contexto), **Skills** (administrar propias y externas), **Auditoría** (los cierres de `log`, navegables; Enter muestra el `metadata.json`) y **Cierre** (formulario tarea/agente/revisor + salida de gates). Solo lee e invoca el core — cero lógica nueva. Guía completa de la interfaz: [La interfaz (TUI)](interfaz.md).

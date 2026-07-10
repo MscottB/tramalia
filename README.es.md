@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-230%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-236%20passing-brightgreen.svg)
 
 **Español** · [English](README.md) · [📚 Documentación](https://MscottB.github.io/tramalia/)
 
@@ -74,7 +74,8 @@ Los comandos están pensados para escribirse corto: `close` toma la tarea como a
 |---|---|---|
 | `menu` | menú interactivo en bucle con prompts guiados | `tramalia menu` |
 | `ui` | dashboard TUI: Resumen · Auditoría · Cierre (extra `[tui]`) | `tramalia ui` |
-| `init` | genera la convención completa (AGENTS.md, docs/ai 00-11, specs, 13 skills, 5 subagentes) | `tramalia init` |
+| `init` | genera la convención completa (AGENTS.md, docs/ai 00-13, specs, 16 skills, 5 subagentes) | `tramalia init` |
+| `upgrade` | actualiza un repo ya inicializado (agrega lo nuevo, no pisa lo tuyo) | `tramalia upgrade` |
 | `doctor` | diagnostica qué herramientas faltan y cómo instalarlas | `tramalia doctor` |
 | `detect` | detecta el stack y los gates aplicables | `tramalia detect` |
 | **`close`** | **cierra una tarea: gates → evidence → handoff, con enforcement** | `tramalia close` · `tramalia close TASK-001` |

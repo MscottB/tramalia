@@ -8,7 +8,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-230%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-236%20passing-brightgreen.svg)
 
 [Español](README.es.md) · **English** · [📚 Docs](https://MscottB.github.io/tramalia/)
 
@@ -74,7 +74,8 @@ Commands are designed to be short: `close` takes the task as a positional argume
 |---|---|---|
 | `menu` | looping interactive menu with guided prompts | `tramalia menu` |
 | `ui` | TUI dashboard: Overview · Audit · Close (extra `[tui]`) | `tramalia ui` |
-| `init` | generate the full convention (AGENTS.md, docs/ai 00-11, specs, 13 skills, 5 subagents) | `tramalia init` |
+| `init` | generate the full convention (AGENTS.md, docs/ai 00-13, specs, 16 skills, 5 subagents) | `tramalia init` |
+| `upgrade` | update an already-initialized repo (adds what's new, never overwrites yours) | `tramalia upgrade` |
 | `doctor` | diagnose which tools are missing and how to install them | `tramalia doctor` |
 | `detect` | detect the stack and applicable gates | `tramalia detect` |
 | **`close`** | **close a task: gates → evidence → handoff, with enforcement** | `tramalia close` · `tramalia close TASK-001` |

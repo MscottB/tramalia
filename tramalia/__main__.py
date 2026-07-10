@@ -35,6 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
     ini.add_argument("--model-cap", default=None,
                      choices=["fable", "opus", "sonnet", "haiku", "none"],
                      help="tope de modelos para los subagentes (default: none = sin tope)")
+    sub.add_parser("upgrade",
+                   help="actualiza un repo ya inicializado (agrega lo nuevo, no pisa lo existente)")
     ag = sub.add_parser("agents",
                         help="subagentes: list | cap <fable|opus|sonnet|haiku|none>")
     ag.add_argument("action", nargs="?", choices=["list", "cap"], default="list")

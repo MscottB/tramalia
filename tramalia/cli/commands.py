@@ -134,6 +134,10 @@ def cmd_init(args) -> int:
         if proj.set_agents_model_cap(root, cap):
             for role, modelo in mc.apply_to_agents(root, cap):
                 render.info(f"tope {cap}: {role} → {modelo}")
+    # registra la versión con la que se generó (la usa `tramalia upgrade`).
+    from tramalia import __version__
+    from tramalia.core import project as _proj
+    _proj.set_scaffolded_version(root, __version__)
     # aviso de adopción: hay archivos que el repo ya posee y que sin --adopt se saltan.
     if not adopt:
         agents = root / "AGENTS.md"
@@ -141,6 +145,56 @@ def cmd_init(args) -> int:
             render.info("detecté un AGENTS.md existente: usa `tramalia init --adopt` para "
                         "integrar el gobierno sin pisarlo (merge por marcadores).")
     render.info("revisa AGENTS.md y mise.toml; instala lo que falte con `tramalia doctor`.")
+    _suggest_fanout(root)
+    return 0
+
+
+def _suggest_fanout(root: Path) -> None:
+    """Si hay agentes/hosts CLI instalados además de Claude Code, sugiere propagar
+    las reglas a sus formatos con `tramalia sync` (rulesync). `init` solo deja
+    `.claude/` nativo; el resto consume AGENTS.md vía fan-out (no carpetas
+    hand-rolled) — AGENTS.md es la fuente única."""
+    from tramalia.core import tools
+    skip = {"claude", "antigravity-ide", "antigravity-2"}  # nativo / apps de escritorio
+    presentes = [tl.cmd for tl in tools.REGISTRY
+                 if tl.category == "agent" and tl.key not in skip
+                 and tools.probe(tl).present]
+    if presentes:
+        render.info(f"detecté otros agentes ({', '.join(presentes)}). Para propagar tus "
+                    "reglas a sus formatos (.cursor/rules, .github/…), corre `tramalia sync` "
+                    "(rulesync, requiere Node). Agrega tu propio agente con `tramalia sync --to <target>`.")
+
+
+def cmd_upgrade(args) -> int:
+    """Actualiza un repo YA inicializado a la versión actual de Tramalia, sin pisar
+    tu trabajo: agrega los archivos nuevos que falten, refresca el bloque de
+    .gitignore, y registra la versión. Los archivos existentes NO se tocan."""
+    from tramalia import __version__
+    from tramalia.core import project, scaffold
+    root = Path.cwd()
+    if not project.is_initialized(root):
+        render.err("este repo no está inicializado; usa `tramalia init` primero.")
+        return 1
+    old = project.scaffolded_version(root)
+    stack = detect_stack(root)
+    answers = {
+        "project_name": root.name, "stacks": stack,
+        "features": enabled_features(stack),
+        "primary_agent": "codex", "reviewer_agent": "claude",
+    }
+    render.header(root.name, stack, True)
+    results = scaffold.scaffold(root, answers)
+    nuevos = [rel for rel, s in results if s in ("creado", "adaptado")]
+    for rel in nuevos:
+        render.ok(f"  + {rel}")
+    project.set_scaffolded_version(root, __version__)
+    desde = f"desde v{old} " if old else ""
+    render.ok(f"upgrade {desde}a v{__version__}: {len(nuevos)} nuevos/actualizados, "
+              f"{len(results) - len(nuevos)} sin cambios (no se pisó nada existente).")
+    render.info("los archivos que ya existían NO se tocaron. Revisa el CHANGELOG por cambios "
+                "de plantilla que quizás quieras adoptar a mano: "
+                "https://github.com/MscottB/tramalia/blob/main/CHANGELOG.md")
+    _suggest_fanout(root)
     return 0
 
 
@@ -606,6 +660,7 @@ _HANDLERS = {
     "doctor": cmd_doctor,
     "detect": cmd_detect,
     "init": cmd_init,
+    "upgrade": cmd_upgrade,
     "gates": cmd_gates,
     "context": cmd_context,
     "agents": cmd_agents,

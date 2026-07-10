@@ -133,6 +133,14 @@ If you run Tramalia in a Ralph-style loop, each iteration would be: read `specs/
 
 Antigravity ships **three surfaces** (2.0 desktop, IDE, and the `agy` CLI); the CLI binary is `agy`, not `antigravity` (it replaced Gemini CLI, discontinued on 2026-06-18). The desktop apps have no command in PATH, so `doctor` verifies them with `winget list` instead of a `--version`.
 
+## Why init only generates .claude
+
+`tramalia init` drops `.claude/agents/` with the 5 subagents because Claude Code reads them **natively**. The other agents **don't** ship a native format Tramalia bundles as a template: they consume the **single source `AGENTS.md`**, and Tramalia propagates it to each one's format with `rulesync` **when you ask** — it doesn't generate per-agent folders "just in case" (that would couple to each host; Ponytail/YAGNI).
+
+**Generate other agents' folders** (`.cursor/rules`, `.github/copilot-instructions.md`, `.clinerules`, `antigravity-cli`…): run `tramalia sync` (needs `rulesync` + Node). `init` **suggests** it if it detects those agents installed. Default targets: `copilot,cursor,cline`; change them with `tramalia sync --to <targets>`.
+
+**Add your own agent** (e.g. a teammate works with Antigravity while you use Claude and Codex): don't edit configs by hand — add their target to `tramalia sync --to …` and re-run it. Since everything lives in the repo, your teammate clones, runs `tramalia sync` with their target, and works **under the same rules**. `AGENTS.md` stays the single source; per-agent formats are derived copies that `sync` regenerates (never edit them by hand: they get overwritten).
+
 ## In one sentence
 
 rulesync **propagates** the rules, copier/Spec Kit **structure**, Gentle-AI **prepares** the agents, and the **agents** execute — all under the convention Tramalia maintains and audits.

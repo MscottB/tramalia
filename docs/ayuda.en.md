@@ -131,3 +131,14 @@ Since **v0.29** `tramalia init` drops a block in `.gitignore` that **excludes** 
 
 **Enter on an own skill (01–16) does nothing.**
 Correct: the own ones are always installed and versioned. Enter only applies to **external** skills (install/disable).
+
+## Updating & repo structure
+
+**I updated Tramalia (`pip install -U`) — does my already-generated repo update on its own?**
+No. Run **`tramalia upgrade`** (since v0.30): it adds the new files your version didn't have and refreshes the `.gitignore` block, **without touching** any existing file (it never overwrites your work). It reports the balance (`N new, M unchanged`) and points to the CHANGELOG for template changes you may want to adopt by hand. The version it was generated/updated with is recorded in `.tramalia/version`.
+
+**`init` drops `.claude/` but no Codex/Cursor/other folder — is that a bug?**
+No. `.claude/agents/` is generated because Claude Code reads it **natively**; the other agents consume the **single source `AGENTS.md`** and Tramalia propagates it to their formats with **`tramalia sync`** (rulesync) when you ask — `init` suggests it if it detects those agents. It doesn't generate per-agent folders "just in case" (Ponytail/YAGNI). To add your own agent: `tramalia sync --to <target>`. See [Why init only generates .claude](interop-agentes.md).
+
+**Can I move `docs/`, `specs/`, `.mcp.json` or `mise.toml` into `.tramalia/` to tidy up?**
+`AGENTS.md`, `.mcp.json` and `mise.toml` **must stay at the root**: that's where Claude Code, the AGENTS.md standard and mise read them — moving them breaks them (that's the whole point of "repo-first"). `specs/` is where Spec Kit expects it. Your "something might overwrite them" concern is already covered without moving anything: `init` is **idempotent** (it doesn't overwrite) and `AGENTS.md`/`CLAUDE.md`/`.gitignore` use **marker-delimited blocks** that only touch themselves. What does live tidily under `.tramalia/` is Tramalia's own state: `config.json`, `version`, `current-task.md`, `skills.toml`, `skills/`, `evidence/`, `context/`.

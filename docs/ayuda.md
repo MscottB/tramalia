@@ -131,3 +131,14 @@ Desde **v0.29** `tramalia init` deja un bloque en `.gitignore` que **excluye** l
 
 **Enter sobre una skill propia (01–16) no hace nada.**
 Correcto: las propias siempre están instaladas y versionadas. Enter solo aplica a las **externas** (instalar/desactivar).
+
+## Actualizar y estructura del repo
+
+**Actualicé Tramalia (`pip install -U`) — ¿mi repo ya generado se pone al día solo?**
+No. Corre **`tramalia upgrade`** (desde v0.30): agrega los archivos nuevos que tu versión no tenía y refresca el bloque de `.gitignore`, **sin tocar** ningún archivo que ya exista (nunca pisa tu trabajo). Te reporta el balance (`N nuevos, M sin cambios`) y apunta al CHANGELOG por cambios de plantilla que quizás quieras adoptar a mano. La versión con que se generó/actualizó queda en `.tramalia/version`.
+
+**`init` deja `.claude/` pero no carpeta de Codex/Cursor/otros — ¿es un error?**
+No. `.claude/agents/` se genera porque Claude Code lo lee **nativamente**; los demás agentes consumen la **fuente única `AGENTS.md`** y Tramalia la propaga a sus formatos con **`tramalia sync`** (rulesync) cuando lo pides — `init` te lo sugiere si detecta esos agentes. No se generan carpetas por-agente "por si acaso" (Ponytail/YAGNI). Para sumar tu propio agente: `tramalia sync --to <target>`. Ver [Por qué init solo genera .claude](interop-agentes.md).
+
+**¿Puedo mover `docs/`, `specs/`, `.mcp.json` o `mise.toml` dentro de `.tramalia/` para ordenar?**
+`AGENTS.md`, `.mcp.json` y `mise.toml` **deben quedar en la raíz**: es donde Claude Code, el estándar AGENTS.md y mise los leen — moverlos los rompe (ese es el punto de "repo-first"). `specs/` lo espera Spec Kit ahí. Tu preocupación de "que algo los pise" ya está cubierta sin mover nada: `init` es **idempotente** (no sobrescribe) y `AGENTS.md`/`CLAUDE.md`/`.gitignore` usan **bloques con marcadores** que solo se tocan a sí mismos. Lo que sí vive ordenado bajo `.tramalia/` es lo propio de Tramalia: `config.json`, `version`, `current-task.md`, `skills.toml`, `skills/`, `evidence/`, `context/`.
