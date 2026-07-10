@@ -16,12 +16,12 @@
 ## Reglas de dependencia (qué puede importar qué)
 > Aplica **solo si el estilo declarado es Domain-Driven Design / Hexagonal / Onion**. Con CRUD o Transaction Script, esta sección no rige — no la fuerces.
 
-- La dirección de dependencia va **del borde al centro**: UI → aplicación → dominio. El dominio no importa infraestructura.
+- La dirección de dependencia va **del borde al centro**: adaptador de entrada (UI/API/CLI/consumer) → aplicación → dominio. El dominio no importa infraestructura. Aplica igual si el proyecto es full-stack, solo API o API+BD — "borde" es cualquier punto de entrada, tenga o no interfaz gráfica.
 - Un módulo nuevo declara aquí **a qué capa pertenece** antes de escribirse.
 - Prohibido el import circular; si aparece, es señal de que falta extraer un módulo.
 
 ## Límites que NO se cruzan
-- [ej.: la UI nunca consulta la base de datos directo; siempre vía servicio/API]
+- [ej.: el adaptador de entrada (UI/controller/handler) nunca consulta la base de datos directo; siempre vía servicio/API]
 - [ej.: el código legacy en `X/` no se modifica sin tarea explícita — ver skill 11]
 
 ## Decisiones vigentes

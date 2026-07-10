@@ -6,6 +6,10 @@ Tramalia **no impone** un estilo de arquitectura — no es su rol (*"no implemen
 
 Antes de este cambio, la plantilla de arquitectura traía una regla de dependencia *"UI → aplicación → dominio"* **para todo proyecto por igual**, sin nombrarla ni ofrecer alternativas. Eso es, sin decirlo, un sabor de Domain-Driven Design / Hexagonal — y aplicarlo a un CRUD simple es exactamente lo que Ponytail/YAGNI prohíbe: abstraer de más, construir capas que nadie necesita todavía.
 
+## No depende de si hay frontend
+
+Los 4 estilos se eligen por **complejidad del dominio de negocio**, no por la forma del proyecto. Aplican igual a un proyecto full-stack (front + backend + BD), a un backend solo-API, o a un servicio API+BD sin frontend propio. La "UI" de la regla de dependencia no es necesariamente una interfaz gráfica — es cualquier **adaptador de entrada**: un controller REST, un handler GraphQL, un consumer de cola, un comando CLI. Un microservicio sin frontend puede justificar DDD/Hexagonal igual que una app con frontend, si su dominio es complejo; y un panel admin con frontend puede quedarse en CRUD si su lógica es simple.
+
 ## Los 4 estilos
 
 ### CRUD (Crear · Leer · Actualizar · Borrar)

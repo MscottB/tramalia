@@ -6,6 +6,10 @@ Tramalia **doesn't impose** an architecture style — that's not its role (*"it 
 
 Before this change, the architecture template shipped a dependency rule — *"UI → application → domain"* — **for every project alike**, unnamed and with no alternatives offered. That's, without saying so, a flavor of Domain-Driven Design / Hexagonal — and applying it to a simple CRUD is exactly what Ponytail/YAGNI forbids: over-abstracting, building layers nobody needs yet.
 
+## It doesn't depend on having a frontend
+
+The 4 styles are chosen by **business domain complexity**, not by the shape of the project. They apply equally to a full-stack project (front + backend + DB), to an API-only backend, or to an API+DB service with no frontend of its own. The "UI" in the dependency rule isn't necessarily a graphical interface — it's any **input adapter**: a REST controller, a GraphQL handler, a queue consumer, a CLI command. A frontend-less microservice can justify DDD/Hexagonal just as much as an app with a frontend, if its domain is complex; and an admin panel with a frontend can stay CRUD if its logic is simple.
+
 ## The 4 styles
 
 ### CRUD (Create · Read · Update · Delete)
