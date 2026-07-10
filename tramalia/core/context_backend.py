@@ -38,6 +38,24 @@ BACKENDS: dict[str, dict[str, str]] = {
 }
 DEFAULT = "serena"
 
+def backend_installed(key: str) -> bool:
+    """¿El backend está disponible? Usa la MISMA sonda que doctor (`probe`), para
+    que Serena — que corre efímera vía uvx — no salga como ausente (era el bug de
+    ✓/○ que mostraba solo codegraph/graphify instalados). Los backends que no están
+    en el registro (p. ej. codebase-memory-mcp) se verifican por comando en PATH."""
+    import shutil
+
+    from tramalia.core import tools as _tools
+
+    meta = BACKENDS.get(key)
+    if not meta:
+        return False
+    tool = next((t for t in _tools.REGISTRY if t.key == meta["tool"]), None)
+    if tool is not None:
+        return _tools.probe(tool).present
+    return shutil.which(meta["tool"]) is not None
+
+
 # utilidades puntuales: no compiten por el rol de backend, coexisten con cualquiera.
 UTILITIES: dict[str, dict[str, str]] = {
     "repomix": {

@@ -79,12 +79,17 @@ codebase-memory-mcp, Graphify), the `b` key opens a **single-select** picker
 
 - Each one's **scope** (what it actually does) and its **ideal use case**
   (what kind of project it fits), so you choose with information.
-- Which is **installed** (`✓`/`○`) and which is **active now** (`→`).
+- Which is **installed** (`✓`/`○`) and which is **active now** (marked
+  "active"). The `✓`/`○` uses the same probe as `doctor`, so Serena —which runs
+  ephemerally via `uvx`— shows installed if you have `uv` (not as missing).
+- **Esc** closes the picker (same as Cancel).
 
 The choice is **saved in the project** (`.tramalia/config.json →
 context.backend`) — it's not a preference on your machine, it travels with
-the repo. A line in Overview (*"context: X (active)"*) always shows what's set.
-CLI equivalent: `tramalia context set <backend>` / `context list`.
+the repo. A line in Overview (*"context backend: X (active)"*) always shows
+what's set. If you pick a backend you **don't** have installed, it's set anyway
+(it's the project's preference) and Tramalia tells you how to get it. CLI
+equivalent: `tramalia context set <backend>` / `context list`.
 
 Repomix and markitdown don't show up in this picker: they're point-in-time
 utilities (full snapshot / document ingestion), they don't compete for the

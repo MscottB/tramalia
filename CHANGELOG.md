@@ -2,6 +2,33 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.28.0] - 2026-07-10
+
+Backend de contexto: detección correcta, ESC para cerrar, y manejo del caso
+"elegí un backend que no tengo instalado". Segundo entregable (R2) del plan.
+
+### Detección correcta (✓/○)
+- El selector (tecla `b`) marcaba **Serena** como ○ (ausente) aunque estuviera
+  disponible: usaba `shutil.which`, que no la ve porque corre efímera vía `uvx`.
+  Ahora usa la **misma sonda que `doctor`** (`probe`) — nuevo `backend_installed()`
+  en `context_backend.py` — así Serena cuenta como instalada si tienes `uv`.
+- El panel muestra claro cuál es el **backend activo** ("activo") y el estado
+  instalado/no de cada opción.
+
+### Cerrar el panel con ESC
+- El selector de backend (y el de instalación) ahora se cierran con **Esc**
+  (antes solo con el botón Cancelar): binding `escape` en ambos `ModalScreen`.
+
+### Backend no instalado
+- Elegir un backend que no tienes instalado lo **fija igual** (es una preferencia
+  de proyecto, no una comprobación) y **avisa** cómo obtenerlo (tecla `i` o elige
+  otro). La línea del Resumen ahora dice **"backend de contexto: X (activo)"**.
+
+### Calidad
+- 223 tests con pytest (5 nuevos en `tests/test_v028.py`: detección de Serena
+  efímera, ESC cierra el panel con Pilot real, y persistencia al elegir un backend
+  no instalado). FAQ e interfaz documentadas en ES/EN.
+
 ## [0.27.0] - 2026-07-10
 
 Instalador correcto de agentes/hosts: se arregla el caso real de "instalé Go y

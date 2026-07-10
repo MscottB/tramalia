@@ -79,12 +79,17 @@ CodeGraph, codebase-memory-mcp, Graphify), la tecla `b` abre un selector
 
 - El **alcance** de cada una (qué hace exactamente) y su **caso de uso ideal**
   (para qué tipo de proyecto conviene), para elegir con información.
-- Cuál está **instalada** (`✓`/`○`) y cuál es la **activa ahora** (`→`).
+- Cuál está **instalada** (`✓`/`○`) y cuál es la **activa ahora** (marcada como
+  "activo"). El `✓`/`○` usa la misma sonda que `doctor`, así que Serena —que
+  corre efímera vía `uvx`— se muestra instalada si tienes `uv` (no como ausente).
+- **Esc** cierra el selector (igual que Cancelar).
 
 La elección se **guarda en el proyecto** (`.tramalia/config.json →
 context.backend`) — no es una preferencia de tu máquina, viaja con el repo.
-Una línea en el Resumen (*"contexto: X (activo)"*) siempre muestra cuál está
-fijada. Equivalente CLI: `tramalia context set <backend>` / `context list`.
+Una línea en el Resumen (*"backend de contexto: X (activo)"*) siempre muestra
+cuál está fijada. Si eliges un backend que **no** tienes instalado, se fija igual
+(es la preferencia del proyecto) y Tramalia te avisa cómo obtenerlo. Equivalente
+CLI: `tramalia context set <backend>` / `context list`.
 
 Repomix y markitdown no aparecen en este selector: son utilidades puntuales
 (snapshot completo / ingesta de documentos), no compiten por el rol de backend.

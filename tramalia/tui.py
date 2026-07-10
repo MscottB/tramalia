@@ -23,12 +23,10 @@ def build_app():
     from textual.widgets.option_list import Option
     from textual.widgets.selection_list import Selection
 
-    import shutil as _shutil
-
     from tramalia.core import doctor as doctor_core
     from tramalia.core import governance, installer, project
     from tramalia.core import skills as skills_core
-    from tramalia.core.context_backend import BACKENDS
+    from tramalia.core.context_backend import BACKENDS, backend_installed
     from tramalia.core.detect import detect_stack
     from tramalia.core.scaffold import scaffold
     from tramalia.core.detect import enabled_features
@@ -93,20 +91,31 @@ def build_app():
         #ctx-botones { height: 3; align-horizontal: right; }
         """
 
+        BINDINGS = [("escape", "cancel", "cerrar")]
+
         def __init__(self, current: str):
             super().__init__()
             self._current = current
 
+        def action_cancel(self) -> None:
+            self.dismiss(None)
+
         def compose(self) -> ComposeResult:
             with Vertical(id="ctx-box"):
                 yield Static(f"[b]{t('tui.ctxbackend.title')}[/b]")
+                yield Static(t("tui.ctxbackend.currentline", name=self._current))
                 opciones = OptionList()
                 for key, meta in BACKENDS.items():
-                    marca = "→ " if key == self._current else "  "
-                    estado = "✓" if _shutil.which(meta["tool"]) else "○"
-                    texto = (f"{marca}{estado} [b]{meta['label']}[/b]\n"
+                    inst = backend_installed(key)
+                    estado = "✓" if inst else "○"
+                    estado_txt = (t("tui.ctxbackend.installed") if inst
+                                  else t("tui.ctxbackend.notinstalled"))
+                    actual = (f"  [reverse] {t('tui.ctxbackend.current')} [/reverse]"
+                              if key == self._current else "")
+                    texto = (f"{estado} [b]{meta['label']}[/b]{actual}\n"
                             f"   {meta['scope']}\n"
-                            f"   {t('tui.ctxbackend.ideal')}: {meta['ideal']}")
+                            f"   {t('tui.ctxbackend.ideal')}: {meta['ideal']}\n"
+                            f"   [dim]{estado_txt}[/dim]")
                     opciones.add_option(Option(texto, id=key))
                 yield opciones
                 with Horizontal(id="ctx-botones"):
@@ -575,7 +584,13 @@ def build_app():
                 return
             root = Path.cwd()
             if project.set_context_backend(root, chosen):
-                self.notify(t("tui.ctxbackend.ok", name=chosen), markup=False)
+                # el backend es una PREFERENCIA de proyecto: se fija aunque no esté
+                # instalado, pero se avisa y se dice cómo obtenerlo (tecla i / doctor).
+                if backend_installed(chosen):
+                    self.notify(t("tui.ctxbackend.ok", name=chosen), markup=False)
+                else:
+                    self.notify(t("tui.ctxbackend.oknotinstalled", name=chosen),
+                                severity="warning", markup=False)
                 self.action_refresh()
             else:
                 self.notify(t("tui.ctxbackend.fail"), severity="error", markup=False)

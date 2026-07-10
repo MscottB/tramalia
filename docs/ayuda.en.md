@@ -67,6 +67,15 @@ Whichever `.tramalia/config.json → context.backend` sets (default `serena`). I
 **Do Repomix and markitdown also need picking?**
 No — they're point-in-time utilities (full snapshot / document ingestion), they don't compete for the active backend. They're used whenever they apply, regardless of the navigation backend.
 
+**In the backend selector (`b`), Serena showed ○ even though I have it, and CodeGraph/Graphify showed ✓.**
+Fixed in **v0.28**. The ✓/○ used `shutil.which`, which can't see **Serena** because it runs ephemerally via `uvx` (never left as a binary on PATH). It now uses the **same probe as `doctor`**, so Serena shows installed if you have `uv`. It also clearly marks which is the **active backend** ("active") and each one's installed/not state.
+
+**I couldn't close the backend panel with ESC, only with Cancel.**
+Fixed in **v0.28**: **ESC closes** the panel (same as Cancel). The same applies to the install panel (`i`).
+
+**What if I pick a backend I don't have installed?**
+It's **set anyway** — the backend is a *project preference*, not a check. Tramalia **warns** you it isn't installed and tells you how to get it (press `i` to install, or pick another). This lets you declare the project's intent even if you haven't installed it on your machine yet.
+
 ## Close & gates
 
 **`close` exits 1 with "project not initialized".**
