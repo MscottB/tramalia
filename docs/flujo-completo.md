@@ -161,6 +161,8 @@ i pista de auditoría — 3 cierres (más reciente primero):
 
 Cada tarea lleva `Estado` (pendiente · en-progreso · cerrada) y `Horizonte` (ahora · próximo · después). La regla que lo hace seguro: **las tareas cerradas son inmutables por evidencia** — su cierre vive en `.tramalia/evidence/` + `log`, así que editar el plan futuro jamás reescribe la historia.
 
+Este flujo completo —planificar, dividir en tareas/horizontes, verificar con gates y cerrar, todo sobre `AGENTS.md`— es la aplicación práctica de los [4 pilares del gobierno](como-trabaja-ia.md#los-4-pilares-del-gobierno) (planea · divide · verifica · reglas).
+
 ## 8. Mantenimiento
 
 ```bash

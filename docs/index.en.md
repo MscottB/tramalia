@@ -85,7 +85,7 @@ In one line: **Gentle-AI** enables *which* agents to use, **Engram** helps *reme
 - :material-download: [__Installation & requirements__](instalacion.md)
 - :material-sitemap: [__Full workflow__](flujo-completo.md)
 - :material-school: [__Full example__](ejemplo-completo.md) — a real project end to end: every own option and every third-party tool in action.
-- :material-robot: [__How an AI works__](como-trabaja-ia.md) — analyze and plan before touching code; new vs. existing project.
+- :material-robot: [__How an AI works__](como-trabaja-ia.md) — the 4 pillars (plan · divide · verify · rules); new vs. existing project.
 - :material-monitor-dashboard: [__The interface (TUI)__](interfaz.md) — the bilingual (es/en) dashboard, tab by tab.
 - :material-tools: [__Tools__](herramientas.md)
 - :material-vector-link: [__Integrations__](interop.md)

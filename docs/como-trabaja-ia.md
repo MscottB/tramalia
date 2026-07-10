@@ -2,6 +2,19 @@
 
 Tramalia no teclea por el agente ni razona por él: **gobierna cómo trabaja**. La regla central que `init` deja escrita en tu `AGENTS.md` es **analizar y planificar antes de intervenir código** — el trabajo agéntico debe ser deliberado y auditable, no reactivo.
 
+## Los 4 pilares del gobierno
+
+La evidencia (`close`/`log`) es solo el **cierre** del ciclo. La parte racional completa —cómo se llega hasta ahí— son 4 pilares, cada uno con su lugar concreto en Tramalia:
+
+| Pilar | Qué significa | Dónde vive |
+|---|---|---|
+| **Planea** | Ningún código sin análisis + plan antes | regla central de `AGENTS.md`, `specs/plan.md`, subagente `planificador`, skill `01-spec-governance` |
+| **Divide** | El plan se parte en subpuntos y se secuencia en el tiempo | plan con subpuntos (skill 01), `Horizonte` (ahora · próximo · después) y `Estado` en `specs/tasks.md` |
+| **Verifica** | Nada se declara terminado sin validación objetiva | gates + `tramalia close` (bloquea si falla), evidence pack, `specs/checklist.md`, subagente `revisor` |
+| **Reglas** | Todo lo anterior corre sobre una convención común, no criterio suelto | `AGENTS.md`, `docs/ai/00–13` (por stack), `specs/constitution.md`, las 16 skills |
+
+Y el ciclo se **re-abre**, no termina en el cierre: `specs/tasks.md` se re-planifica editando el archivo (a mano o vía el `planificador`) — las tareas futuras cambian libremente, las **cerradas quedan inmutables por evidencia**. "Modificar en el camino" es exactamente eso: plan vivo, historia fija.
+
 ## El principio: análisis → plan → considerar → ejecutar → cerrar
 
 ```mermaid

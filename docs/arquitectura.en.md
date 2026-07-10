@@ -113,3 +113,5 @@ Full detail of every tab: [The interface (TUI)](interfaz.md).
 ## Planning by horizon
 
 `specs/tasks.md` adds `Estado` (pending · in-progress · closed) and `Horizonte` (now · next · later) to every task. Re-planning is **editing the file** — by hand or via the `planificador` subagent — and it's safe because **closed tasks are immutable through evidence**: their close already lives in `.tramalia/evidence/` + `log`, so the future plan can be rewritten without touching history.
+
+This is the *"divide"* half of the **4 pillars of governance** (plan · divide · verify · rules) — see [How an AI works](como-trabaja-ia.md#the-4-pillars-of-governance).

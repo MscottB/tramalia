@@ -161,6 +161,8 @@ i audit trail — 3 closes (newest first):
 
 Each task carries `Estado` (pending · in-progress · closed) and `Horizonte` (now · next · later). The rule that makes it safe: **closed tasks are immutable through evidence** — their close lives in `.tramalia/evidence/` + `log`, so editing the future plan never rewrites history.
 
+This full workflow — plan, divide into tasks/horizons, verify with gates, and close, all on top of `AGENTS.md` — is the practical application of the [4 pillars of governance](como-trabaja-ia.md#the-4-pillars-of-governance) (plan · divide · verify · rules).
+
 ## 8. Maintenance
 
 ```bash

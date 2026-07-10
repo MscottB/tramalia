@@ -2,6 +2,19 @@
 
 Tramalia doesn't type for the agent or reason for it: it **governs how it works**. The central rule that `init` writes into your `AGENTS.md` is **analyze and plan before touching code** — agentic work must be deliberate and auditable, not reactive.
 
+## The 4 pillars of governance
+
+Evidence (`close`/`log`) is only the **close** of the cycle. The full rational part — how you get there — is 4 pillars, each with a concrete home in Tramalia:
+
+| Pillar | What it means | Where it lives |
+|---|---|---|
+| **Plan** | No code without analysis + a plan first | `AGENTS.md` central rule, `specs/plan.md`, the `planificador` subagent, skill `01-spec-governance` |
+| **Divide** | The plan splits into sub-points and gets sequenced over time | plan with sub-points (skill 01), `Horizonte` (now · next · later) and `Estado` in `specs/tasks.md` |
+| **Verify** | Nothing is declared done without objective validation | gates + `tramalia close` (blocks on failure), evidence pack, `specs/checklist.md`, the `revisor` subagent |
+| **Rules** | All of the above runs on a shared convention, not loose judgment | `AGENTS.md`, `docs/ai/00–13` (stack-aware), `specs/constitution.md`, the 16 skills |
+
+And the cycle **re-opens**, it doesn't end at close: `specs/tasks.md` is re-planned by editing the file (by hand or via the `planificador`) — future tasks change freely, **closed ones stay immutable through evidence**. "Adjusting along the way" is exactly that: a living plan, fixed history.
+
 ## The principle: analyze → plan → consider → execute → close
 
 ```mermaid

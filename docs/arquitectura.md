@@ -113,3 +113,5 @@ Detalle completo de cada pestaña: [La interfaz (TUI)](interfaz.md).
 ## Planificación por horizontes
 
 `specs/tasks.md` agrega `Estado` (pendiente · en-progreso · cerrada) y `Horizonte` (ahora · próximo · después) a cada tarea. Re-planificar es **editar el archivo** — a mano o vía el subagente `planificador` — y es seguro porque las tareas **cerradas son inmutables por evidencia**: su cierre ya vive en `.tramalia/evidence/` + `log`, así que el plan futuro se puede reescribir sin tocar la historia.
+
+Esta es la mitad de *"divide"* de los **4 pilares del gobierno** (planea · divide · verifica · reglas) — ver [Cómo trabaja una IA](como-trabaja-ia.md#los-4-pilares-del-gobierno).
