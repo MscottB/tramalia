@@ -41,6 +41,9 @@ externas adicionales: .tramalia/skills.toml (se clonan con `tramalia skills`).
 - Antes de leer o escribir, usa el mapa (.tramalia/context) y Serena para tocar lo mínimo.
 - No introduzcas dependencias sin justificación.
 - Cierra cada tarea con `tramalia close --task <ID>` (gates + evidencia + handoff).
+- **Respeta el estilo arquitectónico declarado en `docs/ai/01-arquitectura.md`.** Si
+  no hay ninguno declarado, usa el más simple que resuelva la tarea (CRUD/Transaction
+  Script) — no metas capas de dominio/hexagonal "por si acaso": eso también es YAGNI.
 
 ## Criterio de herramientas (local primero)
 - **Antes de invocar una herramienta externa, consulta .tramalia/context/tools.json**

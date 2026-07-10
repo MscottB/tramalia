@@ -5,7 +5,17 @@
 ## Vista general
 [Diagrama o descripción de 5-10 líneas: capas, módulos principales y cómo fluyen los datos.]
 
+## Estilo arquitectónico de este proyecto
+> Elígelo por el **dominio de negocio**, no por el stack — Tramalia no lo infiere ni lo impone. Detalle y criterio completo: [Patrones de arquitectura](https://mscottb.github.io/tramalia/patrones-arquitectura/).
+
+- **Estilo declarado:** [CRUD · Transaction Script · Domain-Driven Design (+ Hexagonal/Onion) · Data-Oriented Design]
+- **Por qué:** [1-2 líneas: qué del dominio/negocio lo justifica]
+
+**Default si no se declara:** el más simple que resuelva la tarea (CRUD o Transaction Script) — Ponytail/YAGNI. No asumas DDD/Hexagonal por defecto; súbelo solo cuando el dominio lo pida.
+
 ## Reglas de dependencia (qué puede importar qué)
+> Aplica **solo si el estilo declarado es Domain-Driven Design / Hexagonal / Onion**. Con CRUD o Transaction Script, esta sección no rige — no la fuerces.
+
 - La dirección de dependencia va **del borde al centro**: UI → aplicación → dominio. El dominio no importa infraestructura.
 - Un módulo nuevo declara aquí **a qué capa pertenece** antes de escribirse.
 - Prohibido el import circular; si aparece, es señal de que falta extraer un módulo.

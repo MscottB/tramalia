@@ -11,12 +11,16 @@ Short definitions of the terms used across the documentation. Use the search box
 | **Bundle** (Databricks Asset Bundle) | A declarative definition of Databricks jobs/pipelines (`databricks.yml`). The **`bundle`** gate validates it (`databricks bundle validate`) before deploying. See [Analytics](analitica.md). |
 | **CLI** (Command-Line Interface) | A command-line interface: used by typing commands in the terminal. |
 | **Copyleft** | A license type that requires derived code to stay open (GPL, LGPL, MPL). It doesn't affect Tramalia because the tools are *invoked*, not linked. |
+| **CRUD** (Create, Read, Update, Delete) | An architecture style where the app is a direct user↔database bridge, no domain layer. For small systems with little business logic. See [Architecture patterns](patrones-arquitectura.md). |
+| **Data-Oriented Design** | An architecture style that organizes data to move fast through hardware memory, instead of modeling business objects. Typical of games/simulations. |
+| **DDD** (Domain-Driven Design) | An architecture style that models code to reflect the real business, with a **ubiquitous language**. For complex domains (finance, logistics) or long-lived systems. See [Architecture patterns](patrones-arquitectura.md). |
 | **Enforcement** | Tramalia **blocking** a task's close if a gate fails (unless a documented exception with `--allow-fail`). |
 | **Evidence pack** | A dated folder with the **verifiable proof** of a close: commands, raw outputs, risks, rollback, next steps and `metadata.json`. |
 | **Façade** | A thin layer that puts **a single interface** in front of a complex subsystem. The CLI and `tramalia mcp` are façades. |
 | **Fan-out** | Propagating a single source (`AGENTS.md`) to the formats of several agents (Cursor, Copilot…), with rulesync. |
 | **Gate** (quality gate) | A **mandatory validation** before closing a task: build, test, lint, security, database, UX/UI. |
 | **Handoff** | A **structured handover** between agents/sessions: task → files → commands → result → risks → pending → next step. |
+| **Hexagonal / Onion** | Architecture that isolates the business core from infrastructure (DB, framework): the core doesn't import infrastructure, infrastructure imports it. The "protective architecture" DDD usually ships with — but it can be used alone. |
 | **Horizon** (Horizonte) | A field in `specs/tasks.md` (now · next · later) that plans without committing: re-planning is **editing the file**; closed tasks are immutable through evidence. |
 | **i18n** (internationalization) | JSON catalogs (`tramalia/i18n/{es,en}.json`) that translate the TUI and CLI. Resolution: `TRAMALIA_LANG` > `config.json → language` > system locale > English. |
 | **Idempotent** | Running twice produces the **same result** without harm. `tramalia init` is idempotent: it never overwrites existing files. |
@@ -37,7 +41,9 @@ Short definitions of the terms used across the documentation. Use the search box
 | **Standalone** | Works **on its own**, without depending on anything external. Tramalia's core is standalone (Python only). |
 | **Subagent** | A specialized agent the main model invokes for a delegated task, in an isolated context and with **its own `model:`** (role-based routing). Tramalia ships 5 in `.claude/agents/`. |
 | **Token** | The minimal unit of text an AI model consumes. "Saving tokens" = sending less context to cut cost and latency. |
+| **Transaction Script** | An architecture style: one function/file per user action, step-by-step logic, without modeling the domain as objects. For short, direct processes. |
 | **TUI** (Text User Interface) | An interactive interface **in the terminal** (Textual). `tramalia ui` opens it; it only reads and invokes the core, with no logic of its own. |
+| **Ubiquitous language** | In DDD, the **same vocabulary** between whoever codes and whoever knows the business — if the expert says "booking", the code says `Booking`, not `Reservation_Record_2`. |
 | **Wheel** | Python's **installable package** format (`.whl`); it's what `pip install` uses. |
 
 Missing a term? It's a good first [contribution](https://github.com/MscottB/tramalia/blob/main/CONTRIBUTING.md).

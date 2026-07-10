@@ -2,6 +2,42 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.26.0] - 2026-07-10
+
+Estilo arquitectónico declarado explícitamente (no impuesto), con criterio y
+guardrail anti-sobreingeniería — corrige un sesgo real que traía la plantilla.
+
+### El hallazgo
+`docs/ai/01-arquitectura.md` ya traía, sin nombrarla, una regla de dependencia
+*"UI → aplicación → dominio"* **para todo proyecto por igual** — un sabor de
+Domain-Driven Design/Hexagonal aplicado incluso a un CRUD simple. Eso viola el
+propio Ponytail/YAGNI del producto: abstraer capas que el proyecto no pidió.
+
+### Estilo arquitectónico: ahora es una decisión declarada
+- Nueva sección **"Estilo arquitectónico de este proyecto"** en `01-arquitectura.md`
+  (contenido de plantilla, sin lógica nueva — verificado que **no** depende del
+  stack detectado: es decisión de negocio, no técnica, y Tramalia no la infiere).
+- **Default explícito si no se declara**: el más simple que resuelva la tarea
+  (CRUD/Transaction Script) — nunca DDD/Hexagonal por defecto.
+- La sección "Reglas de dependencia" queda **condicionada**: solo aplica si el
+  proyecto declaró Domain-Driven Design/Hexagonal/Onion.
+- `AGENTS.md` gana un guardrail: *"no metas capas de dominio/hexagonal 'por si
+  acaso' — eso también es YAGNI"*.
+- Cambiar de estilo después (p. ej. CRUD → DDD porque el negocio creció) es
+  candidato a **ADR** en `docs/ai/05` — no es un cambio silencioso.
+
+### Nueva página: Patrones de arquitectura
+- ES/EN, en Conceptos: los 4 estilos (CRUD, Transaction Script, Domain-Driven
+  Design + Hexagonal/Onion, Data-Oriented Design) con alcance, cuándo usar cada
+  uno, y por qué Hexagonal es compatible con DDD pero no depende de él.
+- Glosario gana 6 términos: CRUD, DDD, Data-Oriented Design, Hexagonal/Onion,
+  Lenguaje ubicuo, Transaction Script (ES/EN).
+
+### Calidad
+- 208 tests con pytest (10 nuevos en `tests/test_v026.py`), incluida la prueba
+  de que dos stacks distintos generan el mismo texto (no se infiere del stack)
+  y que `--adopt` no reescribe un `01-arquitectura.md` ya existente.
+
 ## [0.25.0] - 2026-07-09
 
 Tope de modelos para los subagentes: opt-in, por niveles, portable entre

@@ -62,6 +62,7 @@ plugins:
             Analítica (Python/Databricks): Analytics (Python/Databricks)
             Conceptos: Concepts
             Arquitectura: Architecture
+            Patrones de arquitectura: Architecture patterns
             Ecosistema: Ecosystem
             Integraciones: Integrations
             Cómo encaja todo: How it fits together
@@ -114,6 +115,7 @@ nav:
       - La interfaz (TUI): interfaz.md
   - Conceptos:
       - Arquitectura: arquitectura.md
+      - Patrones de arquitectura: patrones-arquitectura.md
       - Ecosistema: ecosistema.md
   - Integraciones:
       - Cómo encaja todo: interop.md
