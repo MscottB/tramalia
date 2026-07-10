@@ -17,7 +17,7 @@ El **núcleo de gobierno** (`init`, `doctor`, `close`, `log`, `evidence`, `hando
 | `tramalia context [build\|list\|set <backend>]` | genera memoria derivada; ve o fija el backend de navegación activo | interop (repomix + stdlib) |
 | `tramalia agents [list\|cap <nivel>]` | ve o fija el tope de modelos de los subagentes | core |
 | `tramalia sync [--to --features]` | propaga AGENTS.md **y subagentes** a otros agentes | interop (rulesync) |
-| `tramalia skills [sync\|list\|enable\|disable]` | administra skills: catálogo con estados, activar/desactivar, clonar/actualizar | interop (git) |
+| `tramalia skills [sync [<n>]\|list\|outdated\|enable\|disable\|add]` | administra skills: catálogo con estados y versión, actualizar una o todas, ver cuáles están atrasadas | interop (git) |
 | `tramalia update` | actualiza todo | interop (mise + copier + skills) |
 | `tramalia mcp` | levanta la fachada MCP | core (+ SDK mcp) |
 

@@ -472,17 +472,39 @@ def cmd_skills(args) -> int:
             render.info(t("skills.group.own"))
             for s in propias:
                 render.ok(f"{s['name']}  —  {s['description']}")
-        externas = skills.catalog(root)
+        externas = skills.external_status(root)
         if externas:
             render.info(t("skills.group.external"))
             for s in externas:
-                render.ok(f"{s['name']:<22}{_skill_state(s)}  ←  {s['source']}")
+                ref = f"  @{s['installed_ref']}" if s["installed_ref"] else ""
+                render.ok(f"{s['name']:<22}{_skill_state(s)}{ref}  ←  {s['source']}")
             pendientes = [s["name"] for s in externas if s["enabled"] and not s["installed"]]
             if pendientes:
                 render.info(t("skills.rehydrate", names=", ".join(pendientes)))
+            render.info(t("skills.outdated.hint"))
         if not propias and not externas:
             render.info("no hay skills (¿corriste `tramalia init`?)")
         _warn_tracked_external(skills, root)
+        return 0
+
+    if action == "outdated":
+        render.info(t("skills.outdated.checking"))
+        estados = skills.external_status(root, check_remote=True)
+        instaladas = [s for s in estados if s["installed"]]
+        if not instaladas:
+            render.info(t("skills.outdated.none_installed"))
+            return 0
+        hay = False
+        for s in instaladas:
+            if s["update"]:
+                hay = True
+                render.warn(t("skills.outdated.available", name=s["name"],
+                              old=s["installed_ref"], new=s["available_ref"]))
+            else:
+                render.ok(t("skills.outdated.current", name=s["name"],
+                            ref=s["installed_ref"]))
+        render.info(t("skills.outdated.update_all") if hay
+                    else t("skills.outdated.uptodate"))
         return 0
 
     if action == "add":
@@ -509,9 +531,14 @@ def cmd_skills(args) -> int:
         render.err(t("skills.toggle.fail", name=name))
         return 1
 
-    results = skills.sync_skills(root)
+    # `sync` (default) actualiza todas; `sync <nombre>` solo esa.
+    only = getattr(args, "name", None)
+    results = skills.sync_skills(root, only=only)
     if not results:
-        render.info("no hay skills declaradas en .tramalia/skills.toml (todas comentadas).")
+        if only:
+            render.info(t("skills.sync.notdeclared", name=only))
+        else:
+            render.info("no hay skills declaradas en .tramalia/skills.toml (todas comentadas).")
         _warn_tracked_external(skills, root)
         return 0
     for name, act in results:

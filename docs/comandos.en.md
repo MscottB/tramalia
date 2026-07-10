@@ -17,7 +17,7 @@ The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`
 | `tramalia context [build\|list\|set <backend>]` | generate derived memory; view or set the active navigation backend | interop (repomix + stdlib) |
 | `tramalia agents [list\|cap <level>]` | view or set the subagents' model cap | core |
 | `tramalia sync [--to --features]` | propagate AGENTS.md **and subagents** to other agents | interop (rulesync) |
-| `tramalia skills [sync\|list\|enable\|disable]` | manage skills: catalog with states, enable/disable, clone/update | interop (git) |
+| `tramalia skills [sync [<n>]\|list\|outdated\|enable\|disable\|add]` | manage skills: catalog with states and version, update one or all, see which are outdated | interop (git) |
 | `tramalia update` | update everything | interop (mise + copier + skills) |
 | `tramalia mcp` | start the MCP façade | core (+ mcp SDK) |
 

@@ -209,14 +209,16 @@ def own_skills(root: Path) -> list[dict]:
     return out
 
 
-def sync_skills(root: Path) -> list[tuple[str, str]]:
-    """Clona o actualiza cada skill declarada.
+def sync_skills(root: Path, only: str | None = None) -> list[tuple[str, str]]:
+    """Clona o actualiza las skills declaradas. Con `only`, solo esa skill.
 
     Devuelve [(nombre, accion)] con accion en
     {clonada, actualizada, error, git-ausente, incompleta}.
-    Lista vacía si no hay skills declaradas.
+    Lista vacía si no hay skills declaradas (o si `only` no está declarada).
     """
     skills = read_skills(root)
+    if only is not None:
+        skills = [s for s in skills if s.get("name") == only]
     if not skills:
         return []
     if shutil.which("git") is None:
@@ -248,3 +250,62 @@ def sync_skills(root: Path) -> list[tuple[str, str]]:
         except Exception:
             results.append((name, "error"))
     return results
+
+
+def _full_installed(root: Path, name: str) -> str | None:
+    """SHA completo del commit instalado de una skill externa (o None)."""
+    dest = root / ".tramalia" / "skills" / name
+    if not (dest / ".git").exists():
+        return None
+    try:
+        cp = subprocess.run(["git", "-C", str(dest), "rev-parse", "HEAD"],
+                            capture_output=True, text=True, timeout=10)
+        return cp.stdout.strip() if cp.returncode == 0 else None
+    except Exception:
+        return None
+
+
+def _full_remote(source: str, ref: str | None) -> str | None:
+    """SHA completo del ref en el remoto (git ls-remote; no modifica el repo)."""
+    src = str(source).removeprefix("git+")
+    if shutil.which("git") is None or not src:
+        return None
+    try:
+        cp = subprocess.run(["git", "ls-remote", src, ref or "HEAD"],
+                            capture_output=True, text=True, timeout=20)
+        if cp.returncode == 0 and cp.stdout.strip():
+            return cp.stdout.split()[0]
+    except Exception:
+        pass
+    return None
+
+
+def installed_ref(root: Path, name: str) -> str | None:
+    """SHA corto (7) del commit instalado de una skill externa."""
+    full = _full_installed(root, name)
+    return full[:7] if full else None
+
+
+def external_status(root: Path, check_remote: bool = False) -> list[dict]:
+    """Estado de versión de cada skill externa del catálogo.
+
+    Cada dict extiende el de `catalog()` con:
+      installed_ref  — SHA corto instalado (None si no está clonada).
+      available_ref  — SHA corto en el remoto (solo si check_remote=True).
+      update         — True si hay una versión más nueva disponible.
+    `check_remote` hace una llamada de red por skill (git ls-remote): úsalo bajo
+    demanda, no en cada refresco.
+    """
+    out: list[dict] = []
+    for s in catalog(root):
+        d = {**s, "installed_ref": None, "available_ref": None, "update": False}
+        if s["installed"]:
+            full_local = _full_installed(root, s["name"])
+            d["installed_ref"] = full_local[:7] if full_local else None
+            if check_remote:
+                full_remote = _full_remote(s["source"], s.get("ref"))
+                d["available_ref"] = full_remote[:7] if full_remote else None
+                d["update"] = bool(full_local and full_remote
+                                   and full_local != full_remote)
+        out.append(d)
+    return out

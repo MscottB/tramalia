@@ -2,6 +2,34 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.31.0] - 2026-07-10
+
+Versión de las skills externas y actualización selectiva. Primera parte (R5a)
+del quinto entregable.
+
+### Versión instalada vs. disponible
+- Cada skill externa instalada muestra su **versión** (`@sha`, el commit corto)
+  en `tramalia skills list` y en la pestaña Skills de la TUI.
+- Nuevo **`tramalia skills outdated`** (o tecla **`u`** en la TUI): compara tu
+  versión con el remoto (`git ls-remote`, sin modificar el repo) y marca las
+  atrasadas con `instalada → disponible`.
+
+### Actualizar una o todas
+- **`tramalia skills sync <nombre>`** actualiza **solo esa** skill; sin nombre,
+  todas (como antes). En la TUI, **Enter** sobre una skill instalada la
+  **actualiza** (antes la desactivaba); sobre una no instalada, la instala.
+- Nuevas funciones de core: `installed_ref`, `external_status(check_remote=…)`,
+  y `sync_skills(root, only=…)`.
+
+### Documentación
+- La guía de skills explica los **3 estados** —incl. qué es una skill
+  **"declarada"** (`◍`): en el manifiesto pero aún sin clonar— y trae una tabla
+  **CLI ↔ TUI** con ambas vías para cada acción. FAQ e interfaz actualizadas (ES/EN).
+
+### Calidad
+- 244 tests con pytest (8 nuevos en `tests/test_v031.py`, con un repo git local
+  como remoto para probar versión-instalada-vs-disponible sin red).
+
 ## [0.30.0] - 2026-07-10
 
 Ciclo de vida del proyecto: **`tramalia upgrade`** para repos ya inicializados,

@@ -42,12 +42,27 @@ flowchart TB
 
 ## Administrarlas: el flujo completo
 
-1. **Ver qué hay**: `tramalia skills list` (o la pestaña **Skills** de `tramalia ui`) — muestra las 16 propias y el catálogo externo completo con estados: `✓ instalada` · `◍ declarada (falta sync)` · `○ disponible`.
-2. **Instalar una externa (un paso)**: en la pestaña **Skills** de `tramalia ui`, **Enter** sobre ella la **declara y la clona a la vez** (si ya está, Enter la desactiva). Desde CLI son dos pasos equivalentes: `tramalia skills enable <nombre>` y luego `tramalia skills`.
-3. **Clonar/actualizar todas**: `tramalia skills` (o `tramalia update`, que además actualiza las tools de mise) — cada fuente declarada se clona a `.tramalia/skills/<nombre>/` desde su repo. La tecla `d` abre la documentación (repo) de la skill seleccionada.
-4. **Los agentes las descubren** solos: `AGENTS.md` les indica consultar `.tramalia/skills/`; con `tramalia sync --features rules,subagents` se propagan las reglas a Cursor/Copilot/Cline.
-5. **Agregar una por URL**: `tramalia skills add <url-git> [nombre]` (o pega la URL en el input de la pestaña Skills) — la declara en el manifiesto; luego `tramalia skills` la clona.
-6. **Agregar una tuya**: crea `.tramalia/skills/17-mi-skill/SKILL.md` con frontmatter `name`/`description` + secciones Propósito · Cuándo usar · Workflow · Guardrails · Evidencia esperada. Si está anclada a `close`/gates, es una skill de gobierno legítima.
+| Vía | CLI | TUI (`tramalia ui`, pestaña **Skills**) |
+|---|---|---|
+| **Ver qué hay** | `tramalia skills list` | la tabla agrupa propias y externas con su estado |
+| **Instalar una externa** | `tramalia skills enable <n>` + `tramalia skills` | **Enter** sobre ella (la declara y clona de una) |
+| **Actualizar una** | `tramalia skills sync <n>` | **Enter** sobre una ya instalada |
+| **Actualizar todas** | `tramalia skills` (o `tramalia update`) | tecla **`s`** |
+| **Ver cuáles tienen update** | `tramalia skills outdated` | tecla **`u`** (marca `⬆` las atrasadas) |
+| **Abrir docs de una** | — | tecla **`d`** (abre su repo) |
+| **Agregar por URL** | `tramalia skills add <url> [n]` | pega la URL en el input de arriba |
+
+Los agentes las **descubren solos**: `AGENTS.md` les indica consultar `.tramalia/skills/`; con `tramalia sync --features rules,subagents` se propagan las reglas a Cursor/Copilot/Cline. **Agregar una tuya**: crea `.tramalia/skills/17-mi-skill/SKILL.md` con frontmatter `name`/`description` + secciones Propósito · Cuándo usar · Workflow · Guardrails · Evidencia esperada.
+
+### Los 3 estados (y qué es una skill "declarada")
+
+- **`✓ instalada @a71792a`** — clonada en `.tramalia/skills/<nombre>/`. El `@sha` es la **versión** exacta que tienes (el commit corto).
+- **`◍ declarada`** — está **anotada en el manifiesto** `.tramalia/skills.toml` (su bloque `[[skill]]` está activo) **pero todavía no se ha clonado a disco**. Es el paso intermedio: la *quieres*, pero falta traerla con `tramalia skills`. Tras un `git clone` del repo, las externas siempre arrancan aquí (el manifiesto viaja, las carpetas no) — un `tramalia skills` las re-hidrata.
+- **`○ disponible`** — está en el **catálogo comentado** de `skills.toml` (una sugerencia curada), ni siquiera declarada. Actívala y se vuelve declarada.
+
+### Actualizar: instalada vs. disponible
+
+Cada skill externa instalada muestra su **versión instalada** (`@sha`). Para ver si hay una más nueva en su repo, `tramalia skills outdated` (o la tecla **`u`** en la TUI) hace un `git ls-remote` y marca las atrasadas con `instalada → disponible`. Luego actualizas **una** (`tramalia skills sync <nombre>` / Enter sobre ella) o **todas** las del proyecto (`tramalia skills` / tecla `s`). No toca nada más: es un `git pull --ff-only` por skill.
 
 ### Las skills externas NO se suben al repo (pero no se pierden)
 

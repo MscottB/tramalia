@@ -80,12 +80,13 @@ def build_parser() -> argparse.ArgumentParser:
                     help="targets separados por coma (def: copilot,cursor,cline)")
     sy.add_argument("--features", default=None,
                     help="features de rulesync a propagar (def: rules,subagents)")
-    sk = sub.add_parser("skills", help="administra skills (.tramalia/skills.toml): sync/list/enable/disable")
+    sk = sub.add_parser("skills",
+                        help="administra skills (.tramalia/skills.toml): sync/list/outdated/enable/disable/add")
     sk.add_argument("action", nargs="?",
-                    choices=["sync", "list", "enable", "disable", "add"],
+                    choices=["sync", "list", "outdated", "enable", "disable", "add"],
                     default="sync")
     sk.add_argument("name", nargs="?", default=None,
-                    help="nombre (enable/disable) o URL git (add)")
+                    help="nombre (sync/enable/disable) o URL git (add). En `sync`, actualiza solo esa skill")
     sk.add_argument("alias", nargs="?", default=None,
                     help="nombre opcional para `add` (default: del URL)")
     sub.add_parser("update", help="actualiza todo (mise + copier + skills)")

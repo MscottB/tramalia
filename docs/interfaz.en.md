@@ -100,17 +100,18 @@ backend role.
 Manage skills without editing files by hand (the visual counterpart of [the skills guide](skills-guia.md)):
 
 - **Grouped table**: the **16 own** skills (repo workflows, with their description) and the **external** ones from the `skills.toml` catalog — including the **commented** ones, shown as `○ available`.
-- **Enter on an external one installs it in one step** (declares and clones it at once); if it's already installed, Enter disables it. The legend above recalls the 3 states and what each key does.
-- **`s` key** syncs all declared ones from their repos (`git`), with live results (`clonada` / `actualizada` / `error`) and a `✓ n/total` summary.
+- **Enter on an external one**: if it's not there, it **installs** it in one step (declares and clones); if it's already installed, it **updates** it (`git pull` of that one). The legend above recalls the 3 states and what each key does.
+- **`s` key** updates **all** declared ones from their repos (`git`), with live results (`clonada` / `actualizada` / `error`) and a `✓ n/total` summary.
+- **`u` key** checks the remotes for which skills have a **newer version** (`git ls-remote`) and marks the outdated ones with `⬆ update available`.
 - **`d` key** opens the selected skill's docs (its source repo); for own skills, the site's skills guide.
-- States: `✓ installed` (folder present) · `◍ declared` (enabled, needs sync) · `○ available` (in catalog).
+- States: `✓ installed @sha` (folder present + version) · `◍ declared` (in the manifest, not cloned yet) · `○ available` (in the catalog, not even declared).
 - If it detects external skills **committed to git** (which shouldn't be uploaded), it **warns** in yellow with the `git rm -r --cached` remedy.
 
 There's also a **URL input**: paste any skill's git URL and Enter adds it to the manifest (then Enter on it, or `s`, clones it).
 
 > External skills are **not committed to the repo** (the `.gitignore` that `init` drops excludes them) but they **aren't lost**: the `skills.toml` manifest re-hydrates them with `tramalia skills` after a `git clone`. Details in [the skills guide](skills-guia.md).
 
-CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` · `add <url>` · `sync`.
+CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` · `add <url>` · `sync [<name>]` · `outdated`.
 
 ## Audit vs. Close (two different things)
 

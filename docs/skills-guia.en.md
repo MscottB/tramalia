@@ -42,12 +42,27 @@ Why separate instead of integrated? Because **governance lives in the repo, not 
 
 ## Managing them: the full flow
 
-1. **See what's there**: `tramalia skills list` (or the **Skills** tab of `tramalia ui`) — shows the 16 own skills and the full external catalog with states: `✓ installed` · `◍ declared (needs sync)` · `○ available`.
-2. **Install an external one (one step)**: in the **Skills** tab of `tramalia ui`, **Enter** on it **declares and clones it at once** (if it's already there, Enter disables it). From the CLI it's two equivalent steps: `tramalia skills enable <name>` then `tramalia skills`.
-3. **Clone/update all**: `tramalia skills` (or `tramalia update`, which also updates mise tools) — each declared source is cloned to `.tramalia/skills/<name>/` from its repo. The `d` key opens the selected skill's docs (repo).
-4. **Agents discover them** on their own: `AGENTS.md` points them to `.tramalia/skills/`; `tramalia sync --features rules,subagents` propagates rules to Cursor/Copilot/Cline.
-5. **Add one by URL**: `tramalia skills add <git-url> [name]` (or paste the URL in the Skills tab input) — declares it in the manifest; then `tramalia skills` clones it.
-6. **Add your own**: create `.tramalia/skills/17-my-skill/SKILL.md` with `name`/`description` frontmatter + Purpose · When to use · Workflow · Guardrails · Expected evidence sections. If it's anchored to `close`/gates, it's a legitimate governance skill.
+| Action | CLI | TUI (`tramalia ui`, **Skills** tab) |
+|---|---|---|
+| **See what's there** | `tramalia skills list` | the table groups own and external with their state |
+| **Install an external one** | `tramalia skills enable <n>` + `tramalia skills` | **Enter** on it (declares and clones at once) |
+| **Update one** | `tramalia skills sync <n>` | **Enter** on an already-installed one |
+| **Update all** | `tramalia skills` (or `tramalia update`) | the **`s`** key |
+| **See which have an update** | `tramalia skills outdated` | the **`u`** key (marks outdated ones `⬆`) |
+| **Open one's docs** | — | the **`d`** key (opens its repo) |
+| **Add by URL** | `tramalia skills add <url> [n]` | paste the URL in the input above |
+
+Agents **discover them on their own**: `AGENTS.md` points them to `.tramalia/skills/`; `tramalia sync --features rules,subagents` propagates rules to Cursor/Copilot/Cline. **Add your own**: create `.tramalia/skills/17-my-skill/SKILL.md` with `name`/`description` frontmatter + Purpose · When to use · Workflow · Guardrails · Expected evidence sections.
+
+### The 3 states (and what a "declared" skill is)
+
+- **`✓ installed @a71792a`** — cloned into `.tramalia/skills/<name>/`. The `@sha` is the exact **version** you have (the short commit).
+- **`◍ declared`** — it's **noted in the manifest** `.tramalia/skills.toml` (its `[[skill]]` block is active) **but hasn't been cloned to disk yet**. It's the in-between step: you *want* it, but it still needs fetching with `tramalia skills`. After a `git clone` of the repo, external skills always start here (the manifest travels, the folders don't) — a `tramalia skills` re-hydrates them.
+- **`○ available`** — it's in the **commented catalog** of `skills.toml` (a curated suggestion), not even declared. Enable it and it becomes declared.
+
+### Updating: installed vs. available
+
+Each installed external skill shows its **installed version** (`@sha`). To see whether a newer one exists in its repo, `tramalia skills outdated` (or the **`u`** key in the TUI) runs a `git ls-remote` and marks the outdated ones with `installed → available`. Then you update **one** (`tramalia skills sync <name>` / Enter on it) or **all** of the project's (`tramalia skills` / the `s` key). It touches nothing else: it's a `git pull --ff-only` per skill.
 
 ### External skills are NOT committed to the repo (but aren't lost)
 

@@ -150,6 +150,7 @@ def build_app():
             ("d", "open_docs", t("tui.binding.docs")),
             ("c", "cancel_install", t("tui.binding.cancel")),
             ("b", "context_backend", t("tui.binding.contextbackend")),
+            ("u", "check_updates", t("tui.binding.checkupdates")),
             ("escape", "close_panels", t("tui.binding.closepanels")),
         ]
         CSS = """
@@ -208,6 +209,7 @@ def build_app():
             yield Footer()
 
         def on_mount(self) -> None:
+            self._skill_updates = {}   # name → hay actualización (lo llena la tecla u)
             self.action_refresh()
 
         # ------------------------------------------------------------ refresh
@@ -296,11 +298,18 @@ def build_app():
                 tabla.add_row(f"  {s['name']}", t("skills.state.installed"),
                               s["description"])
             tabla.add_row(f"[bold cyan]· {t('skills.group.external')}[/]", "", "")
-            for s in skills_core.catalog(root):
+            updates = getattr(self, "_skill_updates", {})
+            for s in skills_core.external_status(root):
                 estado = (t("skills.state.installed") if s["installed"]
                           else t("skills.state.declared") if s["enabled"]
                           else t("skills.state.available"))
-                tabla.add_row(f"  {s['name']}", estado, s["source"])
+                if s["installed_ref"]:
+                    info = f"@{s['installed_ref']}"
+                    if updates.get(s["name"]):
+                        info += f"  [yellow]⬆ {t('skills.update.available')}[/yellow]"
+                else:
+                    info = s["source"]
+                tabla.add_row(f"  {s['name']}", estado, info)
 
         def _refresh_audit(self, root, initialized, entries) -> None:
             aviso = self.query_one("#aviso-audit", Static)
@@ -408,29 +417,55 @@ def build_app():
                 return
             log = self._skills_log()
             if externa["installed"]:
-                if skills_core.set_enabled(root, name, False):
-                    log.write(t("skills.toggle.off", name=name))
-                self._refresh_skills(root, project.is_initialized(root))
+                # ya instalada → actualizarla (pull de esa sola)
+                log.write(t("skills.update.one", name=name))
+                self.run_worker(lambda: self._sync_one_skill(name),
+                                thread=True, exclusive=True)
                 return
             if not externa["enabled"]:
                 skills_core.set_enabled(root, name, True)  # declarar
             log.write(t("skills.install.one", name=name))   # y clonar en el acto
-            self.run_worker(lambda: self._install_one_skill(name),
+            self.run_worker(lambda: self._sync_one_skill(name),
                             thread=True, exclusive=True)
 
-        def _install_one_skill(self, name) -> None:
-            results = skills_core.sync_skills(Path.cwd())
+        def _sync_one_skill(self, name) -> None:
+            results = skills_core.sync_skills(Path.cwd(), only=name)
             self.call_from_thread(self._after_one_skill, name, results)
 
         def _after_one_skill(self, name, results) -> None:
             log = self._skills_log()
             act = next((a for n, a in results if n == name), None)
-            if act in ("clonada", "actualizada"):
+            if act == "clonada":
                 log.write(t("skills.install.ok", name=name))
+            elif act == "actualizada":
+                log.write(t("skills.update.ok", name=name))
             elif act == "git-ausente":
                 log.write(t("skills.install.nogit"))
             else:
                 log.write(t("skills.install.fail", name=name))
+            self._skill_updates.pop(name, None)  # ya no está desactualizada
+            self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
+
+        def action_check_updates(self) -> None:
+            """Tecla u: comprueba en los remotos qué skills externas tienen
+            una versión más nueva (git ls-remote), y lo marca en la tabla."""
+            root = Path.cwd()
+            if not project.is_initialized(root):
+                self.notify(t("tui.close.uninit"), severity="warning", markup=False)
+                return
+            self.query_one(TabbedContent).active = "skills"
+            self._skills_log().write(t("skills.update.checking"))
+            self.run_worker(self._check_updates_worker, thread=True, exclusive=True)
+
+        def _check_updates_worker(self) -> None:
+            estados = skills_core.external_status(Path.cwd(), check_remote=True)
+            self.call_from_thread(self._after_check_updates, estados)
+
+        def _after_check_updates(self, estados) -> None:
+            self._skill_updates = {s["name"]: s["update"]
+                                   for s in estados if s["installed"]}
+            n = sum(1 for v in self._skill_updates.values() if v)
+            self._skills_log().write(t("skills.update.found", n=n))
             self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
 
         def action_skills_sync(self) -> None:

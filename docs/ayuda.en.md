@@ -130,7 +130,13 @@ Since **v0.29** `tramalia init` drops a block in `.gitignore` that **excludes** 
 `.gitignore` doesn't untrack what's already uploaded. `tramalia skills` (and `list`/`update`) **warns** if it detects committed external skills and gives the remedy: `git rm -r --cached .tramalia/skills/<name>` (removes from the index, not disk; `.gitignore` prevents re-adding).
 
 **Enter on an own skill (01–16) does nothing.**
-Correct: the own ones are always installed and versioned. Enter only applies to **external** skills (install/disable).
+Correct: the own ones are always installed and versioned. Enter only applies to **external** skills (install/update).
+
+**What is a "declared" (`◍`) skill?**
+It's **noted in the manifest** `.tramalia/skills.toml` (its `[[skill]]` block is active) but **hasn't been cloned to disk yet**. It's the in-between step from `○ available` (only in the catalog) to `✓ installed` (already in `.tramalia/skills/`). After cloning the repo, external skills start declared (the manifest travels, the folders don't); a `tramalia skills` fetches them.
+
+**How do I know if an external skill has a newer version, and how do I update it?**
+Each installed one shows its **version** as `@sha` (the short commit). `tramalia skills outdated` (or the **`u`** key in the TUI) compares your version with the remote (`git ls-remote`) and marks the outdated ones (`installed → available`). Update **one** with `tramalia skills sync <name>` (or Enter on it in the TUI) or **all** with `tramalia skills` (the `s` key). It's a `git pull --ff-only` per skill; it touches nothing else.
 
 ## Updating & repo structure
 
