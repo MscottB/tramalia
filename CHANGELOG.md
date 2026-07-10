@@ -2,6 +2,37 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.32.0] - 2026-07-10
+
+Español como idioma por defecto en README/PyPI/GitHub, y fix real en el tab
+Cierre: los agentes prellenados ahora se detectan, no son un ejemplo fijo.
+Primera fase (F1) del quinto entregable ampliado (rediseño + rebrand).
+
+### README/PyPI/GitHub en español por defecto
+- `README.md` (el que GitHub renderiza sin sufijo, y el que PyPI usa vía
+  `pyproject.toml → readme`) es ahora la versión **en español**; el inglés
+  quedó en `README.en.md`. La documentación del sitio (mkdocs) **ya** tenía
+  español como default (`theme.language: es`, plugin i18n `default: true`)
+  — no requirió cambios.
+- Descripción del repo en GitHub ("About") actualizada a español, coherente
+  con el README y con `pyproject.toml → description`.
+
+### Fix: agentes del tab Cierre ya no son un ejemplo fijo
+- `tramalia init` (y `upgrade`) grababan siempre `agents.primary = "codex"` y
+  `agents.reviewer = "claude"` en `config.json`, **sin importar qué tuvieras
+  instalado** — de ahí que el tab Cierre siempre precargara esos dos nombres.
+- Nuevo `tools.detect_default_agents()`: detecta los agentes CLI reales
+  presentes (excluye Antigravity IDE/2.0, que son apps de escritorio sin
+  shell propio). Dos detectados → cross-review real (uno ejecuta, otro
+  revisa); uno solo → se usa para ambos; ninguno → cae al mismo ejemplo
+  editable de antes.
+- Campo **Modelo** del tab Cierre: placeholder más claro (opcional, solo
+  queda en `tramalia log`, no bloquea el cierre).
+
+### Calidad
+- 250 tests con pytest (6 nuevos en `tests/test_v032.py`). FAQ e interfaz
+  documentadas ES/EN con el fix explicado.
+
 ## [0.31.0] - 2026-07-10
 
 Versión de las skills externas y actualización selectiva. Primera parte (R5a)

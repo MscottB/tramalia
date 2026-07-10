@@ -267,6 +267,29 @@ def probe(tool: Tool, timeout: float = 8.0) -> Status:
     return Status(tool, present=True, version=version)
 
 
+# orden de preferencia para prellenar primary/reviewer en init: CLIs reales que
+# pueden ejecutar `close` por shell. Excluye antigravity-ide/antigravity-2 (apps
+# de escritorio sin shell propio) — no tiene sentido prellenarlas como ejecutor.
+_AGENT_DETECT_ORDER = ("claude", "codex", "opencode", "antigravity", "openclaw", "hermes")
+
+
+def detect_default_agents() -> tuple[str, str]:
+    """(primary, reviewer) para prellenar config.json en `init`, basado en los
+    agentes CLI REALMENTE instalados (no un ejemplo fijo).
+
+    Dos agentes distintos detectados → el primero ejecuta, el segundo revisa
+    (el patrón recomendado: cross-model review). Uno solo → se usa como ambos
+    (editable después). Ninguno → cae a codex/claude como ejemplo editable,
+    para que el proyecto no quede con campos vacíos."""
+    presentes = [key for key in _AGENT_DETECT_ORDER
+                 if probe(next(t for t in REGISTRY if t.key == key)).present]
+    if len(presentes) >= 2:
+        return presentes[0], presentes[1]
+    if len(presentes) == 1:
+        return presentes[0], presentes[0]
+    return "codex", "claude"
+
+
 def relevant_tools(stack: list[str], features: tuple[str, ...]) -> list[Tool]:
     """Filtra el registro a lo que aplica para este proyecto."""
     out: list[Tool] = []

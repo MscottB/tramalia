@@ -502,10 +502,12 @@ def build_app():
             button.disabled = True
             root = Path.cwd()
             stack = detect_stack(root)
+            from tramalia.core.tools import detect_default_agents
+            primary, reviewer = detect_default_agents()
             scaffold(root, {
                 "project_name": root.name, "stacks": stack,
                 "features": enabled_features(stack),
-                "primary_agent": "codex", "reviewer_agent": "claude",
+                "primary_agent": primary, "reviewer_agent": reviewer,
             })
             project.set_scaffolded_version(root, _tramalia_version)
             button.disabled = False

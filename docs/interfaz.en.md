@@ -137,8 +137,8 @@ In one line: **Close produces the evidence; Audit consults it.**
 - **Uninitialized project** → the form hides and the **"⚙ Initialize now"** button appears, which runs the equivalent of `tramalia init` and refreshes. Closing is **blocked** until initialized (governing without a convention makes no sense).
 - **Initialized project** → the form comes **prefilled with the project's real values** (not examples):
   - *task* ← the ID from `.tramalia/current-task.md` (if you declared it);
-  - *executing agent* and *reviewer* ← `config.json → agents.primary/reviewer`;
-  - *model* ← optional, recorded in the audit.
+  - *executing agent* and *reviewer* ← `config.json → agents.primary/reviewer` — which `init` fills with the **agent CLIs it detected installed** on your machine (two detected → the first executes and the second reviews; one only → used for both; none → falls back to `codex`/`claude` as an editable example). You can always change them by hand in `config.json` or by typing another value in the form;
+  - *model* ← **optional**: the model name you used (e.g. `claude-opus-4-8`), just so it's recorded in `tramalia log` — it doesn't block the close if left empty.
 - As you type a task ID, the interface **looks it up in `specs/tasks.md` and shows its description** (scope, applicable gates). If it doesn't exist, it warns you to add it — so the close stays traceable.
 - **▶ Run close** runs the full ritual and streams the gate-by-gate output. The final message is honest:
   - `✓ closed with verifiable evidence` — green gates;

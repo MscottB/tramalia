@@ -2,141 +2,143 @@
 
 # 🧩 Tramalia
 
-**Governance and verifiable evidence for building with multiple AI agents. Repo-first.**
+**Gobierno y evidencia verificable para desarrollar con múltiples agentes IA. Repo-first.**
 
-*Define the project rules, orchestrate collaboration between agents, validate every change, and leave a verifiable record — versioned in the repo.*
+*Define las reglas del proyecto, ordena la colaboración entre agentes, valida cada cambio y deja un registro verificable — versionado en el repo.*
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-![Tests](https://img.shields.io/badge/tests-244%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-250%20passing-brightgreen.svg)
 
-[Español](README.es.md) · **English** · [📚 Docs](https://MscottB.github.io/tramalia/)
+**Español** · [English](README.en.md) · [📚 Documentación](https://MscottB.github.io/tramalia/)
 
 </div>
 
 ---
 
-> **Git governs human collaboration; Tramalia governs agentic collaboration.** It's the change control + audit trail for when several AI agents work on a real project: shared rules, mandatory validations, and verifiable evidence for every close.
+> **Git gobierna la colaboración humana; Tramalia gobierna la colaboración agéntica.** Es el control de cambios + pista de auditoría para cuando varios agentes IA trabajan un proyecto real: reglas comunes, validaciones obligatorias y evidencia verificable de cada cierre.
 
-## Table of contents
+## Tabla de contenidos
 
-- [What is it?](#what-is-it)
-- [Definition](#definition)
-- [Features](#features)
-- [Quick start](#quick-start)
-- [Usage](#usage)
-- [Tramalia alone or with your tools](#tramalia-alone-or-with-your-tools)
-- [How it works](#how-it-works)
-- [Comparison with the ecosystem](#comparison-with-the-ecosystem)
-- [Requirements](#requirements)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
+- [¿Qué es?](#qué-es)
+- [Definición](#definición)
+- [Características](#características)
+- [Instalación rápida](#instalación-rápida)
+- [Uso](#uso)
+- [Tramalia sola o con tus herramientas](#tramalia-sola-o-con-tus-herramientas)
+- [Cómo funciona](#cómo-funciona)
+- [Comparación con el ecosistema](#comparación-con-el-ecosistema)
+- [Requisitos](#requisitos)
+- [Documentación](#documentación)
+- [Contribuir](#contribuir)
+- [Licencia](#licencia)
 
-## What is it?
+## ¿Qué es?
 
-When you work on a project with several AI agents (Claude Code, Codex, Cursor, Antigravity…), each one loses context between sessions, uses its own rules, and **leaves no evidence of what it did**. Tramalia fixes this by using **the repository as the source of truth**: it drops a versioned convention that *any* agent reads, and ensures the work is done in a **controlled, traceable and consistent** way.
+Cuando trabajas un proyecto con varios agentes IA (Claude Code, Codex, Cursor, Antigravity…), cada uno pierde contexto entre sesiones, usa sus propias reglas y **no deja evidencia de lo que hizo**. Tramalia resuelve esto usando **el repositorio como fuente de verdad**: deja una convención versionada que *cualquier* agente lee, y asegura que el trabajo se haga de forma **controlada, trazable y consistente**.
 
-Its focus is **not** to configure your agents (that's Gentle-AI and the like) nor to be a memory engine (that's Engram). Its focus is to **govern the repo**: rules, gates, evidence and handoff.
+Su foco **no** es configurar tus agentes (eso lo hacen Gentle-AI y similares) ni ser un motor de memoria (eso es Engram). Su foco es **gobernar el repo**: reglas, gates, evidencia y handoff.
 
-## Definition
+## Definición
 
-> **Tramalia is a repo-first governance and evidence layer for development with multiple AI agents.** Its goal is not to configure agents nor to replace memory engines, but to ensure that any agent touching a project works under the same rules, runs validations, documents its decisions, leaves verifiable evidence, and hands off clearly to the next session or reviewer.
+> **Tramalia es una capa repo-first de gobierno y evidencia para desarrollo con múltiples agentes IA.** Su objetivo no es configurar agentes ni reemplazar motores de memoria, sino asegurar que cualquier agente que intervenga un proyecto trabaje bajo las mismas reglas, ejecute validaciones, documente sus decisiones, deje evidencia verificable y entregue un handoff claro para la siguiente sesión o revisor.
 
-It does this by **orchestrating external tools** instead of reimplementing them.
+Lo hace **orquestando herramientas externas** en vez de reimplementarlas.
 
-## Features
+## Características
 
-- **Governed close (`close`)** — runs the gates, writes their output into the **evidence pack** and generates the (linked) **handoff** in one step; **blocks the close if a gate fails** (unless a documented exception).
-- **Audit trail (`log`)** — verifiable history of closes: which task, which gates passed, what evidence.
-- **TUI dashboard (`ui`)** — terminal panel with Overview, browsable Audit and guided Close (extra `[tui]`, Textual).
-- **Quality gates** — build, test, lint, security, database and UX/UI.
-- **Complete convention** — single `AGENTS.md` + `docs/ai/` 00–11 + `specs/` + **13 numbered skills** anchored to the workflow + failed attempts + typed handoff.
-- **Role-based subagents with model routing** — `.claude/agents/` ships 5 governance roles (planner→opus, executor→inherit, reviewer→opus, documenter→haiku, deep-solver→fable); `sync` fans them out to other hosts, and `close --model` records which model closed each task.
-- **`doctor`** — diagnoses which tools *your* project needs and how to install them (includes Spec Kit).
-- **Token saving** *(interop)* — derived context (Repomix) + semantic navigation (Serena).
-- **Rule fan-out** *(interop)* — propagates `AGENTS.md` to Cursor/Copilot/… with rulesync.
-- **MCP façade** + **optional N2 memory** (Engram) — exposes/persists without reinventing.
+- **Cierre gobernado (`close`)** — corre los gates, escribe sus salidas en el **evidence pack** y genera el **handoff** (enlazado) en un solo paso; **bloquea el cierre si un gate falla** (salvo excepción documentada).
+- **Pista de auditoría (`log`)** — historial verificable de cierres: qué tarea, qué gates pasaron, qué evidencia.
+- **Dashboard TUI (`ui`)** — panel en terminal con Resumen, Auditoría navegable y Cierre guiado (extra `[tui]`, Textual).
+- **Quality gates** — build, test, lint, seguridad, base de datos y UX/UI.
+- **Convención completa** — `AGENTS.md` único + `docs/ai/` 00–11 + `specs/` + **13 skills** numeradas ancladas al flujo + intentos fallidos + handoff tipado.
+- **Subagentes por rol con ruteo de modelo** — `.claude/agents/` trae 5 roles de gobierno (planificador→opus, ejecutor→inherit, revisor→opus, documentador→haiku, resolutor-profundo→fable); `sync` los propaga a otros hosts y `close --model` registra qué modelo cerró cada tarea.
+- **`doctor`** — diagnostica qué herramientas necesita *tu* proyecto y cómo instalarlas (incluye Spec Kit).
+- **Ahorro de tokens** *(interop)* — contexto derivado (Repomix) + navegación semántica (Serena).
+- **Fan-out de reglas** *(interop)* — propaga `AGENTS.md` a Cursor/Copilot/… con rulesync.
+- **Fachada MCP** + **memoria N2 opcional** (Engram) — expone/persiste sin reinventar.
 
-## Quick start
+## Instalación rápida
 
 ```bash
-pip install tramalia-cli    # only requires Python 3.10+ — one command, everything included
-tramalia init                        # generate the convention in your repo
-tramalia doctor                      # tells you what else to install
+pip install tramalia-cli    # solo requiere Python 3.10+ — un comando, todo incluido
+tramalia init                        # genera la convención en tu repo
+tramalia doctor                      # te dice qué más instalar
 ```
 
-## Usage
+## Uso
 
-Commands are designed to be short: `close` takes the task as a positional argument, and agent/reviewer default from `.tramalia/config.json` (`agents.primary`/`agents.reviewer`). If you omit the task, it's read from `.tramalia/current-task.md` — so the everyday close is just **two words**.
+Los comandos están pensados para escribirse corto: `close` toma la tarea como argumento posicional, y agente/revisor salen por defecto de `.tramalia/config.json` (`agents.primary`/`agents.reviewer`). Si omites la tarea, se lee de `.tramalia/current-task.md` — el cierre del día a día son **dos palabras**.
 
-| Command | What it does | Simple example |
+| Comando | Qué hace | Ejemplo simple |
 |---|---|---|
-| `menu` | looping interactive menu with guided prompts | `tramalia menu` |
-| `ui` | TUI dashboard: Overview · Audit · Close (extra `[tui]`) | `tramalia ui` |
-| `init` | generate the full convention (AGENTS.md, docs/ai 00-13, specs, 16 skills, 5 subagents) | `tramalia init` |
-| `upgrade` | update an already-initialized repo (adds what's new, never overwrites yours) | `tramalia upgrade` |
-| `doctor` | diagnose which tools are missing and how to install them | `tramalia doctor` |
-| `detect` | detect the stack and applicable gates | `tramalia detect` |
-| **`close`** | **close a task: gates → evidence → handoff, with enforcement** | `tramalia close` · `tramalia close TASK-001` |
-| `log` | audit trail: task · agent · model · honest status | `tramalia log` |
-| `evidence` | create just the evidence pack | `tramalia evidence TASK-001` |
-| `handoff` | append just the handover entry | `tramalia handoff TASK-001` |
-| `gates` | run the quality gates (via mise) | `tramalia gates` |
-| `context` | refresh derived context (token saving) | `tramalia context` |
-| `sync` | propagate rules **and subagents** to other hosts (rulesync) | `tramalia sync` |
-| `skills` | clone/update referenced skills from their repos | `tramalia skills` |
-| `update` | update everything (mise + skills) | `tramalia update` |
-| `mcp` | start the MCP façade (extra `[mcp]`) | `tramalia mcp` |
+| `menu` | menú interactivo en bucle con prompts guiados | `tramalia menu` |
+| `ui` | dashboard TUI: Resumen · Auditoría · Cierre (extra `[tui]`) | `tramalia ui` |
+| `init` | genera la convención completa (AGENTS.md, docs/ai 00-13, specs, 16 skills, 5 subagentes) | `tramalia init` |
+| `upgrade` | actualiza un repo ya inicializado (agrega lo nuevo, no pisa lo tuyo) | `tramalia upgrade` |
+| `doctor` | diagnostica qué herramientas faltan y cómo instalarlas | `tramalia doctor` |
+| `detect` | detecta el stack y los gates aplicables | `tramalia detect` |
+| **`close`** | **cierra una tarea: gates → evidence → handoff, con enforcement** | `tramalia close` · `tramalia close TASK-001` |
+| `log` | pista de auditoría: tarea · agente · modelo · estado honesto | `tramalia log` |
+| `evidence` | crea solo el evidence pack | `tramalia evidence TASK-001` |
+| `handoff` | agrega solo la entrada de traspaso | `tramalia handoff TASK-001` |
+| `gates` | corre los quality gates (vía mise) | `tramalia gates` |
+| `context` | refresca el contexto derivado (ahorro de tokens) | `tramalia context` |
+| `sync` | propaga reglas **y subagentes** a otros hosts (rulesync) | `tramalia sync` |
+| `skills` | clona/actualiza skills referenciadas desde sus repos | `tramalia skills` |
+| `update` | actualiza todo (mise + skills) | `tramalia update` |
+| `mcp` | levanta la fachada MCP (extra `[mcp]`) | `tramalia mcp` |
 
-Advanced flags (overrides): `close --task --agent --reviewer --model --allow-fail --engram` · `init --with-headroom --with-ponytail` · `sync --to --features`. Full reference: [Commands](docs/comandos.md).
+Flags avanzados (overrides): `close --task --agent --reviewer --model --allow-fail --engram` · `init --with-headroom --with-ponytail` · `sync --to --features`. Referencia completa: [Comandos](docs/comandos.md).
 
-## Tramalia alone or with your tools
+## Tramalia sola o con tus herramientas
 
-The **governance core works standalone**, with Python only: `init`, `doctor`, `close`, `log`, `evidence`, `handoff` and the rules/`docs/ai`. It needs nothing else to govern the repo.
+El **núcleo de gobierno funciona standalone**, solo con Python: `init`, `doctor`, `close`, `log`, `evidence`, `handoff` y las reglas/`docs/ai`. No necesita nada más para gobernar el repo.
 
-External tools are **optional interoperability**, not requirements: `mise` (runs the gates), Repomix/Serena/codebase-memory-mcp (context), rulesync (fan-out), **Engram** (N2 memory), **Headroom** (compression). If they're missing, Tramalia still governs and records it as a documented exception.
+Las herramientas externas son **interoperabilidad opcional**, no requisitos: `mise` (corre los gates), Repomix/Serena/codebase-memory-mcp (contexto), rulesync (fan-out), **Engram** (memoria N2), **Headroom** (compresión). Si no están, Tramalia sigue gobernando y lo registra como excepción documentada.
 
-## How it works
+## Cómo funciona
 
-Three layers:
+Tres capas:
 
-1. **The thin CLI** (what you run) — a single face that shells out to the real tools.
-2. **The convention** (what stays in your repo) — `AGENTS.md`, `docs/ai/`, `mise.toml`… The real value.
-3. **The external tools** (updated from their repos) — mise, Serena, Repomix, Semgrep, rulesync, the agents.
+1. **El CLI fino** (lo que ejecutas) — una cara única que hace *shell-out* a las herramientas reales.
+2. **La convención** (lo que queda en tu repo) — `AGENTS.md`, `docs/ai/`, `mise.toml`… El valor real.
+3. **Lo externo** (se actualiza desde sus repos) — mise, Serena, Repomix, Semgrep, rulesync, los agentes.
 
-## Comparison with the ecosystem
+## Comparación con el ecosistema
 
-They don't compete head-on; they complement each other. Each occupies a different space:
+No compiten de frente; se complementan. Cada uno ocupa un espacio distinto:
 
-| Project | Role |
+| Proyecto | Rol |
 |---|---|
-| **Gentle-AI** | prepares the agent ecosystem: models, skills, memory, profiles, config |
-| **Engram** | provides persistent memory across sessions |
-| **Headroom** | compresses context and outputs to save tokens |
-| **Serena · Repomix · codebase-memory-mcp** | code intelligence / context (navigation, snapshot, structural graph) |
-| **Tramalia** | **governs the work inside the repo: rules, gates, evidence, handoff, audit and failed attempts** |
+| **Gentle-AI** | prepara el ecosistema de agentes: modelos, skills, memoria, perfiles, configuración |
+| **Engram** | aporta memoria persistente entre sesiones |
+| **Headroom** | comprime contexto y outputs para ahorrar tokens |
+| **Serena · Repomix · codebase-memory-mcp** | inteligencia de código / contexto (navegación, snapshot, grafo estructural) |
+| **Tramalia** | **gobierna el trabajo dentro del repo: reglas, gates, evidencia, handoff, auditoría e intentos fallidos** |
 
-Together: **Gentle-AI** enables *which* agents to work with, **Engram** helps *remember*, **Headroom** makes context *cheaper*, **Serena/Repomix/codebase-memory-mcp** provide *code intelligence*, and **Tramalia** keeps the repo **controlled, traceable and consistent**. All are optional interop; none touch Tramalia's core (`close`, `log`, evidence pack, handoff). Details in the [ecosystem page](docs/ecosistema.md).
+En conjunto: **Gentle-AI** habilita *con qué* agentes trabajar, **Engram** ayuda a *recordar*, **Headroom** *abarata* el contexto, **Serena/Repomix/codebase-memory-mcp** dan *inteligencia de código*, y **Tramalia** asegura que el repo se mantenga **controlado, trazable y consistente**. Todas son interop opcional; ninguna toca el núcleo de Tramalia (`close`, `log`, evidence pack, handoff). Detalle en la [página de ecosistema](docs/ecosistema.md).
 
-## Requirements
+## Requisitos
 
-- **Tramalia: only Python 3.10+** (no Node dependencies).
-- **Recommended:** `mise`, `git`, `uv` (bootstrap that installs the rest).
-- **Node 18+** only if you use `sync`, the `ux` gate, or `context` with Repomix. `tramalia doctor` flags it as "requires Node".
+- **Tramalia: solo Python 3.10+** (sin dependencias Node).
+- **Recomendado:** `mise`, `git`, `uv` (bootstrap que instala el resto).
+- **Node 18+** solo si usas `sync`, el gate `ux` o `context` con Repomix. `tramalia doctor` lo marca como "requiere Node".
 
-## Documentation
+Tabla completa en el [Manual de usuario](MANUAL_DE_USUARIO.md#parte-2--instalación-y-requisitos).
 
-- **Site (ES/EN):** https://MscottB.github.io/tramalia/ — visual, with diagrams
-  - **[Full example](docs/ejemplo-completo.md)** — a real project end to end, showing every option and every third-party tool in action
-  - [Ecosystem](docs/ecosistema.md) · [Full workflow](docs/flujo-completo.md) · [Architecture](docs/arquitectura.md) · [Integrations](docs/interop.md) · [Tools](docs/herramientas.md)
-- [User manual (Spanish)](MANUAL_DE_USUARIO.md)
-- [Consolidated design document (Spanish)](Tramalia_Diseno_Consolidado_v0_6.md)
+## Documentación
 
-## Contributing
+- **Sitio (ES/EN):** https://MscottB.github.io/tramalia/ — visual, con diagramas
+  - **[Ejemplo completo](docs/ejemplo-completo.md)** — un proyecto real de punta a punta, con cada opción y cada herramienta de terceros en acción
+  - [Ecosistema](docs/ecosistema.md) · [Flujo completo](docs/flujo-completo.md) · [Arquitectura](docs/arquitectura.md) · [Integraciones](docs/interop.md) · [Herramientas](docs/herramientas.md)
+- [Manual de usuario](MANUAL_DE_USUARIO.md)
+- [Documento de diseño consolidado](Tramalia_Diseno_Consolidado_v0_6.md)
 
-Contributions are welcome. Read the [contributing guide](CONTRIBUTING.md): open an issue to discuss large changes; for small ones, send a PR. Run the tests with `pip install -e ".[dev]" && pytest`.
+## Contribuir
 
-## License
+Las contribuciones son bienvenidas. Lee la [guía de contribución](CONTRIBUTING.md): abre un issue para cambios grandes; para cambios chicos, un PR directo. Ejecuta los tests con `pip install -e ".[dev]" && pytest`.
 
-**Apache-2.0** © 2026 Michael Jim Scott Bravo — see [`LICENSE`](LICENSE). Ecosystem license analysis (and why the copyleft of external tools doesn't affect Tramalia): [`LICENSES.md`](LICENSES.md).
+## Licencia
+
+**Apache-2.0** © 2026 Michael Jim Scott Bravo — ver [`LICENSE`](LICENSE). Análisis de licencias del ecosistema (y por qué las copyleft de las tools externas no afectan a Tramalia): [`LICENSES.md`](LICENSES.md).

@@ -103,21 +103,25 @@ def cmd_detect(args) -> int:
 
 def cmd_init(args) -> int:
     from tramalia.core import scaffold
+    from tramalia.core.tools import detect_default_agents
     root = Path.cwd()
     stack = detect_stack(root)
     adopt = getattr(args, "adopt", False)
+    primary, reviewer = detect_default_agents()
     answers = {
         "project_name": root.name,
         "stacks": stack,
         "features": enabled_features(stack),
-        "primary_agent": "codex",
-        "reviewer_agent": "claude",
+        "primary_agent": primary,
+        "reviewer_agent": reviewer,
         "with_headroom": getattr(args, "with_headroom", False),
         "with_ponytail": getattr(args, "with_ponytail", False),
         "with_notebook_exec": getattr(args, "with_notebook_exec", False),
         "adopt": adopt,
     }
     render.header(root.name, stack, _is_initialized(root))
+    render.info(f"agentes detectados para config.json: ejecutor={primary}, revisor={reviewer} "
+                f"(editable luego en config.json o en el tab Cierre)")
     results = scaffold.scaffold(root, answers)
     for rel, state in results:
         (render.ok if state in ("creado", "adaptado") else render.info)(f"{state:>9}  {rel}")
@@ -177,10 +181,12 @@ def cmd_upgrade(args) -> int:
         return 1
     old = project.scaffolded_version(root)
     stack = detect_stack(root)
+    from tramalia.core.tools import detect_default_agents
+    primary, reviewer = detect_default_agents()
     answers = {
         "project_name": root.name, "stacks": stack,
         "features": enabled_features(stack),
-        "primary_agent": "codex", "reviewer_agent": "claude",
+        "primary_agent": primary, "reviewer_agent": reviewer,
     }
     render.header(root.name, stack, True)
     results = scaffold.scaffold(root, answers)

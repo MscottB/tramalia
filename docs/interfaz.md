@@ -136,8 +136,8 @@ En una frase: **Cierre produce la evidencia; Auditoría la consulta.**
 - **Proyecto sin inicializar** → el formulario se oculta y aparece el botón **"⚙ Inicializar ahora"**, que ejecuta el equivalente a `tramalia init` y refresca. El cierre está **bloqueado** hasta inicializar (no tiene sentido gobernar sin convención).
 - **Proyecto inicializado** → el formulario viene **prellenado con los valores reales** del proyecto (no ejemplos):
   - *tarea* ← el ID de `.tramalia/current-task.md` (si lo declaraste);
-  - *agente ejecutor* y *revisor* ← `config.json → agents.primary/reviewer`;
-  - *modelo* ← opcional, queda registrado en la auditoría.
+  - *agente ejecutor* y *revisor* ← `config.json → agents.primary/reviewer` — que `init` llena con los **agentes CLI que detectó instalados** en tu máquina (si detecta dos, el primero ejecuta y el segundo revisa; si solo uno, se usa para ambos; si ninguno, cae a `codex`/`claude` como ejemplo editable). Siempre puedes cambiarlos a mano en `config.json` o escribiendo otro valor en el formulario;
+  - *modelo* ← **opcional**: el nombre del modelo que usaste (ej. `claude-opus-4-8`), solo para que quede registrado en `tramalia log` — no bloquea el cierre si lo dejas vacío.
 - Al escribir un ID de tarea, la interfaz **busca esa tarea en `specs/tasks.md` y muestra su descripción** (alcance, gates aplicables). Si no existe, te avisa para que la agregues — así el cierre queda trazado.
 - **▶ Ejecutar close** corre el ritual completo y muestra la salida gate por gate. El mensaje final es honesto:
   - `✓ cerrada con evidencia verificable` — gates verdes;

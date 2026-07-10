@@ -95,6 +95,12 @@ You defined `.tramalia/thresholds.json` and a metric in `.tramalia/metrics.json`
 **My agent keeps calling tools that aren't installed.**
 Run `tramalia doctor`: it generates `.tramalia/context/tools.json`, and the `AGENTS.md` rule tells the agent to consult it before invoking — if `installed` is false, use the alternative or continue without it.
 
+**The Close tab always shows "codex" and "claude" prefilled, even though they're not what I use.**
+Fixed in **v0.32**. `tramalia init` used to record those two names as a **fixed** example, regardless of what you had installed. Now `init` (and `upgrade`) **detect the agent CLIs actually installed** on your machine: two found → the first becomes executor and the second reviewer (real cross-review); one only → used for both; none → falls back to the same `codex`/`claude` example as an editable starting point. You can always change them by hand in `.tramalia/config.json → agents.primary/reviewer` or by typing another value directly in the Close form.
+
+**The "model" field in the Close tab is blank — what's it for?**
+It's **optional**: type the model name you used (e.g. `claude-opus-4-8`) just so it's recorded in the audit trail (`tramalia log`, model column). It doesn't validate or block anything if left empty — it's purely informational, so you know later which model closed each task.
+
 **Does it work with Claude Code desktop / Codex desktop / Antigravity IDE?**
 Yes — they read `AGENTS.md` and run shell just like their CLIs; `tramalia close` works identically (there's no "app version" and "CLI version": everything lives in the repo). See [Models & effort per host](multi-host.md).
 

@@ -131,7 +131,7 @@
   "tui.close.gate.fail": "gate {name}: [red]FAILS[/red]",
   "tui.close.gate.ok": "gate {name}: [green]ok[/green]",
   "tui.close.init.button": "⚙ Initialize now (tramalia init)",
-  "tui.close.model.placeholder": "model used (optional, recorded in the audit)",
+  "tui.close.model.placeholder": "optional: model name, e.g. claude-opus-4-8 (recorded in `tramalia log`, doesn't block the close)",
   "tui.close.needtask": "[yellow]enter a task ID before closing.[/yellow]",
   "tui.close.nogates": "[yellow]▲ gates NOT run (mise missing) — will be recorded as a documented exception[/yellow]",
   "tui.close.reviewer.placeholder": "reviewing agent",
