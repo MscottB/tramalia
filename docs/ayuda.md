@@ -118,7 +118,16 @@ Resolución: `TRAMALIA_LANG` > `config.json → language` > locale del sistema. 
 ## Skills
 
 **Agregué una skill por URL y no aparece clonada.**
-`add` solo la declara en el manifiesto; clónala con `tramalia skills` (o tecla `s` en la TUI).
+`add` solo la declara en el manifiesto. En la TUI, **Enter** sobre una skill externa la **declara y la clona en un paso** (desde v0.29); por CLI, `tramalia skills` clona todas las declaradas. La tecla `s` sigue sincronizando todas; la tecla `d` abre la documentación (repo) de la skill seleccionada.
 
-**Enter sobre una skill no hace nada.**
-Solo las **externas** se activan/desactivan; las propias (01–16) siempre están instaladas. Si el bloque del TOML fue editado a mano con otro formato, el toggle conservador no lo toca — ajústalo manualmente.
+**¿Tenía que apretar Enter y luego sincronizar? No estaba claro.**
+Antes sí eran dos pasos (declarar, luego sync) y no se explicaba. Desde **v0.29**, en la TUI **Enter instala en un paso** (declara + clona); si la skill ya está, Enter la desactiva. La leyenda de la pestaña Skills ahora muestra los 3 estados y qué hace cada tecla.
+
+**Las skills externas pesan mucho y no quiero subirlas al repo — pero tampoco perderlas.**
+Desde **v0.29** `tramalia init` deja un bloque en `.gitignore` que **excluye** las skills externas de `.tramalia/skills/` y **conserva** las propias (numeradas `NN-*`). No se pierden: el manifiesto `.tramalia/skills.toml` (sí versionado) las **re-hidrata** — quien clone el repo corre `tramalia skills` y se le descargan localmente. Cubre `.gitignore` nuevo y existente (append idempotente, sin pisar lo tuyo).
+
+**Ya había commiteado las skills externas antes de esto.**
+`.gitignore` no destrackea lo ya subido. `tramalia skills` (y `list`/`update`) **avisa** si detecta skills externas commiteadas y te da el remedio: `git rm -r --cached .tramalia/skills/<nombre>` (las saca del índice, no del disco; el `.gitignore` evita que se re-agreguen).
+
+**Enter sobre una skill propia (01–16) no hace nada.**
+Correcto: las propias siempre están instaladas y versionadas. Enter solo aplica a las **externas** (instalar/desactivar).

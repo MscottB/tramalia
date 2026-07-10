@@ -43,11 +43,17 @@ Why separate instead of integrated? Because **governance lives in the repo, not 
 ## Managing them: the full flow
 
 1. **See what's there**: `tramalia skills list` (or the **Skills** tab of `tramalia ui`) — shows the 16 own skills and the full external catalog with states: `✓ installed` · `◍ declared (needs sync)` · `○ available`.
-2. **Enable an external one**: `tramalia skills enable <name>` (or Enter on it in the **Skills** tab of `tramalia ui`, or uncomment its `[[skill]]` block by hand — all three are equivalent).
-3. **Clone/update**: `tramalia skills` (or `tramalia update`, which also updates mise tools) — each source is cloned to `.tramalia/skills/<name>/` from its repo.
+2. **Install an external one (one step)**: in the **Skills** tab of `tramalia ui`, **Enter** on it **declares and clones it at once** (if it's already there, Enter disables it). From the CLI it's two equivalent steps: `tramalia skills enable <name>` then `tramalia skills`.
+3. **Clone/update all**: `tramalia skills` (or `tramalia update`, which also updates mise tools) — each declared source is cloned to `.tramalia/skills/<name>/` from its repo. The `d` key opens the selected skill's docs (repo).
 4. **Agents discover them** on their own: `AGENTS.md` points them to `.tramalia/skills/`; `tramalia sync --features rules,subagents` propagates rules to Cursor/Copilot/Cline.
-5. **Add one by URL**: `tramalia skills add <git-url> [name]` (or paste the URL in the Skills tab input) — declares it in the manifest; `sync` clones it.
+5. **Add one by URL**: `tramalia skills add <git-url> [name]` (or paste the URL in the Skills tab input) — declares it in the manifest; then `tramalia skills` clones it.
 6. **Add your own**: create `.tramalia/skills/17-my-skill/SKILL.md` with `name`/`description` frontmatter + Purpose · When to use · Workflow · Guardrails · Expected evidence sections. If it's anchored to `close`/gates, it's a legitimate governance skill.
+
+### External skills are NOT committed to the repo (but aren't lost)
+
+External skills can weigh hundreds of MB. `tramalia init` drops a block in `.gitignore` that **excludes** the external folders under `.tramalia/skills/` from the repo but **keeps the own ones** (numbered `NN-*`). The source of truth is the **manifest** `.tramalia/skills.toml` (that one IS versioned): whoever clones or downloads the repo just runs **`tramalia skills`** and they're **re-hydrated** locally. So the repo stays light and nobody loses anything.
+
+> **Already committed them before this?** `.gitignore` doesn't untrack what's already in git. `tramalia skills` (and `list`/`update`) **warns** you if it detects committed external skills and gives the exact remedy: `git rm -r --cached .tramalia/skills/<name>` (removes from the index, not disk; `.gitignore` prevents re-adding).
 
 ## Which one to install? (decision by need)
 

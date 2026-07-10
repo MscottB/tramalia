@@ -99,11 +99,15 @@ Repomix y markitdown no aparecen en este selector: son utilidades puntuales
 Administra las skills sin editar archivos a mano (la contraparte visual de [la guía de skills](skills-guia.md)):
 
 - **Tabla agrupada**: las **16 propias** (workflows del repo, con su descripción) y las **externas** del catálogo `skills.toml` — incluidas las **comentadas**, que aparecen como `○ disponible`.
-- **Enter sobre una externa** la activa/desactiva (comenta/descomenta su bloque en `skills.toml` de forma conservadora: si el bloque no se reconoce con certeza, no toca nada y lo dice).
-- **Tecla `s`** sincroniza: clona/actualiza las declaradas desde sus repos (`git`), con el resultado en vivo (`clonada` / `actualizada` / `error`).
+- **Enter sobre una externa la instala en un paso** (la declara y la clona a la vez); si ya está instalada, Enter la desactiva. La leyenda arriba recuerda los 3 estados y qué hace cada tecla.
+- **Tecla `s`** sincroniza todas las declaradas desde sus repos (`git`), con el resultado en vivo (`clonada` / `actualizada` / `error`) y un resumen `✓ n/total`.
+- **Tecla `d`** abre la documentación (repo de origen) de la skill seleccionada; para las propias, la guía de skills del sitio.
 - Estados: `✓ instalada` (carpeta presente) · `◍ declarada` (activa, falta sync) · `○ disponible` (en catálogo).
+- Si detecta skills externas **commiteadas en git** (que no deberían subirse), lo **avisa** en amarillo con el remedio `git rm -r --cached`.
 
-Hay además un **input de URL**: pega la URL git de cualquier skill y Enter la agrega al manifiesto (luego `s` la clona).
+Hay además un **input de URL**: pega la URL git de cualquier skill y Enter la agrega al manifiesto (luego Enter sobre ella, o `s`, la clona).
+
+> Las skills externas **no se suben al repo** (el `.gitignore` que deja `init` las excluye) pero **no se pierden**: el manifiesto `skills.toml` las re-hidrata con `tramalia skills` tras un `git clone`. Detalle en [la guía de skills](skills-guia.md).
 
 Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `add <url>` · `sync`.
 

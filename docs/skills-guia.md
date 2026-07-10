@@ -43,11 +43,17 @@ flowchart TB
 ## Administrarlas: el flujo completo
 
 1. **Ver qué hay**: `tramalia skills list` (o la pestaña **Skills** de `tramalia ui`) — muestra las 16 propias y el catálogo externo completo con estados: `✓ instalada` · `◍ declarada (falta sync)` · `○ disponible`.
-2. **Activar una externa**: `tramalia skills enable <nombre>` (o Enter sobre ella en la pestaña **Skills** de `tramalia ui`, o descomenta su bloque `[[skill]]` a mano — las tres vías son equivalentes).
-3. **Clonar/actualizar**: `tramalia skills` (o `tramalia update`, que además actualiza las tools de mise) — cada fuente se clona a `.tramalia/skills/<nombre>/` desde su repo.
+2. **Instalar una externa (un paso)**: en la pestaña **Skills** de `tramalia ui`, **Enter** sobre ella la **declara y la clona a la vez** (si ya está, Enter la desactiva). Desde CLI son dos pasos equivalentes: `tramalia skills enable <nombre>` y luego `tramalia skills`.
+3. **Clonar/actualizar todas**: `tramalia skills` (o `tramalia update`, que además actualiza las tools de mise) — cada fuente declarada se clona a `.tramalia/skills/<nombre>/` desde su repo. La tecla `d` abre la documentación (repo) de la skill seleccionada.
 4. **Los agentes las descubren** solos: `AGENTS.md` les indica consultar `.tramalia/skills/`; con `tramalia sync --features rules,subagents` se propagan las reglas a Cursor/Copilot/Cline.
-5. **Agregar una por URL**: `tramalia skills add <url-git> [nombre]` (o pega la URL en el input de la pestaña Skills) — la declara en el manifiesto; `sync` la clona.
+5. **Agregar una por URL**: `tramalia skills add <url-git> [nombre]` (o pega la URL en el input de la pestaña Skills) — la declara en el manifiesto; luego `tramalia skills` la clona.
 6. **Agregar una tuya**: crea `.tramalia/skills/17-mi-skill/SKILL.md` con frontmatter `name`/`description` + secciones Propósito · Cuándo usar · Workflow · Guardrails · Evidencia esperada. Si está anclada a `close`/gates, es una skill de gobierno legítima.
+
+### Las skills externas NO se suben al repo (pero no se pierden)
+
+Las skills externas pueden pesar cientos de MB. `tramalia init` deja en `.gitignore` un bloque que **excluye del repo** las carpetas externas de `.tramalia/skills/` pero **conserva las propias** (numeradas `NN-*`). La fuente de verdad es el **manifiesto** `.tramalia/skills.toml` (ese sí se versiona): quien clone o descargue el repo solo corre **`tramalia skills`** y se le **re-hidratan** localmente. Así el repo queda liviano y nadie pierde nada.
+
+> **¿Ya las habías commiteado antes de esto?** `.gitignore` no destrackea lo que ya está en git. `tramalia skills` (y `list`/`update`) te **avisa** si detecta skills externas commiteadas y te da el remedio exacto: `git rm -r --cached .tramalia/skills/<nombre>` (borra del índice, no del disco; el `.gitignore` evita que se re-agreguen).
 
 ## ¿Cuál instalar? (decisión por necesidad)
 

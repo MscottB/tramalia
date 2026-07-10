@@ -423,8 +423,12 @@ def cmd_skills(args) -> int:
             render.info(t("skills.group.external"))
             for s in externas:
                 render.ok(f"{s['name']:<22}{_skill_state(s)}  ←  {s['source']}")
+            pendientes = [s["name"] for s in externas if s["enabled"] and not s["installed"]]
+            if pendientes:
+                render.info(t("skills.rehydrate", names=", ".join(pendientes)))
         if not propias and not externas:
             render.info("no hay skills (¿corriste `tramalia init`?)")
+        _warn_tracked_external(skills, root)
         return 0
 
     if action == "add":
@@ -454,11 +458,23 @@ def cmd_skills(args) -> int:
     results = skills.sync_skills(root)
     if not results:
         render.info("no hay skills declaradas en .tramalia/skills.toml (todas comentadas).")
+        _warn_tracked_external(skills, root)
         return 0
     for name, act in results:
         ok = act in ("clonada", "actualizada")
         (render.ok if ok else render.warn)(f"{act:>12}  {name}")
+    _warn_tracked_external(skills, root)
     return 0
+
+
+def _warn_tracked_external(skills, root) -> None:
+    """Avisa si hay skills externas commiteadas en git: el .gitignore no las
+    destrackea, hay que sacarlas del índice a mano (git rm -r --cached)."""
+    from tramalia.i18n import t
+    tracked = skills.tracked_external_skills(root)
+    if tracked:
+        render.warn(t("skills.tracked.warn", names=", ".join(tracked)))
+        render.info(t("skills.tracked.fix"))
 
 
 def cmd_update(args) -> int:
@@ -476,6 +492,7 @@ def cmd_update(args) -> int:
             (render.ok if ok else render.warn)(f"skill {act}: {name}")
     else:
         render.info("sin skills externas declaradas que sincronizar.")
+    _warn_tracked_external(skills, Path.cwd())
     return code
 
 

@@ -2,6 +2,35 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.29.0] - 2026-07-10
+
+Skills: instalar en un paso y **skills externas fuera del repo sin perderlas**.
+Tercer entregable (R3) del plan; responde directo a "las externas pesan +200MB
+y no quiero subirlas, pero que no se pierdan al clonar".
+
+### Skills externas fuera de git (re-hidratables)
+- `tramalia init` deja un bloque en `.gitignore` que **excluye** las carpetas de
+  skills externas de `.tramalia/skills/` y **conserva** las propias (`NN-*`).
+  Cubre `.gitignore` **nuevo y existente** (append idempotente entre marcadores,
+  sin pisar lo del usuario). Patrón verificado con git real.
+- La fuente de verdad es el manifiesto `skills.toml` (sí versionado): un `git clone`
+  + `tramalia skills` **re-hidrata** las externas localmente. Nadie pierde nada.
+- **Chequeo de ya-commiteadas**: `.gitignore` no destrackea lo ya subido, así que
+  `tramalia skills`/`list`/`update` **avisa** si detecta skills externas en git y
+  da el remedio exacto `git rm -r --cached .tramalia/skills/<nombre>`.
+
+### UX de skills
+- En la TUI, **Enter instala en un paso** (declara + clona); si ya está, la
+  desactiva. Antes eran dos pasos no señalizados (declarar, luego sync).
+- Leyenda con los 3 estados y qué hace cada tecla; resumen `✓ n/total` en el sync.
+- **Tecla `d`** abre la documentación (repo) de la skill seleccionada; para las
+  propias, la guía de skills del sitio.
+
+### Calidad
+- 230 tests con pytest (7 nuevos en `tests/test_v029.py`: gitignore idempotente
+  nuevo/existente, patrón real con git que excluye externas y conserva `NN-*`, y
+  detección de externas ya commiteadas). Guía de skills, FAQ e interfaz ES/EN.
+
 ## [0.28.0] - 2026-07-10
 
 Backend de contexto: detección correcta, ESC para cerrar, y manejo del caso

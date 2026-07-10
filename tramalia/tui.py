@@ -280,7 +280,12 @@ def build_app():
             if not initialized:
                 self.query_one("#skills-hint", Static).update(t("tui.skills.uninit"))
                 return
-            self.query_one("#skills-hint", Static).update(t("tui.skills.hint"))
+            hint = t("tui.skills.hint")
+            tracked = skills_core.tracked_external_skills(root)
+            if tracked:
+                hint += ("\n[yellow]" + t("skills.tracked.warn",
+                                          names=", ".join(tracked)) + "[/yellow]")
+            self.query_one("#skills-hint", Static).update(hint)
             tabla.add_row(f"[bold cyan]· {t('skills.group.own')}[/]", "", "")
             for s in skills_core.own_skills(root):
                 tabla.add_row(f"  {s['name']}", t("skills.state.installed"),
@@ -386,21 +391,42 @@ def build_app():
             return log
 
         def _toggle_skill(self, event) -> None:
-            """Enter sobre una skill externa: activa/desactiva su bloque del TOML."""
+            """Enter sobre una skill externa, en UN paso:
+            - no instalada  → la declara y la clona (instalar).
+            - instalada     → la desactiva (los archivos quedan, pero el .gitignore
+                              los excluye del repo; el manifiesto la puede re-traer)."""
             root = Path.cwd()
             name = str(event.data_table.get_row(event.row_key)[0]).strip()
             externa = next((s for s in skills_core.catalog(root)
                             if s["name"] == name), None)
-            if externa is None:  # encabezado o skill propia: nada que alternar
+            if externa is None:  # encabezado o skill propia: nada que hacer
                 return
             log = self._skills_log()
-            nuevo = not externa["enabled"]
-            if skills_core.set_enabled(root, name, nuevo):
-                log.write(t("skills.toggle.on" if nuevo else "skills.toggle.off",
-                            name=name))
+            if externa["installed"]:
+                if skills_core.set_enabled(root, name, False):
+                    log.write(t("skills.toggle.off", name=name))
+                self._refresh_skills(root, project.is_initialized(root))
+                return
+            if not externa["enabled"]:
+                skills_core.set_enabled(root, name, True)  # declarar
+            log.write(t("skills.install.one", name=name))   # y clonar en el acto
+            self.run_worker(lambda: self._install_one_skill(name),
+                            thread=True, exclusive=True)
+
+        def _install_one_skill(self, name) -> None:
+            results = skills_core.sync_skills(Path.cwd())
+            self.call_from_thread(self._after_one_skill, name, results)
+
+        def _after_one_skill(self, name, results) -> None:
+            log = self._skills_log()
+            act = next((a for n, a in results if n == name), None)
+            if act in ("clonada", "actualizada"):
+                log.write(t("skills.install.ok", name=name))
+            elif act == "git-ausente":
+                log.write(t("skills.install.nogit"))
             else:
-                log.write(t("skills.toggle.fail", name=name))
-            self._refresh_skills(root, project.is_initialized(root))
+                log.write(t("skills.install.fail", name=name))
+            self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
 
         def action_skills_sync(self) -> None:
             self.query_one(TabbedContent).active = "skills"
@@ -540,26 +566,48 @@ def build_app():
 
         # ------------------------------------------------------------ docs
         def action_open_docs(self) -> None:
-            """Tecla d: abre la documentación de la herramienta seleccionada.
+            """Tecla d: abre la documentación de lo seleccionado.
 
-            Usa una notificación (toast, se cierra sola) — NO el panel del
-            instalador, que solo debe aparecer durante una instalación real.
+            En Resumen: la doc oficial de la herramienta. En Skills: el repo de
+            origen de la skill externa, o la guía de skills para las propias.
+            Usa una notificación (toast) — NO el panel del instalador.
             """
             import webbrowser
-            from tramalia.core.tools import REGISTRY, docs_url
-            tabla = self.query_one("#tabla-doctor", DataTable)
-            try:
-                fila = tabla.get_row_at(tabla.cursor_row)
-            except Exception:
-                return
-            cmd = str(fila[0]).strip()
-            tool = next((x for x in REGISTRY if x.cmd == cmd), None)
-            url = docs_url(tool) if tool else ""
+            if self.query_one(TabbedContent).active == "skills":
+                url = self._skill_docs_url()
+            else:
+                from tramalia.core.tools import REGISTRY, docs_url
+                tabla = self.query_one("#tabla-doctor", DataTable)
+                try:
+                    fila = tabla.get_row_at(tabla.cursor_row)
+                except Exception:
+                    return
+                cmd = str(fila[0]).strip()
+                tool = next((x for x in REGISTRY if x.cmd == cmd), None)
+                url = docs_url(tool) if tool else ""
             if url:
                 webbrowser.open(url)
                 self.notify(t("tui.docs.opened", url=url), markup=False)
             else:
                 self.notify(t("tui.docs.none"), severity="warning", markup=False)
+
+        def _skill_docs_url(self) -> str:
+            """URL de docs de la skill bajo el cursor: repo de origen (externa) o
+            la guía de skills del sitio (propia NN-*)."""
+            root = Path.cwd()
+            tabla = self.query_one("#tabla-skills", DataTable)
+            try:
+                fila = tabla.get_row_at(tabla.cursor_row)
+            except Exception:
+                return ""
+            name = str(fila[0]).strip()
+            ext = next((s for s in skills_core.catalog(root)
+                        if s["name"] == name), None)
+            if ext and ext.get("source"):
+                return ext["source"].removeprefix("git+").removesuffix(".git")
+            if len(name) >= 2 and name[:2].isdigit():
+                return "https://mscottb.github.io/tramalia/skills-guia/"
+            return ""
 
         def action_close_panels(self) -> None:
             """Tecla Escape: oculta los paneles de log (instalador/skills) si

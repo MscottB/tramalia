@@ -123,6 +123,70 @@ def add_skill(root: Path, source: str, name: str | None = None) -> tuple[bool, s
     return True, nombre
 
 
+_OWN_RE = re.compile(r"^\d{2}-")  # skills propias: 00-.., 01-.., ...
+
+# .gitignore: las skills EXTERNAS se re-sincronizan desde skills.toml, no se
+# commitean (pueden pesar cientos de MB). Las propias (NN-*) sí van al repo.
+# El manifiesto skills.toml basta para re-hidratarlas con `tramalia skills`.
+_GITIGNORE_START = "# >>> tramalia:skills-externas >>>"
+_GITIGNORE_END = "# <<< tramalia:skills-externas <<<"
+_GITIGNORE_BODY = (
+    "# Skills EXTERNAS: referencias re-sincronizables (tramalia skills), no se\n"
+    "# suben al repo. Las propias NN-* (numeradas) sí se versionan.\n"
+    ".tramalia/skills/*/\n"
+    "!.tramalia/skills/[0-9][0-9]-*/\n"
+)
+
+
+def gitignore_block() -> str:
+    return f"{_GITIGNORE_START}\n{_GITIGNORE_BODY}{_GITIGNORE_END}\n"
+
+
+def ensure_skills_gitignore(root: Path) -> str:
+    """Crea o actualiza el bloque de skills externas en .gitignore (idempotente).
+
+    Devuelve 'creado' | 'adaptado' | 'existe'. Nunca pisa el resto del archivo:
+    inserta/reemplaza solo el bloque entre marcadores (patrón managed block).
+    """
+    f = root / ".gitignore"
+    block = gitignore_block()
+    if not f.exists():
+        f.write_text(block, encoding="utf-8")
+        return "creado"
+    text = f.read_text(encoding="utf-8")
+    if _GITIGNORE_START in text and _GITIGNORE_END in text:
+        pre = text[: text.index(_GITIGNORE_START)]
+        post = text[text.index(_GITIGNORE_END) + len(_GITIGNORE_END):]
+        new = pre + block.rstrip("\n") + post
+        if new != text:
+            f.write_text(new, encoding="utf-8")
+            return "adaptado"
+        return "existe"
+    sep = "" if text.endswith("\n\n") else ("\n" if text.endswith("\n") else "\n\n")
+    f.write_text(text + sep + block, encoding="utf-8")
+    return "adaptado"
+
+
+def tracked_external_skills(root: Path) -> list[str]:
+    """Skills externas que YA están rastreadas por git (el .gitignore NO las
+    destrackea: hay que `git rm -r --cached`). Devuelve los nombres de carpeta
+    bajo .tramalia/skills que no son propias (NN-*). Vacío si no hay git/nada."""
+    if shutil.which("git") is None:
+        return []
+    try:
+        cp = subprocess.run(["git", "-C", str(root), "ls-files", ".tramalia/skills"],
+                            capture_output=True, text=True, timeout=15)
+    except Exception:
+        return []
+    names: set[str] = set()
+    for line in cp.stdout.splitlines():
+        parts = line.strip().split("/")
+        if len(parts) >= 3 and parts[0] == ".tramalia" and parts[1] == "skills":
+            if not _OWN_RE.match(parts[2]):
+                names.add(parts[2])
+    return sorted(names)
+
+
 def own_skills(root: Path) -> list[dict]:
     """Las skills propias del proyecto (NN-*/SKILL.md) con su descripción."""
     base = root / ".tramalia" / "skills"

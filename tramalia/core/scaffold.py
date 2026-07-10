@@ -198,6 +198,11 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
         dest.write_text(content, encoding="utf-8")
         results.append((name, "creado"))
 
+    # 3. .gitignore: excluir skills externas (re-sincronizables) sin perder las
+    #    propias NN-*; el manifiesto skills.toml basta para re-hidratarlas.
+    from tramalia.core.skills import ensure_skills_gitignore
+    results.append((".gitignore", ensure_skills_gitignore(root)))
+
     return results
 
 

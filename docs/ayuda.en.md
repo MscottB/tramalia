@@ -118,7 +118,16 @@ Resolution: `TRAMALIA_LANG` > `config.json → language` > system locale. Force 
 ## Skills
 
 **I added a skill by URL and it isn't cloned.**
-`add` only declares it in the manifest; clone it with `tramalia skills` (or the `s` key in the TUI).
+`add` only declares it in the manifest. In the TUI, **Enter** on an external skill **declares and clones it in one step** (since v0.29); from the CLI, `tramalia skills` clones all declared ones. The `s` key still syncs all; the `d` key opens the selected skill's docs (repo).
 
-**Enter on a skill does nothing.**
-Only **external** ones toggle; the own skills (01–16) are always installed. If the TOML block was hand-edited into another shape, the conservative toggle won't touch it — adjust it manually.
+**Did I have to press Enter and then sync? It wasn't clear.**
+It used to be two steps (declare, then sync) and wasn't explained. Since **v0.29**, in the TUI **Enter installs in one step** (declare + clone); if the skill is already there, Enter disables it. The Skills tab legend now shows the 3 states and what each key does.
+
+**External skills are heavy and I don't want to commit them to the repo — but I don't want to lose them either.**
+Since **v0.29** `tramalia init` drops a block in `.gitignore` that **excludes** external skills under `.tramalia/skills/` and **keeps** the own ones (numbered `NN-*`). They're not lost: the manifest `.tramalia/skills.toml` (which IS versioned) **re-hydrates** them — whoever clones the repo runs `tramalia skills` and they download locally. It covers both a new and an existing `.gitignore` (idempotent append, without overwriting yours).
+
+**I already committed the external skills before this.**
+`.gitignore` doesn't untrack what's already uploaded. `tramalia skills` (and `list`/`update`) **warns** if it detects committed external skills and gives the remedy: `git rm -r --cached .tramalia/skills/<name>` (removes from the index, not disk; `.gitignore` prevents re-adding).
+
+**Enter on an own skill (01–16) does nothing.**
+Correct: the own ones are always installed and versioned. Enter only applies to **external** skills (install/disable).
