@@ -19,7 +19,7 @@ And the cycle **re-opens**, it doesn't end at close: `specs/tasks.md` is re-plan
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["1 · Analyze<br/><small>what it asks, what it touches</small>"]:::s --> P["2 · Plan with sub-points<br/><small>in specs/tasks.md</small>"]:::s
     P --> R["3 · Risks considered<br/><small>what could break, what's discarded</small>"]:::s
     R --> C["4 · (human confirmation<br/>on non-trivial tasks)"]:::s

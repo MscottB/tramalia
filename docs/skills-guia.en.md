@@ -4,8 +4,8 @@
 
 ```mermaid
 flowchart TB
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
-    classDef u fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
+    classDef u fill:#b3e448,stroke:#7fa32e,color:#05031c;
     A["Layer 1 · docs/ai/ (00–13)<br/><small>YOUR project's rules — editable</small>"]:::u
     B["Layer 2 · 16 own skills (01–16)<br/><small>workflows anchored to governance (close/gates/evidence)</small>"]:::s
     C["Layer 3 · external skills (skills.toml)<br/><small>deep knowledge, from their living repos</small>"]:::s

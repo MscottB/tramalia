@@ -90,6 +90,9 @@ Significa que mise no está: los gates **no corrieron** y el estado honesto es `
 **El cierre se bloqueó por métricas.**
 Definiste `.tramalia/thresholds.json` y una métrica de `.tramalia/metrics.json` lo incumple (o falta). Ver [Analítica](analitica.md#metricas-y-umbrales-en-la-evidencia-mlanalitica).
 
+**Tengo Claude y Codex instalados — ¿cuál "usa" el cierre?**
+**Ninguno.** `close` no invoca agentes: lo que ejecuta son los **gates** (build/test/lint/security…) vía `mise` — herramientas de validación, no IAs. Los campos *agente* y *revisor* son un **registro de auditoría**: anotan quién hizo el trabajo (tú ya trabajaste la tarea con el agente que quisiste antes de cerrar) y quién lo revisa, para `metadata.json` y el handoff. Los valores precargados son solo la sugerencia que `init` detectó — texto libre, cámbialo si esta tarea la hizo otro. Ver [la pestaña Cierre](interfaz.md#pestana-cierre).
+
 ## Agentes
 
 **Mi agente intenta usar herramientas que no están instaladas.**

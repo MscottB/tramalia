@@ -19,8 +19,8 @@ It uses the *managed block* pattern: it inserts a block delimited by markers. Re
 
 ```mermaid
 flowchart TB
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
-    classDef u fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
+    classDef u fill:#b3e448,stroke:#7fa32e,color:#05031c;
     A["existing AGENTS.md<br/><small>team rules</small>"]:::u -->|--adopt| B["AGENTS.md<br/>team rules (intact)<br/>+ &lt;!-- tramalia:gobierno --&gt;<br/>## Gobierno (Tramalia)"]:::s
     C["existing .mcp.json<br/><small>your servers</small>"]:::u -->|--adopt| D[".mcp.json<br/>your servers (intact)<br/>+ serena"]:::s
 ```

@@ -17,7 +17,7 @@ Tramalia **doesn't reimplement** the ecosystem tools: it **detects, wires and in
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     D["1 · tramalia detect<br/><small>what stack exists</small>"]:::s --> O["2 · tramalia doctor<br/><small>what's missing and how to install it</small>"]:::s
     O --> I["3 · mise install<br/><small>brings what's declared</small>"]:::s
     I --> C["4 · wiring<br/><small>mise.toml · .mcp.json</small>"]:::s

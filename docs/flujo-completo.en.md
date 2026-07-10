@@ -8,7 +8,7 @@ Every step has **two equivalent paths**: CLI (scriptable, CI-friendly) or `trama
 
 ```mermaid
 flowchart LR
-    classDef step fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef step fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["pip install"]:::step --> B["tramalia init"]:::step
     B --> C["tramalia doctor"]:::step
     C --> D["tramalia sync"]:::step
@@ -125,6 +125,9 @@ tramalia close TASK-001    # agent and reviewer: defaults from config.json
 ```
 
 In the TUI, the form comes prefilled with the project's **real** values: the task comes from `.tramalia/current-task.md` if you declared it, agent/reviewer from `config.json` (the agents `init` detected), and the **model** field is left blank on purpose — it's optional, just so `tramalia log` records which model closed the task; leaving it blank blocks nothing. Full detail: [The interface (TUI) → Close tab](interfaz.md#close-tab).
+
+!!! info "`close` doesn't invoke the agent"
+    The agent/reviewer fields are an **audit record** (who did the work, who reviews it) — not a selection. What `close` executes are the **gates** via `mise`; the AI work already happened earlier, with whichever agent you chose.
 
 This, in one step:
 

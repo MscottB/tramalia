@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     R["Overview<br/><small>live doctor + real gates</small>"]:::s -->|i: mise install| R
     R --> A["Audit<br/><small>browsable closes</small>"]:::s
     R --> C["Close<br/><small>prefilled form</small>"]:::s
@@ -134,10 +134,13 @@ In one line: **Close produces the evidence; Audit consults it.**
 
 ## Close tab
 
+!!! info "First things first: `close` does NOT invoke any agent"
+    This is the most common confusion. The *agent* and *reviewer* fields are an **audit record** — they note *who did* the work and *who reviews it*, so it lands in `metadata.json` and the handoff. Tramalia **doesn't pick or run** an AI during the close: what runs are the **gates** (build/test/lint/security…) via `mise`, which are validation tools, not agents. It doesn't matter that you have Claude and Codex installed at the same time: the close doesn't "use" either — you already worked the task with whichever agent you wanted, and here you just declare which one it was.
+
 - **Uninitialized project** → the form hides and the **"⚙ Initialize now"** button appears, which runs the equivalent of `tramalia init` and refreshes. Closing is **blocked** until initialized (governing without a convention makes no sense).
 - **Initialized project** → the form comes **prefilled with the project's real values** (not examples):
   - *task* ← the ID from `.tramalia/current-task.md` (if you declared it);
-  - *executing agent* and *reviewer* ← `config.json → agents.primary/reviewer` — which `init` fills with the **agent CLIs it detected installed** on your machine (two detected → the first executes and the second reviews; one only → used for both; none → falls back to `codex`/`claude` as an editable example). You can always change them by hand in `config.json` or by typing another value in the form;
+  - *agent* and *reviewer* ← `config.json → agents.primary/reviewer` — which `init` fills with the **agent CLIs it detected installed** on your machine, as a record suggestion (two detected → the first is noted as executor and the second as reviewer; one only → both; none → `codex`/`claude` as an editable example). If you worked this task with a different agent, just type its name — it's free text, not a selection;
   - *model* ← **optional**: the model name you used (e.g. `claude-opus-4-8`), just so it's recorded in `tramalia log` — it doesn't block the close if left empty.
 - As you type a task ID, the interface **looks it up in `specs/tasks.md` and shows its description** (scope, applicable gates). If it doesn't exist, it warns you to add it — so the close stays traceable.
 - **▶ Run close** runs the full ritual and streams the gate-by-gate output. The final message is honest:

@@ -90,6 +90,9 @@ mise is missing: the gates **didn't run** and the honest status is `no_gates`. I
 **The close was blocked by metrics.**
 You defined `.tramalia/thresholds.json` and a metric in `.tramalia/metrics.json` violates it (or is missing). See [Analytics](analitica.md#metrics-and-thresholds-in-the-evidence-mlanalytics).
 
+**I have Claude and Codex installed — which one does the close "use"?**
+**Neither.** `close` doesn't invoke agents: what it runs are the **gates** (build/test/lint/security…) via `mise` — validation tools, not AIs. The *agent* and *reviewer* fields are an **audit record**: they note who did the work (you already worked the task with whichever agent you wanted before closing) and who reviews it, for `metadata.json` and the handoff. The prefilled values are just the suggestion `init` detected — free text, change it if another agent did this task. See [the Close tab](interfaz.md#close-tab).
+
 ## Agents
 
 **My agent keeps calling tools that aren't installed.**

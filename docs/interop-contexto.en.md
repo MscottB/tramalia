@@ -4,7 +4,7 @@ These tools help the agent **understand the code without reading it whole** (tok
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     SR["Serena<br/><small>decides what to read (symbols)</small>"]:::s --> RP["Repomix / codebase-memory-mcp<br/><small>build the map/graph</small>"]:::s
     RP --> CTX[".tramalia/context/<br/><small>derived memory</small>"]:::s
 ```

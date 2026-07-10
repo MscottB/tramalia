@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef0ff,stroke:#8a83e0,color:#26215c;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     R["Resumen<br/><small>doctor en vivo + gates reales</small>"]:::s -->|i: mise install| R
     R --> A["Auditoría<br/><small>cierres navegables</small>"]:::s
     R --> C["Cierre<br/><small>formulario prellenado</small>"]:::s
@@ -133,10 +133,13 @@ En una frase: **Cierre produce la evidencia; Auditoría la consulta.**
 
 ## Pestaña Cierre
 
+!!! info "Lo primero: `close` NO invoca a ningún agente"
+    Es la confusión más común. Los campos *agente* y *revisor* son un **registro de auditoría** — anotan *quién hizo* el trabajo y *quién lo revisa*, para que quede en `metadata.json` y en el handoff. Tramalia **no elige ni ejecuta** una IA durante el cierre: quien corre son los **gates** (build/test/lint/security…) vía `mise`, que son herramientas de validación, no agentes. Da igual que tengas Claude y Codex instalados a la vez: el cierre no "usa" ninguno — tú ya trabajaste la tarea con el agente que quisiste, y aquí solo declaras cuál fue.
+
 - **Proyecto sin inicializar** → el formulario se oculta y aparece el botón **"⚙ Inicializar ahora"**, que ejecuta el equivalente a `tramalia init` y refresca. El cierre está **bloqueado** hasta inicializar (no tiene sentido gobernar sin convención).
 - **Proyecto inicializado** → el formulario viene **prellenado con los valores reales** del proyecto (no ejemplos):
   - *tarea* ← el ID de `.tramalia/current-task.md` (si lo declaraste);
-  - *agente ejecutor* y *revisor* ← `config.json → agents.primary/reviewer` — que `init` llena con los **agentes CLI que detectó instalados** en tu máquina (si detecta dos, el primero ejecuta y el segundo revisa; si solo uno, se usa para ambos; si ninguno, cae a `codex`/`claude` como ejemplo editable). Siempre puedes cambiarlos a mano en `config.json` o escribiendo otro valor en el formulario;
+  - *agente* y *revisor* ← `config.json → agents.primary/reviewer` — que `init` llena con los **agentes CLI que detectó instalados** en tu máquina, como sugerencia de registro (dos detectados → el primero queda anotado como ejecutor y el segundo como revisor; uno solo → ambos; ninguno → `codex`/`claude` como ejemplo editable). Si esta tarea la trabajaste con otro agente, simplemente escribe su nombre — es texto libre, no una selección;
   - *modelo* ← **opcional**: el nombre del modelo que usaste (ej. `claude-opus-4-8`), solo para que quede registrado en `tramalia log` — no bloquea el cierre si lo dejas vacío.
 - Al escribir un ID de tarea, la interfaz **busca esa tarea en `specs/tasks.md` y muestra su descripción** (alcance, gates aplicables). Si no existe, te avisa para que la agregues — así el cierre queda trazado.
 - **▶ Ejecutar close** corre el ritual completo y muestra la salida gate por gate. El mensaje final es honesto:

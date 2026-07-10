@@ -17,7 +17,7 @@ Tramalia **no reimplementa** las herramientas del ecosistema: las **detecta, cab
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef0ff,stroke:#8a83e0,color:#26215c;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     D["1 · tramalia detect<br/><small>qué stack hay</small>"]:::s --> O["2 · tramalia doctor<br/><small>qué falta y cómo instalarlo</small>"]:::s
     O --> I["3 · mise install<br/><small>trae lo declarado</small>"]:::s
     I --> C["4 · cableado<br/><small>mise.toml · .mcp.json</small>"]:::s

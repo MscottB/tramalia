@@ -58,8 +58,10 @@ def build_parser() -> argparse.ArgumentParser:
     ho.add_argument("task_pos", nargs="?", metavar="TAREA", default=None,
                     help="ID de la tarea; si se omite, se usa .tramalia/current-task.md")
     ho.add_argument("--task", default=None, help="ID de la tarea (alternativa al posicional)")
-    ho.add_argument("--agent", default=None, help="agente ejecutor (def: config agents.primary)")
-    ho.add_argument("--reviewer", default=None, help="agente revisor (def: config agents.reviewer)")
+    ho.add_argument("--agent", default=None,
+                    help="quién ejecutó la tarea — solo registro (def: config agents.primary)")
+    ho.add_argument("--reviewer", default=None,
+                    help="quién revisa — solo registro (def: config agents.reviewer)")
     ho.add_argument("--engram", action="store_true",
                     help="exporta a Engram (memoria persistente N2, opt-in)")
     cl = sub.add_parser("close",
@@ -67,8 +69,10 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument("task_pos", nargs="?", metavar="TAREA", default=None,
                     help="ID de la tarea; si se omite, se usa .tramalia/current-task.md")
     cl.add_argument("--task", default=None, help="ID de la tarea (alternativa al posicional)")
-    cl.add_argument("--agent", default=None, help="agente ejecutor (def: config agents.primary)")
-    cl.add_argument("--reviewer", default=None, help="agente revisor (def: config agents.reviewer)")
+    cl.add_argument("--agent", default=None,
+                    help="quién ejecutó la tarea — solo registro de auditoría, Tramalia no lo invoca (def: config agents.primary)")
+    cl.add_argument("--reviewer", default=None,
+                    help="quién revisa el cierre — solo registro (def: config agents.reviewer)")
     cl.add_argument("--allow-fail", action="store_true",
                     help="cierra aunque fallen gates (requiere excepción documentada)")
     cl.add_argument("--model", default=None,

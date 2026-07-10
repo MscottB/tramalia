@@ -69,7 +69,7 @@ Tramalia doesn't copy anyone's code. It **references** it and one command keeps 
 
 ```mermaid
 flowchart LR
-    classDef step fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef step fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     U["tramalia update"]:::step --> A["mise upgrade<br/><small>external tools</small>"]:::step
     U --> B["copier update<br/><small>the convention</small>"]:::step
     U --> C["skills sync<br/><small>referenced skills</small>"]:::step
@@ -101,7 +101,7 @@ This closes a gap that used to exist: a project could "close" tasks without ever
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["TRAMALIA_LANG"]:::s -->|if set| Z["active language"]:::s
     B["config.json → language"]:::s -->|otherwise| Z
     C["system locale"]:::s -->|otherwise| Z

@@ -4,7 +4,7 @@ Tramalia gobierna igual de bien un proyecto de datos que uno de software — y d
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef0ff,stroke:#8a83e0,color:#26215c;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["databricks.yml · *.ipynb"]:::s -->|tramalia detect| B["stack: databricks · notebooks"]:::s
     B -->|mise.toml| C["gates: bundle · nbstripout · sqlfluff --dialect databricks"]:::s
     C -->|tramalia close| D["evidence pack<br/><small>bundle-output.txt · database-output.txt</small>"]:::s

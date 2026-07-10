@@ -4,7 +4,7 @@ Tramalia is **host-neutral**: the convention (standard `AGENTS.md`), the fan-out
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["AGENTS.md<br/><small>single source</small>"]:::s -->|tramalia sync| B["Claude Code · Codex<br/>Antigravity · Hermes · OpenClaw…"]:::s
     B -->|each with its own model/effort| C["tramalia close --agent --model"]:::s
     C --> D["metadata.json + log<br/><small>unified audit</small>"]:::s

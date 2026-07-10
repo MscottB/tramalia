@@ -19,8 +19,8 @@ Usa el patrón *managed block*: inserta un bloque delimitado por marcadores. Re-
 
 ```mermaid
 flowchart TB
-    classDef s fill:#eef0ff,stroke:#8a83e0,color:#26215c;
-    classDef u fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
+    classDef u fill:#b3e448,stroke:#7fa32e,color:#05031c;
     A["AGENTS.md existente<br/><small>reglas del equipo</small>"]:::u -->|--adopt| B["AGENTS.md<br/>reglas del equipo (intactas)<br/>+ &lt;!-- tramalia:gobierno --&gt;<br/>## Gobierno (Tramalia)"]:::s
     C[".mcp.json existente<br/><small>tus servidores</small>"]:::u -->|--adopt| D[".mcp.json<br/>tus servidores (intactos)<br/>+ serena"]:::s
 ```

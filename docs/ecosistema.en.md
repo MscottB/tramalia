@@ -13,7 +13,7 @@ flowchart TB
     classDef repo fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
     classDef agent fill:#fff3dc,stroke:#e0a44a,color:#5a3d0a;
 
-    AG["🤖 AI agents<br/><small>Claude · Codex · Cursor · Antigravity · Gemini CLI</small>"]:::agent
+    AG["🤖 AI agents<br/><small>Claude · Codex · Cursor · Antigravity · OpenCode</small>"]:::agent
 
     subgraph TOOLS["Ecosystem tools · optional interop"]
       direction LR
@@ -35,6 +35,8 @@ flowchart TB
 ```
 
 <small>**Legend:** 🟪 Tramalia (core) · 🟦 tools by role (optional interop) · 🟨 AI agents · 🟩 the repository.</small>
+
+In one line: **Gentle-AI** enables *which* agents to use, **Engram** helps *remember*, **Headroom/caveman** make tokens *cheaper*, **Serena and the code graphs** provide *code intelligence*, **markitdown** ingests documents, and **Tramalia** keeps the repo **controlled, traceable and consistent** — whatever the host (Claude Code, Codex, Antigravity…) or the kind of project (software or [data analytics](analitica.md)).
 
 ## The actors and their scopes
 

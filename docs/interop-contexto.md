@@ -4,7 +4,7 @@ Estas herramientas ayudan al agente a **entender el código sin leerlo entero** 
 
 ```mermaid
 flowchart LR
-    classDef s fill:#eef0ff,stroke:#8a83e0,color:#26215c;
+    classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     SR["Serena<br/><small>decide qué leer (símbolos)</small>"]:::s --> RP["Repomix / codebase-memory-mcp<br/><small>arman el mapa/grafo</small>"]:::s
     RP --> CTX[".tramalia/context/<br/><small>memoria derivada</small>"]:::s
 ```

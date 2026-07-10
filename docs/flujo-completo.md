@@ -8,7 +8,7 @@ Cada paso tiene **dos caminos equivalentes**: CLI (scripteable, CI-friendly) o `
 
 ```mermaid
 flowchart LR
-    classDef step fill:#eef0ff,stroke:#8a83e0,color:#26215c;
+    classDef step fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["pip install"]:::step --> B["tramalia init"]:::step
     B --> C["tramalia doctor"]:::step
     C --> D["tramalia sync"]:::step
@@ -125,6 +125,9 @@ tramalia close TASK-001    # agente y revisor: defaults de config.json
 ```
 
 En la TUI, el formulario ya viene prellenado con los valores **reales** del proyecto: la tarea sale de `.tramalia/current-task.md` si la declaraste, agente/revisor de `config.json` (los agentes detectados en `init`), y el campo **modelo** queda vacío a propósito — es opcional, solo para que quede registrado en `tramalia log` qué modelo cerró la tarea; no bloquea nada si lo dejas así. Detalle pestaña por pestaña: [La interfaz (TUI) → Pestaña Cierre](interfaz.md#pestana-cierre).
+
+!!! info "`close` no invoca al agente"
+    Los campos agente/revisor son **registro de auditoría** (quién hizo el trabajo, quién lo revisa) — no una selección. Lo que `close` ejecuta son los **gates** vía `mise`; el trabajo con la IA ya ocurrió antes, con el agente que tú quisiste.
 
 Esto, en un paso:
 

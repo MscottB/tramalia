@@ -61,40 +61,22 @@ Tramalia es una **capa repo-first** que asegura que *cualquier* agente (Claude C
 
 </div>
 
-## Tramalia en el centro del ecosistema
+## Empieza en dos minutos
 
-Tramalia no compite con las demás herramientas IA: las **gobierna y orquesta**. Cada una ocupa un espacio distinto; Tramalia es el núcleo que asegura control, trazabilidad y continuidad.
-
-```mermaid
-flowchart TB
-    classDef core fill:#5b4bdb,stroke:#4335b0,color:#ffffff;
-    classDef sat  fill:#eef1ff,stroke:#9a92e8,color:#2a2160;
-    classDef repo fill:#e7f3d8,stroke:#7cb342,color:#2e4d13;
-    classDef agent fill:#fff3dc,stroke:#e0a44a,color:#5a3d0a;
-
-    AG["🤖 Agentes IA<br/><small>Claude · Codex · Cursor · Antigravity</small>"]:::agent
-
-    subgraph TOOLS["Herramientas del ecosistema · interop opcional"]
-      direction LR
-      GA["Gentle-AI<br/><small>setup</small>"]:::sat
-      CX["Serena · grafos de código<br/>markitdown<br/><small>contexto</small>"]:::sat
-      KN["notebooklm-mcp<br/><small>conocimiento externo (cloud)</small>"]:::sat
-      EN["Engram<br/><small>memoria</small>"]:::sat
-      HR["Headroom · caveman<br/><small>eficiencia</small>"]:::sat
-      MR["mise · rulesync<br/><small>gates · reglas</small>"]:::sat
-    end
-
-    T["🧩 TRAMALIA<br/><small>gobierno · gates · evidence · handoff · auditoría</small>"]:::core
-    R["📁 Repo<br/><small>AGENTS.md · docs/ai · .tramalia/evidence</small>"]:::repo
-
-    AG -->|leen / escriben| R
-    TOOLS -. orquesta .-> T
-    T ==>|gobierna| R
+```bash
+pip install tramalia-cli    # solo Python 3.10+ — sin Node, sin servicios cloud
+tramalia init               # deja la convención completa en tu repo
+tramalia doctor             # te dice qué más te conviene instalar
 ```
 
-<small>**Leyenda:** 🟪 Tramalia (núcleo) · 🟦 herramientas (interop opcional) · 🟨 agentes IA · 🟩 el repositorio.</small>
+Desde ahí, tu agente lee `AGENTS.md` y trabaja bajo las reglas del proyecto; tú cierras cada tarea con `tramalia close` y queda la evidencia. El recorrido entero, paso a paso: [Flujo completo](flujo-completo.md).
 
-En una frase: **Gentle-AI** habilita *con qué* agentes trabajar, **Engram** ayuda a *recordar*, **Headroom/caveman** *abaratan* tokens, **Serena y los grafos de código** dan *inteligencia de código*, **markitdown** ingiere documentos, y **Tramalia** asegura que el repo se mantenga **controlado, trazable y consistente** — sea cual sea el host (Claude Code, Codex, Antigravity…) o el tipo de proyecto (software o [analítica de datos](analitica.md)).
+!!! tip "Mantener Tramalia al día son DOS pasos, no uno"
+    `pip install -U tramalia-cli` actualiza **el CLI** en tu máquina — pero tu repo ya generado **no cambia solo**. Después corre **`tramalia upgrade`** en cada proyecto: agrega lo nuevo de la convención **sin pisar nada tuyo**. (Y `tramalia update`, distinto, actualiza las *herramientas orquestadas*: mise + skills.) Detalle: [Comandos → upgrade](comandos.md#upgrade-actualizar-un-repo-ya-inicializado).
+
+## ¿Cómo encaja con las demás herramientas?
+
+Tramalia no compite con Gentle-AI, Engram, Serena ni el resto: las **gobierna y orquesta** — cada una ocupa un espacio distinto y Tramalia es el núcleo que asegura control, trazabilidad y continuidad. El mapa completo del ecosistema, actor por actor, con el diagrama de capas: [Ecosistema](ecosistema.md).
 
 ## Empieza aquí
 

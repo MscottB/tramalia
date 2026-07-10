@@ -2,6 +2,44 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.33.0] - 2026-07-10
+
+Portada como carta de presentación, diagramas legibles en modo oscuro, y la
+aclaración que faltaba: **`close` no invoca a ningún agente**.
+
+### La aclaración de Cierre (feedback real del usuario)
+- La pregunta "tengo Claude y Codex instalados — ¿cuál usa el cierre?" reveló
+  un problema de comunicación: los campos *agente*/*revisor* del tab Cierre son
+  un **registro de auditoría** (quién hizo el trabajo, quién revisa), no una
+  selección — `close` ejecuta los **gates** vía mise, nunca una IA. Lo que
+  cambió: placeholders de la TUI ("quién EJECUTÓ la tarea — solo registro de
+  auditoría (Tramalia no lo invoca)"), help de `--agent`/`--reviewer` en el CLI,
+  admonition destacada en la doc de la pestaña Cierre, entrada de FAQ con la
+  pregunta literal, y nota en el flujo completo (ES/EN).
+
+### Portada = carta de presentación
+- La sección "Tramalia en el centro del ecosistema" (diagrama incluido) era un
+  **duplicado** de `ecosistema.md` — fuera de la portada, reemplazada por un
+  enlace; el párrafo-resumen "En una frase" se movió a la página de ecosistema.
+- Nuevo bloque **"Empieza en dos minutos"** (los 3 comandos) y un destacado de
+  **"mantener al día son DOS pasos"**: `pip install -U` actualiza el CLI,
+  `tramalia upgrade` actualiza el repo (y `update` las herramientas orquestadas).
+- Botones del hero: separados (22px) y compactos para caber lado a lado.
+
+### Diagramas consistentes en claro/oscuro
+- 11 diagramas (×2 idiomas) usaban un pastel lavado (`#eef0ff`) que se pierde en
+  modo oscuro. Estandarizados al esquema del diagrama de ecosistema (el que se
+  ve bien en ambos modos): pasos en **violeta de marca** (`#5b4bdb` + texto
+  blanco) y acciones destacadas en **lima** (`#b3e448` + texto oscuro). Los
+  diagramas multi-actor (ecosistema, arquitectura, interop) conservan su paleta.
+- Fix stale: el diagrama de ecosistema aún listaba "Gemini CLI" (descontinuado)
+  → OpenCode.
+
+### Calidad
+- 250 tests (sin cambios de comportamiento; los cambios de código son textos de
+  i18n y help del CLI). Verificación visual real de portada y botones vía
+  navegador; paleta de diagramas verificada contra el HTML generado.
+
 ## [0.32.0] - 2026-07-10
 
 Español como idioma por defecto en README/PyPI/GitHub, y fix real en el tab
