@@ -30,6 +30,8 @@ mise install         # ← mise (3º) instala TODO lo declarado: repomix, semgre
 
 **Herramientas de terceros que ya están actuando:** `mise` instala y versiona el toolchain; `git` versiona la memoria.
 
+Si además tienes CodeGraph o codebase-memory-mcp instalados junto a Serena, elige **uno solo** como backend activo (`tramalia context set serena` o tecla `b` en la TUI) — evita que el agente alterne entre índices distintos del mismo repo.
+
 ## Día 0.5 · Propagar a todos los agentes
 
 ```bash
@@ -132,3 +134,6 @@ O en el **dashboard**: `tramalia ui` → pestaña Auditoría, Enter sobre el cie
 
 !!! tip "Para reproducirlo"
     Todo lo de arriba funciona en cualquier repo: `pip install tramalia-cli`, `tramalia init`, `tramalia doctor` — y desde ahí el flujo de [Flujo completo](flujo-completo.md).
+
+!!! note "Cuando salga una versión nueva de Tramalia"
+    `pip install -U tramalia-cli` actualiza el CLI; **`tramalia upgrade`** pone al día la convención de `clinica-web` (agrega lo nuevo, nunca pisa lo que ya editaste). Distinto de `tramalia update`, que actualiza las herramientas orquestadas (mise + skills). Detalle: [Comandos → upgrade](comandos.md#upgrade-actualizar-un-repo-ya-inicializado).

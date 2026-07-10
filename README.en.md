@@ -1,8 +1,10 @@
 <div align="center">
 
-# 🧩 Tramalia
+![Tramalia](docs/assets/brand/tramalia-logo.webp)
 
 **Governance and verifiable evidence for building with multiple AI agents. Repo-first.**
+
+> The banner on the [Spanish README](README.md) has its tagline baked into the image — this page uses the language-neutral wordmark instead.
 
 *Define the project rules, orchestrate collaboration between agents, validate every change, and leave a verifiable record — versioned in the repo.*
 
@@ -130,6 +132,7 @@ Together: **Gentle-AI** enables *which* agents to work with, **Engram** helps *r
 - **Site (ES/EN):** https://MscottB.github.io/tramalia/ — visual, with diagrams
   - **[Full example](docs/ejemplo-completo.md)** — a real project end to end, showing every option and every third-party tool in action
   - [Ecosystem](docs/ecosistema.md) · [Full workflow](docs/flujo-completo.md) · [Architecture](docs/arquitectura.md) · [Integrations](docs/interop.md) · [Tools](docs/herramientas.md)
+  - **Offline:** every [release](https://github.com/MscottB/tramalia/releases/latest) ships a browsable offline ZIP (`tramalia-docs-offline.zip`)
 - [User manual (Spanish)](MANUAL_DE_USUARIO.md)
 - [Consolidated design document (Spanish)](Tramalia_Diseno_Consolidado_v0_6.md)
 

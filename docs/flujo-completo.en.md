@@ -2,6 +2,8 @@
 
 This is the real journey of a project governed by Tramalia, from scratch to the auditable close of a task. The recommended path **leads with `tramalia close`**.
 
+Every step has **two equivalent paths**: CLI (scriptable, CI-friendly) or `tramalia ui` (TUI, visual, with prefilled forms). Neither is "the right one" — each step's table shows both; use whichever fits the moment. Full interface detail: [The interface (TUI)](interfaz.md).
+
 ## Overview
 
 ```mermaid
@@ -48,9 +50,9 @@ Tramalia already runs. No Node, no cloud services.
 
 ## 2. Initialize the convention
 
-```bash
-tramalia init
-```
+| CLI | TUI |
+|---|---|
+| `tramalia init` | **Overview** tab → **⚙ Initialize** button (visible while the repo isn't governed yet) |
 
 Drops into your repo, idempotent (never overwrites existing files):
 
@@ -62,14 +64,17 @@ specs/                 # constitution · specification · plan · tasks · check
 .claude/agents/        # 5 subagents with model routing (planner→opus, executor→inherit…)
 mise.toml              # tools + gates tailored to the detected stack
 .mcp.json              # Serena (Engram if present; Headroom/Ponytail via --with-*)
-.tramalia/             # config, current-task, skills.toml, 16 skills, context/, evidence/
+.gitignore              # block that excludes external skills from the repo (keeps the own ones)
+.tramalia/             # config, version, current-task, skills.toml, 16 skills, context/, evidence/
 ```
+
+`init` **detects the agent CLIs you already have installed** (Claude, Codex, OpenCode…) and uses them as the default executor/reviewer in `config.json` — not a fixed example. If you have other agents besides Claude Code, it suggests `tramalia sync` to propagate rules to them (step 4).
 
 ## 3. See what's missing to install
 
-```bash
-tramalia doctor
-```
+| CLI | TUI |
+|---|---|
+| `tramalia doctor` | **Overview** tab, live table — `i` key installs what's missing, `u` checks skill updates |
 
 Classifies into **bootstrap** (mise/git/uv), **stack** (node/dotnet…) and **feature/gate** (semgrep, sqlfluff, lighthouse, engram, headroom…). It flags what requires Node. Once you have `mise`:
 
@@ -83,19 +88,43 @@ mise install          # installs everything declared in mise.toml
 tramalia sync         # rulesync: AGENTS.md → Cursor, Copilot, Cline…
 ```
 
-## 5. Refresh context (token saving)
+## 5. Choose the context backend and refresh it
+
+| CLI | TUI |
+|---|---|
+| `tramalia context set <backend>` · `tramalia context` | `b` key (choose) · `i` key (refresh) |
+
+If you have several code-navigation tools installed (Serena, CodeGraph, codebase-memory-mcp, Graphify), **only one** stays active per project (`.tramalia/config.json → context.backend`, default `serena`) — this prevents the agent from alternating between inconsistent indexes. `tramalia context` (no arguments) refreshes the derived snapshot (tech-stack + project-map, via Repomix if present). Detail: [Context & code intelligence](interop-contexto.md).
+
+## 6. Install the skills you need
+
+| CLI | TUI |
+|---|---|
+| `tramalia skills list` · `tramalia skills enable <n>` + `tramalia skills` | **Skills** tab, Enter on an external one installs it in one step |
+
+The 16 own skills already ship; the external catalog (`skills.toml`) is optional and **isn't committed to the repo** (it's re-hydrated with `tramalia skills` after cloning). Detail: [Skills](skills-guia.md).
+
+## 7. (Optional) Model cap for the subagents
 
 ```bash
-tramalia context      # tech-stack + project-map (Repomix if present; otherwise stdlib tree)
+tramalia agents cap sonnet   # lowers opus/fable to sonnet; keeps haiku and inherit
 ```
 
-Then you work with your agent (Claude/Codex/…), which reads `AGENTS.md` + `docs/ai/`.
+Only if you want to cap which models the 5 governance subagents use (e.g. no opus/fable access). Portable to other hosts as a convention — see [Model cap](multi-host.md#model-cap-portable-across-providers).
 
-## 6. Close the task (the heart of the product)
+With this, you work with your agent (Claude/Codex/…), which reads `AGENTS.md` + `docs/ai/`.
+
+## 8. Close the task (the heart of the product)
+
+| CLI | TUI |
+|---|---|
+| `tramalia close TASK-001` | **Close** tab: prefilled form (task, agent, reviewer — detected; model, optional) → **▶ Run close** button |
 
 ```bash
 tramalia close TASK-001    # agent and reviewer: defaults from config.json
 ```
+
+In the TUI, the form comes prefilled with the project's **real** values: the task comes from `.tramalia/current-task.md` if you declared it, agent/reviewer from `config.json` (the agents `init` detected), and the **model** field is left blank on purpose — it's optional, just so `tramalia log` records which model closed the task; leaving it blank blocks nothing. Full detail: [The interface (TUI) → Close tab](interfaz.md#close-tab).
 
 This, in one step:
 
@@ -138,7 +167,11 @@ Typical pack result:
 !!! warning "Honest status"
     A forced failure with `--allow-fail` is recorded as `passed_with_exceptions`, **never** as `passed`. Without mise, the status is `no_gates`. The audit is not glossed over.
 
-## 7. Review the audit trail
+## 9. Review the audit trail
+
+| CLI | TUI |
+|---|---|
+| `tramalia log` | **Audit** tab: browsable table — Enter on a close shows its full `metadata.json` |
 
 ```bash
 tramalia log
@@ -150,6 +183,8 @@ i audit trail — 3 closes (newest first):
 ⚠ 2026-06-29-1740-TASK-000  ·  ⚠ with exceptions (forced)  ·  claude
 ○ 2026-06-28-0930-SETUP     ·  ○ no gates
 ```
+
+**Audit only reads, Close only writes** — they're the two halves of the same cycle: every `close` leaves an evidence pack, and `log`/the Audit tab is how you **come back** to that work later — to review what was done, with which agent/model, and whether it passed clean or with an exception. Full detail, including the comparison table: [The interface (TUI) → Audit vs. Close](interfaz.md#audit-vs-close-two-different-things).
 
 ## Re-planning tasks (short · medium · long term)
 
@@ -163,11 +198,22 @@ Each task carries `Estado` (pending · in-progress · closed) and `Horizonte` (n
 
 This full workflow — plan, divide into tasks/horizons, verify with gates, and close, all on top of `AGENTS.md` — is the practical application of the [4 pillars of governance](como-trabaja-ia.md#the-4-pillars-of-governance) (plan · divide · verify · rules).
 
-## 8. Maintenance
+## 10. Maintenance
+
+Two different commands for two different things — they don't overlap:
+
+| Command | What it updates |
+|---|---|
+| `tramalia update` | the **orchestrated tools**: `mise upgrade` (build/test/lint versions…) + syncs declared external skills |
+| `tramalia upgrade` | **the repo itself**: adds the new convention files your Tramalia version didn't have (after `pip install -U tramalia-cli`), without overwriting anything existing |
 
 ```bash
-tramalia update       # mise upgrade + (future) copier update + skills sync
+pip install -U tramalia-cli   # 1. update the CLI
+tramalia upgrade               # 2. bring your repo's CONVENTION up to date
+tramalia update                 # 3. bring the orchestrated TOOLS up to date
 ```
+
+Detail on `upgrade`: [Commands → upgrade](comandos.md#upgrade-update-an-already-initialized-repo).
 
 ## Standalone vs. with tools
 

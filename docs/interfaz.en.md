@@ -145,6 +145,25 @@ In one line: **Close produces the evidence; Audit consults it.**
   - `○ closed with a documented EXCEPTION` — no mise, gates didn't run (install it for real validation);
   - `✗ BLOCKED` — a gate failed.
 
+## Full walkthrough: from Close to Audit
+
+Here's what it looks like in practice, start to finish — the sequence you'll repeat day to day:
+
+1. **You finished working a task with your agent** (Claude, Codex…) — the code is written, it just needs to be formally closed.
+2. **You open `tramalia ui`** and go to the **Close** tab. If the project is initialized, the form already has *agent* and *reviewer* prefilled (whatever `init` detected) — you don't type anything there unless you want to change them for this particular close.
+3. **You type the task ID** (e.g. `TASK-007`) into the *task* field. The interface looks that ID up in `specs/tasks.md` **live** and shows its description below — so you confirm you're closing the right task before running anything. If the ID doesn't exist in `specs/tasks.md`, it warns you (add it there first: that way the close stays traceable against a real plan, not loose text).
+4. **(Optional) you type the model** you used, only if you care that the audit trail records which model closed this task.
+5. **You press ▶ Run close.** You see **live gate-by-gate output** (build, test, lint, security…) — it's not a blind progress bar, it's each tool's real output.
+6. **The final message is honest**, one of three:
+   - `✓ closed with verifiable evidence` — every gate passed clean.
+   - `○ closed with a documented EXCEPTION` — no `mise` was present, so gates didn't run; it's recorded as an exception, **not** as success.
+   - `✗ BLOCKED` — a gate failed; the task is **not** considered closed (unless you force it with `--allow-fail` and document why).
+7. **You switch to the Audit tab.** Right at the top (newest first) is the row for the task you just closed — with its status and agent/model.
+8. **You press Enter on that row.** On the right, the full `metadata.json` for that close appears: which gates ran, their exit codes, who executed and who reviewed, when it started and when it finished.
+9. **The evidence pack sits on disk**, under `.tramalia/evidence/<date>-TASK-007/`, with each gate's **raw** output — that's the verifiable evidence the whole product is about: not a rewritten summary, the actual output of `mise run build/test/lint/security` as it came out.
+
+That cycle — Close writes, Audit reads — is, day to day, what "working with Tramalia" means: every finished task goes through this before it counts as done, and it leaves a trail anyone (you, a reviewer, another agent in another session) can reconstruct without having to take anyone's word for it.
+
 ## Relationship with the CLI
 
 Everything the interface does also exists as a command (`close`, `log`, `doctor`, `init`, `mise install`) — the TUI **only reads and invokes the core**, it never has its own logic. You can switch between both freely.

@@ -30,6 +30,8 @@ mise install         # ← mise (3rd-party) installs EVERYTHING declared: repomi
 
 **Third-party tools already acting:** `mise` installs and versions the toolchain; `git` versions the memory.
 
+If you also have CodeGraph or codebase-memory-mcp installed alongside Serena, pick **only one** as the active backend (`tramalia context set serena` or the `b` key in the TUI) — this keeps the agent from alternating between different indexes of the same repo.
+
 ## Day 0.5 · Propagate to all agents
 
 ```bash
@@ -132,3 +134,6 @@ Or in the **dashboard**: `tramalia ui` → Audit tab; Enter on the close shows i
 
 !!! tip "To reproduce it"
     Everything above works in any repo: `pip install tramalia-cli`, `tramalia init`, `tramalia doctor` — and from there the [Full workflow](flujo-completo.md).
+
+!!! note "When a new Tramalia version ships"
+    `pip install -U tramalia-cli` updates the CLI; **`tramalia upgrade`** brings `clinica-web`'s convention up to date (adds what's new, never overwrites what you already edited). Different from `tramalia update`, which updates the orchestrated tools (mise + skills). Detail: [Commands → upgrade](comandos.md#upgrade-update-an-already-initialized-repo).

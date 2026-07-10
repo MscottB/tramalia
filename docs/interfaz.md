@@ -144,6 +144,25 @@ En una frase: **Cierre produce la evidencia; Auditoría la consulta.**
   - `○ cerrada con EXCEPCIÓN documentada` — sin mise, los gates no corrieron (instálalo para validación real);
   - `✗ BLOQUEADO` — algún gate falló.
 
+## Recorrido completo: de Cierre a Auditoría
+
+Así se ve en la práctica, de principio a fin — la secuencia que vas a repetir en el día a día:
+
+1. **Terminaste de trabajar una tarea con tu agente** (Claude, Codex…) — el código ya está escrito, falta cerrarla formalmente.
+2. **Abres `tramalia ui`** y vas a la pestaña **Cierre**. Si el proyecto está inicializado, el formulario ya tiene *agente* y *revisor* prellenados (los que `init` detectó) — no escribes nada ahí salvo que quieras cambiarlos para este cierre puntual.
+3. **Escribes el ID de la tarea** (p. ej. `TASK-007`) en el campo *tarea*. La interfaz busca ese ID en `specs/tasks.md` **en vivo** y muestra su descripción debajo — así confirmas que estás cerrando la tarea correcta antes de ejecutar nada. Si el ID no existe en `specs/tasks.md`, te avisa (agrégala ahí primero: así el cierre queda trazado contra un plan real, no un texto suelto).
+4. **(Opcional) escribes el modelo** que usaste, solo si te interesa que quede en la auditoría qué modelo cerró esta tarea.
+5. **Presionas ▶ Ejecutar close.** Ves la salida **gate por gate en vivo** (build, test, lint, security…) — no es una barra de progreso ciega, es la salida real de cada herramienta.
+6. **El mensaje final es honesto**, uno de tres:
+   - `✓ cerrada con evidencia verificable` — todos los gates pasaron limpio.
+   - `○ cerrada con EXCEPCIÓN documentada` — no había `mise`, así que los gates no corrieron; queda registrado como excepción, **no** como éxito.
+   - `✗ BLOQUEADO` — algún gate falló; la tarea **no** se considera cerrada (a menos que fuerces con `--allow-fail` y documentes por qué).
+7. **Cambias a la pestaña Auditoría.** Ahí aparece, arriba de todo (más reciente primero), la fila de la tarea que acabas de cerrar — con su estado y su agente/modelo.
+8. **Presionas Enter sobre esa fila.** A la derecha aparece el `metadata.json` completo del cierre: qué gates corrieron, sus exit codes, quién ejecutó y quién revisó, cuándo empezó y cuándo terminó.
+9. **El evidence pack queda en disco**, en `.tramalia/evidence/<fecha>-TASK-007/`, con las salidas **crudas** de cada gate — esa es la evidencia verificable de la que habla todo el producto: no es un resumen reescrito, es la salida real de `mise run build/test/lint/security` tal cual salió.
+
+Ese ciclo —Cierre escribe, Auditoría lee— es, en la práctica diaria, lo que significa "trabajar con Tramalia": cada tarea terminada pasa por ahí antes de darse por hecha, y queda un rastro que cualquiera (tú, un revisor, otro agente en otra sesión) puede reconstruir sin tener que confiar en la palabra de nadie.
+
 ## Relación con el CLI
 
 Todo lo que hace la interfaz existe también como comando (`close`, `log`, `doctor`, `init`, `mise install`) — la TUI **solo lee e invoca el core**, nunca tiene lógica propia. Puedes alternar libremente entre ambas.

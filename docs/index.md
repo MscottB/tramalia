@@ -1,6 +1,24 @@
-# Tramalia
+---
+hide:
+  - toc
+---
 
-**Gobierno y evidencia verificable para desarrollar con múltiples agentes IA. Repo-first.**
+<div class="tramalia-hero" markdown>
+<div class="tramalia-hero__content" markdown>
+
+<span class="tramalia-hero__eyebrow">Gobierno repo-first para agentes IA</span>
+
+# Gobernanza de repositorio para proyectos de IA multi-agente
+
+**Reglas, gates, evidencia verificable y handoffs claros** para que tus agentes (Claude Code, Codex, Cursor, Antigravity…) trabajen alineados, bajo control y sin perder trazabilidad — todo versionado en tu repo, no en configs globales.
+
+[Empezar ahora](instalacion.md){ .md-button .md-button--primary } [Ver arquitectura](arquitectura.md){ .md-button }
+
+</div>
+<div class="tramalia-hero__visual" markdown>
+![Tramalia — búho guardián del repositorio](assets/brand/tramalia-mark.webp)
+</div>
+</div>
 
 !!! quote ""
     **Git gobierna la colaboración humana; Tramalia gobierna la colaboración agéntica.** Es el control de cambios + pista de auditoría para cuando varios agentes IA trabajan un proyecto real: reglas comunes, validaciones obligatorias y evidencia verificable de cada cierre.

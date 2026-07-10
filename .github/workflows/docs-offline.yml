@@ -1,0 +1,36 @@
+name: docs-offline
+
+# Genera un ZIP navegable offline de la documentación (docs/ construido con el
+# plugin `offline` de mkdocs-material) y lo adjunta a cada GitHub Release. Es un
+# job APARTE del deploy normal (docs.yml → gh-deploy): el plugin `offline`
+# reescribe las URLs a *.html sin barra final para que funcionen con file://,
+# lo que rompería los enlaces /tramalia/<pagina>/ del sitio en vivo si se
+# mezclara ahí. scripts/build_offline_docs.py lo inyecta solo en un config
+# temporal, en memoria — mkdocs.yml (y el sitio publicado) nunca cambian.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-offline-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-docs.txt
+      - run: python scripts/build_offline_docs.py
+      - if: github.event_name == 'release'
+        run: gh release upload "${{ github.event.release.tag_name }}" tramalia-docs-offline.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tramalia-docs-offline
+          path: tramalia-docs-offline.zip

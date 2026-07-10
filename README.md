@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧩 Tramalia
+![Tramalia — gobierno repo-first para proyectos de IA multi-agente](docs/assets/brand/tramalia-banner.webp)
 
 **Gobierno y evidencia verificable para desarrollar con múltiples agentes IA. Repo-first.**
 
@@ -132,6 +132,7 @@ Tabla completa en el [Manual de usuario](MANUAL_DE_USUARIO.md#parte-2--instalaci
 - **Sitio (ES/EN):** https://MscottB.github.io/tramalia/ — visual, con diagramas
   - **[Ejemplo completo](docs/ejemplo-completo.md)** — un proyecto real de punta a punta, con cada opción y cada herramienta de terceros en acción
   - [Ecosistema](docs/ecosistema.md) · [Flujo completo](docs/flujo-completo.md) · [Arquitectura](docs/arquitectura.md) · [Integraciones](docs/interop.md) · [Herramientas](docs/herramientas.md)
+  - **Offline:** cada [release](https://github.com/MscottB/tramalia/releases/latest) trae un ZIP navegable sin conexión (`tramalia-docs-offline.zip`)
 - [Manual de usuario](MANUAL_DE_USUARIO.md)
 - [Documento de diseño consolidado](Tramalia_Diseno_Consolidado_v0_6.md)
 

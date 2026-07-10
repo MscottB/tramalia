@@ -1,6 +1,19 @@
-# Tramalia
+<div class="tramalia-hero" markdown>
+<div class="tramalia-hero__content" markdown>
 
-**Governance and verifiable evidence for building with multiple AI agents. Repo-first.**
+<span class="tramalia-hero__eyebrow">Repo-first governance for AI agents</span>
+
+# Repository governance for multi-agent AI projects
+
+**Rules, gates, verifiable evidence, and clear handoffs** so your agents (Claude Code, Codex, Cursor, Antigravity…) work aligned, under control, and without losing traceability — all versioned in your repo, not in global configs.
+
+[Get started](instalacion.md){ .md-button .md-button--primary } [See the architecture](arquitectura.md){ .md-button }
+
+</div>
+<div class="tramalia-hero__visual" markdown>
+![Tramalia — repository guardian owl](assets/brand/tramalia-mark.webp)
+</div>
+</div>
 
 !!! quote ""
     **Git governs human collaboration; Tramalia governs agentic collaboration.** It's the change control + audit trail for when several AI agents work on a real project: shared rules, mandatory validations, and verifiable evidence for every close.

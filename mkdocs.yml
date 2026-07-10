@@ -8,29 +8,35 @@ docs_dir: docs
 theme:
   name: material
   language: es
+  logo: assets/brand/tramalia-mark.webp
+  favicon: assets/brand/favicon.png
   icon:
     repo: fontawesome/brands/github
+  font:
+    text: Manrope
+    code: JetBrains Mono
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: indigo
-      accent: deep purple
-      toggle:
-        icon: material/weather-night
-        name: Modo oscuro
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: deep purple
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Modo claro
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
   features:
-    - navigation.sections
-    - navigation.expand
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.top
     - navigation.footer
-    - toc.integrate
+    - navigation.tracking
+    - toc.follow
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
@@ -76,6 +82,21 @@ plugins:
             Skills: Skills
             Ayuda (FAQ): Help (FAQ)
             Glosario: Glossary
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+  # blog: NO habilitado — bug confirmado en la combinación mkdocs-material +
+  # mkdocs-static-i18n (docs_structure: suffix): el plugin blog genera sus
+  # páginas en un directorio temporal FUERA de docs_dir, y el plugin i18n
+  # descarta todo lo que esté fuera de docs_dir al reconstruir por idioma, así
+  # que el índice del blog queda vacío (sin posts). Bug de upstream, no de esta
+  # config: https://github.com/squidfunk/mkdocs-material/issues/4863
+  # Reactivar cuando se resuelva ahí, o si se migra a docs_structure: folder
+  # (cambio grande, no justificado solo por el blog).
 
 extra_css:
   - stylesheets/extra.css
