@@ -31,6 +31,7 @@ class Tool:
     feature: str = ""             # category "feature": gate/feature que la activa
     runtime: str = ""             # runtime externo que necesita: "node", "python", ...
     ephemeral: bool = False       # corre vía uvx/npx: no requiere instalación
+    winget_id: str = ""           # app de escritorio detectable vía `winget list` (sin cmd propio)
 
 
 REGISTRY: list[Tool] = [
@@ -106,22 +107,39 @@ REGISTRY: list[Tool] = [
          "feature", feature="databricks", managed_by_mise=False,
          install_hint="https://docs.databricks.com/dev-tools/cli/install"),
 
-    # --- agentes CLI (detección informativa: Tramalia NO los configura) ---
-    Tool("claude", "claude", "Claude Code (agente CLI)", "agent",
+    # --- agentes CLI y hosts (detección informativa: Tramalia NO los configura) ---
+    # El rol dice explícitamente "CLI" para no confundir con las apps de escritorio.
+    Tool("claude", "claude", "Claude Code — CLI del agente (no la app de escritorio)", "agent",
          managed_by_mise=False, install_hint="https://claude.com/claude-code"),
-    Tool("codex", "codex", "OpenAI Codex (agente CLI)", "agent",
+    Tool("codex", "codex", "OpenAI Codex — CLI del agente", "agent",
          managed_by_mise=False, install_hint="npm i -g @openai/codex"),
     # el binario real en PATH se llama "agy" (no "antigravity"); Antigravity CLI
-    # reemplazó oficialmente a Gemini CLI (descontinuado 2026-06-18).
-    Tool("antigravity", "agy", "Google Antigravity CLI — comando `agy` (agente CLI; ex-Gemini CLI)",
+    # reemplazó oficialmente a Gemini CLI (descontinuado 2026-06-18). En Windows
+    # se automatiza vía winget (Google.AntigravityCLI); ver installer._SYSTEM.
+    Tool("antigravity", "agy", "Antigravity CLI — comando `agy` (agente; ex-Gemini CLI)",
          "agent", managed_by_mise=False,
-         install_hint="instalador oficial (agy) — ver antigravity.google/docs/cli-install"),
-    Tool("opencode", "opencode", "OpenCode (agente CLI)", "agent",
+         install_hint="winget install -e --id Google.AntigravityCLI"),
+    # Antigravity IDE y 2.0 son apps de ESCRITORIO (hosts), no CLIs: se detectan
+    # por `winget list` (winget_id), no por un comando en PATH.
+    Tool("antigravity-ide", "antigravity-ide",
+         "Antigravity IDE — app de escritorio (fork de VS Code)", "agent",
+         managed_by_mise=False, winget_id="Google.AntigravityIDE",
+         install_hint="winget install -e --id Google.AntigravityIDE"),
+    Tool("antigravity-2", "antigravity-2.0",
+         "Antigravity 2.0 — app de escritorio (plataforma de agentes)", "agent",
+         managed_by_mise=False, winget_id="Google.Antigravity",
+         install_hint="winget install -e --id Google.Antigravity"),
+    Tool("opencode", "opencode", "OpenCode — CLI del agente", "agent",
          managed_by_mise=False, install_hint="npm i -g opencode-ai"),
-    Tool("openclaw", "openclaw", "OpenClaw (gateway multi-modelo)", "agent",
-         managed_by_mise=False, install_hint="ver documentación de OpenClaw"),
-    Tool("hermes", "hermes", "Hermes (agente vía gateway)", "agent",
-         managed_by_mise=False, install_hint="ver documentación de Hermes"),
+    # OpenClaw: CLI real por npm (requiere Node). El `onboard`/daemon es config
+    # posterior del usuario, no la instalación del binario.
+    Tool("openclaw", "openclaw", "OpenClaw — CLI gateway multi-modelo", "agent",
+         managed_by_mise=False, runtime="node", install_hint="npm i -g openclaw"),
+    # Hermes Agent: CLI real, pero solo instalable vía script (`curl … | bash`),
+    # que Tramalia NUNCA ejecuta automatizado — se muestra el comando exacto.
+    Tool("hermes", "hermes", "Hermes Agent — CLI (auto-mejora + gateway)", "agent",
+         managed_by_mise=False,
+         install_hint="curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"),
 ]
 
 # documentación oficial de cada herramienta (tecla `d` en la TUI / docs del sitio)
@@ -144,9 +162,12 @@ DOCS: dict[str, str] = {
     "markitdown": "https://github.com/microsoft/markitdown",
     "databricks": "https://docs.databricks.com/dev-tools/cli/",
     "claude": "https://code.claude.com/docs", "codex": "https://developers.openai.com/codex",
-    "antigravity": "https://antigravity.google/docs/cli-getting-started",
+    "antigravity": "https://antigravity.google/docs/cli-install",
+    "antigravity-ide": "https://antigravity.google/docs",
+    "antigravity-2": "https://antigravity.google/docs",
     "opencode": "https://opencode.ai/docs",
-    "openclaw": "https://github.com/openclaw", "hermes": "https://hermes.nousresearch.com",
+    "openclaw": "https://github.com/openclaw/openclaw",
+    "hermes": "https://hermes-agent.nousresearch.com/docs/",
 }
 
 
@@ -195,6 +216,27 @@ def _go_has(cmd: str) -> bool:
     return any((base / f"{cmd}{ext}").is_file() for ext in (".exe", ""))
 
 
+# `winget list` completo, cacheado UNA vez por proceso: las apps de escritorio
+# (Antigravity IDE/2.0) no tienen comando en PATH, así que se detectan por su id.
+_WINGET_STATE: dict = {"loaded": False, "text": ""}
+
+
+def _winget_has(winget_id: str, timeout: float = 15.0) -> bool:
+    if not winget_id:
+        return False
+    if not _WINGET_STATE["loaded"]:
+        _WINGET_STATE["loaded"] = True
+        if shutil.which("winget") is not None:
+            try:
+                cp = subprocess.run(["winget", "list", "--disable-interactivity"],
+                                    capture_output=True, text=True, timeout=timeout,
+                                    encoding="utf-8", errors="replace")
+                _WINGET_STATE["text"] = (cp.stdout or "")
+            except Exception:
+                _WINGET_STATE["text"] = ""
+    return winget_id.lower() in _WINGET_STATE["text"].lower()
+
+
 def probe(tool: Tool, timeout: float = 8.0) -> Status:
     """Comprueba si una herramienta está disponible y su versión."""
     from tramalia.i18n import t
@@ -208,6 +250,8 @@ def probe(tool: Tool, timeout: float = 8.0) -> Status:
             return Status(tool, present=True, version=t("doctor.viauv"))
         if _go_has(tool.cmd):
             return Status(tool, present=True, version=t("doctor.viago"))
+        if tool.winget_id and _winget_has(tool.winget_id):
+            return Status(tool, present=True, version=t("doctor.viawinget"))
         return Status(tool, present=False)
     version = None
     try:

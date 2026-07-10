@@ -48,10 +48,15 @@ def build_app():
         #inst-botones Button { margin-left: 2; }
         """
 
+        BINDINGS = [("escape", "dismiss_empty", "cerrar")]
+
         def __init__(self, plans, manuals):
             super().__init__()
-            self._plans = plans      # [(label, InstallOption)] automatizables
+            self._plans = plans      # [(label, InstallOption, enables)] automatizables
             self._manuals = manuals  # [(label, comando_str)] solo manual
+
+        def action_dismiss_empty(self) -> None:
+            self.dismiss([])
 
         def compose(self) -> ComposeResult:
             with Vertical(id="inst-box"):
@@ -59,7 +64,7 @@ def build_app():
                 if self._plans:
                     yield SelectionList(*[
                         Selection(f"{label} — {opt.display}", idx, True)
-                        for idx, (label, opt) in enumerate(self._plans)
+                        for idx, (label, opt, _en) in enumerate(self._plans)
                     ])
                 if self._manuals:
                     lineas = "\n".join(f"  • {label} — {cmd}" for label, cmd in self._manuals)
@@ -402,8 +407,13 @@ def build_app():
             log = self._skills_log()
             if not results:
                 log.write(t("tui.skills.sync.none"))
-            for name, act in results:
-                log.write(f"{act:>12}  {name}")
+            total = len(results)
+            for n, (name, act) in enumerate(results, 1):
+                log.write(f"[{n}/{total}] {act:>12}  {name}")
+            if results:
+                ok = sum(1 for _, a in results if a in ("clonada", "actualizada",
+                                                        "cloned", "updated"))
+                log.write(t("tui.skills.sync.summary", ok=ok, total=total))
             self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
 
         def on_button_pressed(self, event) -> None:
@@ -440,11 +450,13 @@ def build_app():
             report = getattr(self, "_report")
             faltantes = [s.tool for s in report.statuses if not s.present]
             auto, manual, runtime_offers = installer.plan_for(faltantes)
-            plans = list(auto)
-            # ofrecer instalar el runtime (Node/Go) que desbloquea otras herramientas
+            # plans: 3-tuplas (label, opción, [cmds que desbloquea al instalarse])
+            plans = [(cmd, opt, []) for cmd, opt in auto]
+            # ofrecer instalar el runtime (Node/Go) que desbloquea otras herramientas;
+            # `enables` deja que el worker las instale encadenadas en la misma corrida
             for name, opt, enables in runtime_offers:
                 plans.append((t("tui.install.runtime", rt=name,
-                                tools=", ".join(enables)), opt))
+                                tools=", ".join(enables)), opt, list(enables)))
             # manuales: anotar "requiere X" si un runtime falta
             manuals = []
             for cmd, display, rt in manual:
@@ -454,7 +466,7 @@ def build_app():
                 manuals.append((label, display))
             # acción de PATH: si uv está pero su bin no está en el PATH
             if not report.uv_bin_on_path and installer.shutil.which("uv"):
-                plans.append((t("tui.install.pathfix"), installer.pathfix_option()))
+                plans.append((t("tui.install.pathfix"), installer.pathfix_option(), []))
             if not plans and not manuals:
                 self._log_install().write(t("tui.install.none"))
                 return
@@ -475,11 +487,16 @@ def build_app():
                 ev.set()
 
         def _install_worker(self, seleccion) -> None:
-            for label, opt in seleccion:
+            from tramalia.core.tools import REGISTRY
+            cola = list(seleccion)  # crece si un runtime desbloquea otras (engram tras Go)
+            i = 0
+            while i < len(cola):
+                label, opt, enables = cola[i]
+                i += 1
                 self._cancel.clear()  # cancelar aplica a UNA herramienta, no a todas
                 self.call_from_thread(
                     self._log_write,
-                    t("tui.install.installing", tool=label,
+                    t("tui.install.installing", n=i, total=len(cola), tool=label,
                       method=opt.method, cmd=opt.display))
                 code, out = installer.run_install_streaming(
                     opt, on_line=lambda ln: self.call_from_thread(
@@ -488,6 +505,16 @@ def build_app():
                 if code == 0:
                     self.call_from_thread(
                         self._log_write, t("tui.install.ok", tool=label))
+                    # el runtime recién instalado ya deja su binario en disco:
+                    # refrescar el PATH del proceso y encadenar lo que desbloquea.
+                    installer.refresh_runtime_path()
+                    for cmd in enables:
+                        tool = next((x for x in REGISTRY if x.cmd == cmd), None)
+                        best = installer.best_auto(tool) if tool else None
+                        if best:
+                            cola.append((cmd, best, []))
+                            self.call_from_thread(
+                                self._log_write, t("tui.install.chained", tool=cmd))
                 elif code == 130:
                     self.call_from_thread(
                         self._log_write, t("tui.install.cancelled", tool=label))

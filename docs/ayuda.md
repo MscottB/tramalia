@@ -39,7 +39,10 @@ Desde v0.22 el selector muestra **todas** las faltantes: las automatizables como
 No está instalada. "Opcional" solo significa que no la necesitas salvo que uses su gate/feature. El estado siempre dice explícito: `✓ instalada` · `○ no instalada (opcional)` · `✗ no instalada (requerida)`.
 
 **Una herramienta dice "requiere Go" (o Node) y no la puedo instalar automático.**
-Su única vía automatizable necesita ese runtime, que no tienes. Desde v0.23 el selector (tecla `i`) te **ofrece instalar el runtime** (⬇ instalar Go → habilita engram): instálalo, vuelve a pulsar `i` y la herramienta ya es automatizable. En CLI: `tramalia doctor --fix` incluye el runtime en el plan. Runtimes que habilitan automatización: **Node.js** (herramientas npm) y **Go** (engram).
+Su única vía automatizable necesita ese runtime, que no tienes. Desde v0.23 el selector (tecla `i`) te **ofrece instalar el runtime** (⬇ instalar Go → habilita engram): márcalo junto con lo demás y desde **v0.27** Tramalia instala el runtime **y encadena** la herramienta que desbloquea en la misma corrida, **sin reiniciar la terminal** (refresca el PATH del proceso para ver el Go/Node recién instalado). En CLI: `tramalia doctor --fix` incluye el runtime en el plan. Runtimes que habilitan automatización: **Node.js** (herramientas npm) y **Go** (engram).
+
+**Instalé Go pero engram no se instaló en la misma sesión.**
+Corregido en **v0.27**. El problema: winget agrega Go al PATH del *usuario*, no al del proceso de la TUI en marcha, así que engram seguía viéndose "bloqueado por Go" hasta reiniciar. Ahora, al terminar de instalar un runtime, Tramalia agrega su carpeta de binarios (`C:\Program Files\Go\bin`, `~/go/bin`, `C:\Program Files\nodejs`) al PATH del proceso y **encadena** engram automáticamente. Si aun así falla, reinicia la terminal y vuelve a pulsar `i`.
 
 **¿Dónde veo la versión de Tramalia?**
 En el título de la cabecera de `tramalia ui`, en el panel de `tramalia doctor`/`detect`, y con `tramalia --version`. Actualiza el CLI con `pip install -U tramalia-cli`.
@@ -48,7 +51,13 @@ En el título de la cabecera de `tramalia ui`, en el panel de `tramalia doctor`/
 Era un error nuestro: sí tiene paquete npm (`@colbymchenry/codegraph`). Desde v0.24 se automatiza igual que repomix/opencode — si Node falta, el selector ofrece instalarlo primero.
 
 **Antigravity aparece como "falta" aunque lo instalé.**
-El binario real que queda en el PATH se llama **`agy`**, no `antigravity` (Antigravity CLI reemplazó a Gemini CLI, descontinuado el 18-06-2026). La detección buscaba el nombre equivocado — corregido en v0.24. La instalación (script oficial `curl`/`irm`) sigue siendo manual a propósito: nunca ejecutamos scripts remotos automatizados, y además requiere login interactivo con Google después.
+El binario real del CLI que queda en el PATH se llama **`agy`**, no `antigravity` (Antigravity CLI reemplazó a Gemini CLI, descontinuado el 18-06-2026). La detección buscaba el nombre equivocado — corregido en v0.24. Desde **v0.27** el CLI se **automatiza en Windows vía winget** (`Google.AntigravityCLI`); en mac/linux sigue siendo el script oficial `curl`, manual a propósito (nunca ejecutamos scripts remotos automatizados).
+
+**¿Puedo instalar el IDE de Antigravity y Antigravity 2.0, no solo el CLI?**
+Sí, desde **v0.27**. Antigravity tiene **tres superficies**: el **CLI** (`agy`), el **IDE** (fork de VS Code) y **Antigravity 2.0** (plataforma de agentes, app de escritorio). El doctor las lista las tres; en Windows se instalan por winget (`Google.AntigravityCLI` · `Google.AntigravityIDE` · `Google.Antigravity`). Como el IDE y 2.0 son apps de escritorio sin comando en el PATH, Tramalia las **detecta con `winget list`** (no con un `--version`).
+
+**OpenClaw y Hermes: ¿se pueden automatizar?**
+Desde **v0.27**: **OpenClaw** sí — es un CLI en npm (`npm i -g openclaw`, requiere Node); el `onboard`/daemon posterior es config tuya. **Hermes Agent** no: solo se instala por script (`curl … | bash`), que Tramalia nunca ejecuta automatizado — te muestra el comando exacto para que lo corras tú. Antes ambos decían solo "ver documentación".
 
 ## Contexto: cuál herramienta de navegación usar
 

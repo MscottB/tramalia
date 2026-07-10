@@ -2,6 +2,43 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/). Este proyecto sigue versionado semántico.
 
+## [0.27.0] - 2026-07-10
+
+Instalador correcto de agentes/hosts: se arregla el caso real de "instalé Go y
+engram no se instaló", se aclaran los labels CLI vs. app de escritorio, y se
+cablean OpenClaw, Hermes y las **tres superficies de Antigravity**. Primer
+entregable (R1) del plan de mejoras post-feedback.
+
+### El bug principal (engram tras Go)
+- winget agrega Go al PATH del **usuario**, no al del **proceso** de la TUI en
+  marcha, así que engram seguía viéndose "bloqueado por Go" en la misma sesión.
+- Ahora, al terminar de instalar un runtime, Tramalia **refresca el PATH del
+  proceso** (`C:\Program Files\Go\bin`, `~/go/bin`, `C:\Program Files\nodejs`) y
+  **encadena** en la misma corrida la herramienta que ese runtime desbloquea
+  (⬇ instalar Go → engram, sin reiniciar la terminal).
+
+### Agentes y hosts
+- **Labels con "CLI" explícito** (Claude Code CLI, OpenAI Codex CLI, Antigravity
+  CLI `agy`) para no confundir con las apps de escritorio homónimas.
+- **OpenClaw**: automatizable por npm (`npm i -g openclaw`, requiere Node) — antes
+  solo decía "ver documentación".
+- **Hermes Agent**: se muestra su comando real (`curl … | bash`) como **manual**
+  (Tramalia nunca ejecuta pipes) — antes solo decía "ver documentación".
+- **Antigravity, tres superficies**: CLI `agy` (Windows: winget `Google.AntigravityCLI`,
+  automatizable; mac/linux: script manual), **IDE** (`Google.AntigravityIDE`) y
+  **2.0** (`Google.Antigravity`). Las dos apps de escritorio no tienen comando en
+  PATH: se detectan con `winget list` (nuevo campo `winget_id` + sonda cacheada).
+
+### UX de instalación
+- El log muestra **progreso por ítem** `[i/total]` y el sync de skills un resumen
+  `✓ n/total`. (Un % real por herramienta no existe: winget/npm/go no lo emiten.)
+
+### Calidad
+- 218 tests con pytest (9 nuevos en `tests/test_v027.py`: labels, openclaw/hermes,
+  las 3 superficies de Antigravity, detección por `winget_id`, refresh de PATH y
+  encadenado engram-tras-Go). `test_headroom` ahora es hermético (no depende de
+  binarios en `~/.local/bin` del equipo).
+
 ## [0.26.0] - 2026-07-10
 
 Estilo arquitectónico declarado explícitamente (no impuesto), con criterio y

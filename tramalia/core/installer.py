@@ -111,14 +111,51 @@ _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
     # codegraph: el binario SÍ se automatiza vía npm (_from_hint lo deriva del
     # install_hint del registro); aquí no hace falta _SYSTEM. El wiring a agentes
     # (`codegraph install --skip-config`) es un paso aparte, nunca automatizado.
-    # Antigravity CLI (agy): scripts oficiales curl|sh / irm|iex — NUNCA se
-    # ejecutan automatizados (regla dura); se muestran exactos por SO.
+    # Antigravity CLI (agy): en Windows hay paquete winget oficial (automatizable);
+    # en mac/linux solo el script curl|sh, que NUNCA se ejecuta automatizado.
     "antigravity": {
-        "windows": [_manual("irm https://antigravity.google/cli/install.ps1 | iex")],
+        "windows": [_winget("Google.AntigravityCLI"),
+                    _manual("irm https://antigravity.google/cli/install.ps1 | iex")],
         "macos": [_manual("curl -fsSL https://antigravity.google/cli/install.sh | bash")],
         "linux": [_manual("curl -fsSL https://antigravity.google/cli/install.sh | bash")],
     },
+    # Antigravity IDE y 2.0: apps de escritorio. winget en Windows; descarga en el resto.
+    "antigravity-ide": {
+        "windows": [_winget("Google.AntigravityIDE")],
+        "macos": [_manual("descarga desde antigravity.google/download")],
+        "linux": [_manual("descarga desde antigravity.google/download")],
+    },
+    "antigravity-2": {
+        "windows": [_winget("Google.Antigravity")],
+        "macos": [_manual("descarga desde antigravity.google/download")],
+        "linux": [_manual("descarga desde antigravity.google/download")],
+    },
 }
+
+
+def known_runtime_bin_dirs() -> list:
+    """Dirs donde los instaladores dejan los runtimes (Go/Node) — que winget/etc
+    agregan al PATH del USUARIO pero no al del proceso en marcha."""
+    from pathlib import Path
+    if current_os() == "windows":
+        cand = [Path("C:/Program Files/Go/bin"), Path.home() / "go" / "bin",
+                Path("C:/Program Files/nodejs")]
+    else:
+        cand = [Path("/usr/local/go/bin"), Path.home() / "go" / "bin"]
+    return [d for d in cand if d.exists()]
+
+
+def refresh_runtime_path() -> None:
+    """Agrega al PATH del proceso los dirs de runtimes recién instalados, para
+    que una instalación encadenada (p. ej. engram justo después de Go) los vea
+    sin reiniciar la terminal. Idempotente."""
+    import os
+    parts = os.environ.get("PATH", "").split(os.pathsep)
+    seen = {p.strip().lower().rstrip("\\/") for p in parts}
+    add = [str(d) for d in known_runtime_bin_dirs()
+           if str(d).lower().rstrip("\\/") not in seen]
+    if add:
+        os.environ["PATH"] = os.pathsep.join(add) + os.pathsep + os.environ.get("PATH", "")
 
 
 def uv_bin_dir() -> "Path":

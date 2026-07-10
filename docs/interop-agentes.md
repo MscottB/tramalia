@@ -111,10 +111,27 @@ Si corres Tramalia en un loop tipo Ralph, cada iteración sería: leer `specs/ta
 
 ## Agentes IA — los consumidores
 
-- **Quiénes:** Claude Code, OpenAI Codex, Cursor, Antigravity, Gemini CLI, Copilot, Cline, etc.
-- **Requiere:** la instalación oficial de cada uno (Tramalia **no** los instala).
+- **Quiénes:** Claude Code, OpenAI Codex, Cursor, Antigravity, Copilot, Cline, OpenCode, OpenClaw, Hermes, etc.
+- **Requiere:** la instalación oficial de cada uno (Tramalia **no** los configura; sí puede facilitar la instalación del binario, ver abajo).
 - **Cómo interactúan con Tramalia:** **leen** `AGENTS.md` + `docs/ai/` (la convención que `init` deja), trabajan, y al cerrar usan `tramalia close` (por shell o vía la fachada MCP `tramalia mcp`). Tramalia no razona ni genera código: **gobierna** lo que ellos hacen.
 - **¿Cuáles tienes instalados?** `tramalia doctor` (y la pestaña Resumen de `tramalia ui`) **detecta las CLIs de agentes presentes** en tu máquina — solo informativo, nunca las configura. Matriz de modelo/esfuerzo por host: [Modelos y esfuerzo por host](multi-host.md).
+
+> Los roles en la tabla de `doctor` dicen explícitamente **"CLI"** (Claude Code, OpenAI Codex…) para que no se confundan con las apps de escritorio del mismo nombre.
+
+### Instalación que `doctor`/`ui` facilitan
+
+| Host | Comando en PATH | Cómo se instala/detecta |
+|---|---|---|
+| **Claude Code CLI** | `claude` | instalación oficial (informativo) |
+| **OpenAI Codex CLI** | `codex` | `npm i -g @openai/codex` (requiere Node) |
+| **OpenCode** | `opencode` | `npm i -g opencode-ai` (requiere Node) |
+| **OpenClaw** | `openclaw` | `npm i -g openclaw` (requiere Node) — el `onboard`/daemon es config tuya |
+| **Hermes Agent** | `hermes` | solo por script `curl … \| bash` → **manual** (Tramalia nunca ejecuta pipes); se muestra el comando exacto |
+| **Antigravity CLI** | `agy` | Windows: `winget install Google.AntigravityCLI` (automatizable); mac/linux: script oficial (manual) |
+| **Antigravity IDE** | *(app de escritorio)* | `winget install Google.AntigravityIDE` — se detecta por `winget list` |
+| **Antigravity 2.0** | *(app de escritorio)* | `winget install Google.Antigravity` — se detecta por `winget list` |
+
+Antigravity trae **tres superficies** (2.0 desktop, IDE, y CLI `agy`); el binario del CLI se llama `agy`, no `antigravity` (reemplazó a Gemini CLI, descontinuado el 2026-06-18). Las apps de escritorio no tienen comando en PATH, así que `doctor` las verifica con `winget list` en vez de con un `--version`.
 
 ## En una frase
 

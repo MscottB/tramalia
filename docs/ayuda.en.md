@@ -39,7 +39,10 @@ Since v0.22 the selector shows **all** missing tools: the automatable ones as se
 It's not installed. "Optional" only means you don't need it unless you use its gate/feature. The status always says it explicitly: `✓ installed` · `○ not installed (optional)` · `✗ not installed (required)`.
 
 **A tool says "requires Go" (or Node) and I can't install it automatically.**
-Its only automatable route needs that runtime, which you don't have. Since v0.23 the selector (`i` key) **offers to install the runtime** (⬇ install Go → enables engram): install it, press `i` again, and the tool becomes automatable. In the CLI: `tramalia doctor --fix` includes the runtime in the plan. Runtimes that enable automation: **Node.js** (npm tools) and **Go** (engram).
+Its only automatable route needs that runtime, which you don't have. Since v0.23 the selector (`i` key) **offers to install the runtime** (⬇ install Go → enables engram): check it together with the rest and, since **v0.27**, Tramalia installs the runtime **and chains** the tool it unblocks in the same run, **without restarting the terminal** (it refreshes the process PATH to see the freshly-installed Go/Node). In the CLI: `tramalia doctor --fix` includes the runtime in the plan. Runtimes that enable automation: **Node.js** (npm tools) and **Go** (engram).
+
+**I installed Go but engram didn't install in the same session.**
+Fixed in **v0.27**. The problem: winget adds Go to the *user* PATH, not to the running TUI process's PATH, so engram kept showing "blocked by Go" until a restart. Now, after finishing a runtime install, Tramalia adds its bin folder (`C:\Program Files\Go\bin`, `~/go/bin`, `C:\Program Files\nodejs`) to the process PATH and **chains** engram automatically. If it still fails, restart the terminal and press `i` again.
 
 **Where do I see the Tramalia version?**
 In the `tramalia ui` header title, in the `tramalia doctor`/`detect` panel, and with `tramalia --version`. Update the CLI with `pip install -U tramalia-cli`.
@@ -48,7 +51,13 @@ In the `tramalia ui` header title, in the `tramalia doctor`/`detect` panel, and 
 That was our mistake — it does have an npm package (`@colbymchenry/codegraph`). Since v0.24 it automates like repomix/opencode — if Node is missing, the selector offers to install it first.
 
 **Antigravity shows as "missing" even though I installed it.**
-The real binary left on PATH is called **`agy`**, not `antigravity` (Antigravity CLI replaced Gemini CLI, discontinued 2026-06-18). Detection was looking for the wrong name — fixed in v0.24. Installation (the official `curl`/`irm` script) stays manual on purpose: we never auto-run remote scripts, and it also requires interactive Google login afterward.
+The CLI's real binary left on PATH is called **`agy`**, not `antigravity` (Antigravity CLI replaced Gemini CLI, discontinued 2026-06-18). Detection was looking for the wrong name — fixed in v0.24. Since **v0.27** the CLI is **automated on Windows via winget** (`Google.AntigravityCLI`); on mac/linux it's still the official `curl` script, manual on purpose (we never auto-run remote scripts).
+
+**Can I install the Antigravity IDE and Antigravity 2.0, not just the CLI?**
+Yes, since **v0.27**. Antigravity has **three surfaces**: the **CLI** (`agy`), the **IDE** (a VS Code fork), and **Antigravity 2.0** (agent platform, desktop app). The doctor lists all three; on Windows they install via winget (`Google.AntigravityCLI` · `Google.AntigravityIDE` · `Google.Antigravity`). Since the IDE and 2.0 are desktop apps with no command in PATH, Tramalia **detects them with `winget list`** (not a `--version`).
+
+**OpenClaw and Hermes: can they be automated?**
+Since **v0.27**: **OpenClaw** yes — it's an npm CLI (`npm i -g openclaw`, needs Node); the later `onboard`/daemon is your config. **Hermes Agent** no: it only installs via script (`curl … | bash`), which Tramalia never auto-runs — it shows you the exact command to run yourself. Before, both just said "see documentation".
 
 ## Context: which navigation tool to use
 

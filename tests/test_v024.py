@@ -39,10 +39,23 @@ def test_antigravity_cmd_es_agy_no_antigravity():
     assert tool.key == "antigravity"  # la key no cambia (no rompe otros usos)
 
 
-def test_antigravity_nunca_automatiza_curl_pipe():
-    for os_name in ("windows", "macos", "linux"):
+def test_antigravity_winget_en_windows_script_manual_en_resto():
+    # v0.27: en Windows hay paquete winget oficial (Google.AntigravityCLI) → automatizable;
+    # en mac/linux solo el script curl|sh, que nunca se automatiza.
+    win = installer.options_for(_tool("antigravity"), os_name="windows")
+    assert win[0].method == "winget" and win[0].auto
+    for os_name in ("macos", "linux"):
         opts = installer.options_for(_tool("antigravity"), os_name=os_name)
-        assert opts and not opts[0].auto   # regla dura: curl|sh nunca automatizado
+        assert opts and not any(o.auto for o in opts)
+
+
+def test_ningun_script_pipe_es_automatizado():
+    # regla dura intacta: un `curl … | sh` / `irm … | iex` jamás corre automatizado
+    for key in ("antigravity", "hermes"):
+        for os_name in ("windows", "macos", "linux"):
+            for o in installer.options_for(_tool(key), os_name=os_name):
+                if any(m in o.display for m in ("|", "curl", "iex")):
+                    assert not o.auto
 
 
 # ---------------------------------------------------------------- context_backend (core)

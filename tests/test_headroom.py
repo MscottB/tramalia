@@ -22,6 +22,10 @@ def test_doctor_clasifica_headroom_como_opcional(tmp_path, monkeypatch):
     real_which = tools_mod.shutil.which
     monkeypatch.setattr(tools_mod.shutil, "which",
                         lambda c: None if c == "headroom" else real_which(c))
+    # hermético: headroom no debe verse "presente" por estar en ~/.local/bin o ~/go/bin
+    # del equipo que corre los tests (las sondas de filesystem no dependen de `which`).
+    monkeypatch.setattr(tools_mod, "_uv_has", lambda c: False)
+    monkeypatch.setattr(tools_mod, "_go_has", lambda c: False)
     rep = diagnose(tmp_path)
     assert "headroom" in {s.tool.key for s in rep.missing_optional}
     assert "headroom" not in {s.tool.key for s in rep.missing_blocking}
