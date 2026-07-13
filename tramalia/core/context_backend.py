@@ -20,7 +20,7 @@ BACKENDS: dict[str, dict[str, str]] = {
     "codegraph": {
         "tool": "codegraph",
         "label": "CodeGraph — grafo pre-indexado con auto-sync",
-        "scope": "Índice SQLite con file-watchers; responde impacto (\"qué rompo si toco X\") en una sola llamada.",
+        "scope": 'Índice SQLite con file-watchers; responde impacto ("qué rompo si toco X") en una sola llamada.',
         "ideal": "Repos grandes en un lenguaje principal (20+ soportados) donde trabajas a diario y quieres la respuesta quirúrgica de inmediato.",
     },
     "codebase-memory-mcp": {
@@ -37,6 +37,7 @@ BACKENDS: dict[str, dict[str, str]] = {
     },
 }
 DEFAULT = "serena"
+
 
 def backend_installed(key: str) -> bool:
     """¿El backend está disponible? Usa la MISMA sonda que doctor (`probe`), para

@@ -27,21 +27,20 @@ class Report:
     @property
     def missing_blocking(self) -> list[Status]:
         # bootstrap y stack bloquean; feature es advertencia
-        return [s for s in self.statuses
-                if not s.present and s.tool.category in ("bootstrap", "stack")]
+        return [
+            s for s in self.statuses if not s.present and s.tool.category in ("bootstrap", "stack")
+        ]
 
     @property
     def missing_optional(self) -> list[Status]:
-        return [s for s in self.statuses
-                if not s.present and s.tool.category == "feature"]
+        return [s for s in self.statuses if not s.present and s.tool.category == "feature"]
 
     @property
     def needs_node(self) -> bool:
         return bool(self.node_tools) and not self.node_present
 
 
-def diagnose(root: Path | None = None,
-             features: tuple[str, ...] | None = None) -> Report:
+def diagnose(root: Path | None = None, features: tuple[str, ...] | None = None) -> Report:
     root = root or Path.cwd()
     stack = detect_stack(root)
     feats = features if features is not None else enabled_features(stack)
@@ -50,12 +49,18 @@ def diagnose(root: Path | None = None,
     node_present = shutil.which("node") is not None
     # PATH de uv: solo es un problema si uv está presente pero su bin no está en PATH
     from tramalia.core import installer
+
     uv_ok = True
     if shutil.which("uv") is not None:
         uv_ok = installer.uv_bin_on_path()
-    return Report(stack=stack, features=feats, statuses=statuses,
-                  node_present=node_present, node_tools=node_tools,
-                  uv_bin_on_path=uv_ok)
+    return Report(
+        stack=stack,
+        features=feats,
+        statuses=statuses,
+        node_present=node_present,
+        node_tools=node_tools,
+        uv_bin_on_path=uv_ok,
+    )
 
 
 def write_snapshot(report: Report, root: Path) -> Path | None:
@@ -67,31 +72,39 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
     """
     import datetime
     import json
+
     from tramalia.core import project as project_core
+
     if not (root / ".tramalia").is_dir():
         return None
     dest = root / ".tramalia" / "context"
     dest.mkdir(parents=True, exist_ok=True)
     data = {
-        "_nota": ("generado por `tramalia doctor` — consúltalo antes de invocar "
-                  "una herramienta externa; si installed=false usa su alternativa "
-                  "o continúa sin ella"),
+        "_nota": (
+            "generado por `tramalia doctor` — consúltalo antes de invocar "
+            "una herramienta externa; si installed=false usa su alternativa "
+            "o continúa sin ella"
+        ),
         "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "stack": report.stack,
         "uv_bin_on_path": report.uv_bin_on_path,
         "context_backend": project_core.context_backend(root),
         "model_cap": project_core.agents_model_cap(root),
         "tools": [
-            {"key": s.tool.key, "cmd": s.tool.cmd, "installed": s.present,
-             "version": s.version, "category": s.tool.category,
-             "feature": s.tool.feature or None,
-             "alternative": None if s.present else s.tool.install_hint}
+            {
+                "key": s.tool.key,
+                "cmd": s.tool.cmd,
+                "installed": s.present,
+                "version": s.version,
+                "category": s.tool.category,
+                "feature": s.tool.feature or None,
+                "alternative": None if s.present else s.tool.install_hint,
+            }
             for s in report.statuses
         ],
     }
     out = dest / "tools.json"
-    out.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-                   encoding="utf-8")
+    out.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return out
 
 

@@ -13,8 +13,20 @@ from tramalia.core import proc
 from tramalia.core.detect import detect_stack
 
 _EXCLUDE = {
-    ".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__",
-    "bin", "obj", ".tramalia", ".idea", ".vs", ".pytest_cache", ".mypy_cache",
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+    "__pycache__",
+    "bin",
+    "obj",
+    ".tramalia",
+    ".idea",
+    ".vs",
+    ".pytest_cache",
+    ".mypy_cache",
 }
 
 
@@ -26,7 +38,11 @@ def _tree(root: Path, max_depth: int = 2) -> str:
             return
         try:
             entries = sorted(
-                [e for e in path.iterdir() if e.name not in _EXCLUDE and not e.name.startswith(".git")],
+                [
+                    e
+                    for e in path.iterdir()
+                    if e.name not in _EXCLUDE and not e.name.startswith(".git")
+                ],
                 key=lambda e: (e.is_file(), e.name.lower()),
             )
         except Exception:
@@ -55,8 +71,7 @@ def build_context(root: Path) -> list[str]:
     results.append("tech-stack.md")
 
     (out / "project-map.md").write_text(
-        "# project-map (generado por tramalia context build)\n\n```\n"
-        + _tree(root) + "\n```\n",
+        "# project-map (generado por tramalia context build)\n\n```\n" + _tree(root) + "\n```\n",
         encoding="utf-8",
     )
     results.append("project-map.md")

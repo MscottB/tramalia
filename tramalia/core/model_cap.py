@@ -35,18 +35,26 @@ ROLE_DEFAULTS: dict[str, str] = {
 # nivel de capacidad legible + equivalencia por proveedor (host sin ruteo nativo).
 # Se evita nombrar modelos concretos de terceros: se usa la CAPACIDAD.
 LEVELS: dict[str, dict[str, str]] = {
-    "fable":  {"level": "profundo (deep)",
-               "codex": "perfil de razonamiento profundo (model_reasoning_effort = high)",
-               "antigravity": "modelo de razonamiento máximo"},
-    "opus":   {"level": "alto (high)",
-               "codex": "model_reasoning_effort = high",
-               "antigravity": "modelo Pro / de alta capacidad"},
-    "sonnet": {"level": "estándar (standard)",
-               "codex": "perfil estándar (model_reasoning_effort = medium)",
-               "antigravity": "modelo estándar (no el de razonamiento profundo)"},
-    "haiku":  {"level": "ligero (light)",
-               "codex": "modelo rápido / model_reasoning_effort = low",
-               "antigravity": "modelo Flash / rápido"},
+    "fable": {
+        "level": "profundo (deep)",
+        "codex": "perfil de razonamiento profundo (model_reasoning_effort = high)",
+        "antigravity": "modelo de razonamiento máximo",
+    },
+    "opus": {
+        "level": "alto (high)",
+        "codex": "model_reasoning_effort = high",
+        "antigravity": "modelo Pro / de alta capacidad",
+    },
+    "sonnet": {
+        "level": "estándar (standard)",
+        "codex": "perfil estándar (model_reasoning_effort = medium)",
+        "antigravity": "modelo estándar (no el de razonamiento profundo)",
+    },
+    "haiku": {
+        "level": "ligero (light)",
+        "codex": "modelo rápido / model_reasoning_effort = low",
+        "antigravity": "modelo Flash / rápido",
+    },
 }
 
 

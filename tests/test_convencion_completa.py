@@ -9,9 +9,11 @@ from tramalia.core.scaffold import build_mcp_json, scaffold
 
 def _init(tmp_path, **extra):
     answers = {
-        "project_name": "demo", "stacks": ["node"],
+        "project_name": "demo",
+        "stacks": ["node"],
         "features": enabled_features(["node"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
+        "primary_agent": "codex",
+        "reviewer_agent": "claude",
     }
     answers.update(extra)
     return scaffold(tmp_path, answers)
@@ -60,7 +62,7 @@ def test_agents_md_referencia_skills_y_02(tmp_path):
 def test_ponytail_declarado_en_skills_toml(tmp_path):
     _init(tmp_path)
     texto = (tmp_path / ".tramalia" / "skills.toml").read_text(encoding="utf-8")
-    assert '[[skill]]' in texto and 'name   = "ponytail"' in texto
+    assert "[[skill]]" in texto and 'name   = "ponytail"' in texto
 
 
 def test_init_con_ponytail_agrega_mcp(tmp_path):

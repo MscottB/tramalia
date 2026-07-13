@@ -82,3 +82,12 @@ markers = [
     "opcional: requiere extras TUI o MCP",
     "publicacion: wheel, metadata y smoke de release",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["site", ".worktrees"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # El formateador aplica 100 columnas; no rompe URLs ni mensajes largos.

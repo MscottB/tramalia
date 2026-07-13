@@ -12,6 +12,7 @@ def _tool(key):
 def test_header_muestra_version(capsys):
     from tramalia import __version__
     from tramalia.cli import render
+
     render.set_plain(True)
     render.header("demo", ["python"], True)
     out = capsys.readouterr().out
@@ -21,9 +22,11 @@ def test_header_muestra_version(capsys):
 
 def test_tui_title_incluye_version():
     import pytest
+
     pytest.importorskip("textual")
     from tramalia import __version__
     from tramalia.tui import build_app
+
     assert build_app().TITLE == f"Tramalia v{__version__}"
 
 
@@ -41,8 +44,7 @@ def test_engram_bloqueado_por_go_si_falta(monkeypatch):
 
 
 def test_engram_no_bloqueado_si_go_presente(monkeypatch):
-    monkeypatch.setattr(installer.shutil, "which",
-                        lambda n: "C:/x/go.exe" if n == "go" else None)
+    monkeypatch.setattr(installer.shutil, "which", lambda n: "C:/x/go.exe" if n == "go" else None)
     assert installer.blocking_runtime(_tool("engram"), os_name="windows") is None
 
 
@@ -54,8 +56,9 @@ def test_runtime_install_option_para_go():
 # ---------------------------------------------------------------- plan_for
 def test_plan_for_ofrece_el_runtime_que_desbloquea(monkeypatch):
     # solo winget presente (para instalar Go); go/npm ausentes
-    monkeypatch.setattr(installer.shutil, "which",
-                        lambda n: "C:/w/winget.exe" if n == "winget" else None)
+    monkeypatch.setattr(
+        installer.shutil, "which", lambda n: "C:/w/winget.exe" if n == "winget" else None
+    )
     monkeypatch.setattr(installer, "current_os", lambda: "windows")
     auto, manual, offers = installer.plan_for([_tool("engram")])
     # engram no es auto (falta go), aparece en manual con su runtime

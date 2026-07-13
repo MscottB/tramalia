@@ -44,7 +44,9 @@ def test_detecta_next_nest_tailwind(tmp_path):
 def test_detecta_sqlserver_por_csproj(tmp_path):
     (tmp_path / "Api.csproj").write_text(
         '<Project><ItemGroup><PackageReference Include="Microsoft.Data.SqlClient"/>'
-        "</ItemGroup></Project>", encoding="utf-8")
+        "</ItemGroup></Project>",
+        encoding="utf-8",
+    )
     stack = detect_stack(tmp_path)
     assert "sqlserver" in stack and "dotnet" in stack
     assert "database" in enabled_features(stack)
@@ -69,14 +71,21 @@ def test_sqlfluff_multimotor_comenta_secundario():
     # el stack real del usuario: Postgres + SQL Server en el mismo repo.
     # Prioridad databricks > sqlserver(tsql) > postgres: aquí primario tsql.
     out = build_sqlfluff({"stacks": ["postgres", "sqlserver"]})
-    assert "dialect = tsql" in out              # primario (SQL Server)
-    assert "postgres" in out                    # guía para el secundario
+    assert "dialect = tsql" in out  # primario (SQL Server)
+    assert "postgres" in out  # guía para el secundario
 
 
 def test_init_genera_sqlfluff_para_stack_sql(tmp_path):
-    scaffold(tmp_path, {"project_name": "d", "stacks": ["dotnet", "postgres"],
-                        "features": enabled_features(["dotnet", "postgres"]),
-                        "primary_agent": "codex", "reviewer_agent": "claude"})
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "d",
+            "stacks": ["dotnet", "postgres"],
+            "features": enabled_features(["dotnet", "postgres"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     assert (tmp_path / ".sqlfluff").is_file()
 
 

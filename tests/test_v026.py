@@ -10,11 +10,16 @@ DOCS = Path(__file__).resolve().parents[1] / "docs"
 
 
 def _init(tmp_path, stacks=("python",)):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": list(stacks),
-        "features": enabled_features(list(stacks)),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": list(stacks),
+            "features": enabled_features(list(stacks)),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     return tmp_path
 
 
@@ -31,8 +36,10 @@ def test_01_arquitectura_default_es_simple_no_ddd(tmp_path):
     root = _init(tmp_path)
     texto = (root / "docs" / "ai" / "01-arquitectura.md").read_text(encoding="utf-8")
     assert "el más simple que resuelva la tarea" in texto
-    assert "no asumas DDD/Hexagonal por defecto" in texto.lower() or \
-           "no asumas ddd/hexagonal por defecto" in texto.lower()
+    assert (
+        "no asumas DDD/Hexagonal por defecto" in texto.lower()
+        or "no asumas ddd/hexagonal por defecto" in texto.lower()
+    )
 
 
 def test_reglas_dependencia_condicionada_al_estilo(tmp_path):
@@ -40,7 +47,7 @@ def test_reglas_dependencia_condicionada_al_estilo(tmp_path):
     texto = (root / "docs" / "ai" / "01-arquitectura.md").read_text(encoding="utf-8")
     # la regla de dependencia (hexagonal/DDD-flavored) ya no aplica a todo proyecto
     idx = texto.index("Reglas de dependencia")
-    bloque = texto[idx:idx + 300]
+    bloque = texto[idx : idx + 300]
     assert "solo si el estilo declarado es" in bloque.lower()
 
 
@@ -51,7 +58,7 @@ def test_dos_stacks_distintos_no_cambian_el_estilo_sugerido(tmp_path, tmp_path_f
     b = _init(tmp_path_factory.mktemp("b"), stacks=("angular", "dotnet", "postgres"))
     ta = (a / "docs" / "ai" / "01-arquitectura.md").read_text(encoding="utf-8")
     tb = (b / "docs" / "ai" / "01-arquitectura.md").read_text(encoding="utf-8")
-    assert ta == tb   # archivo estático: idéntico sin importar el stack detectado
+    assert ta == tb  # archivo estático: idéntico sin importar el stack detectado
 
 
 # ---------------------------------------------------------------- AGENTS.md guardrail
@@ -70,11 +77,17 @@ def test_adopt_no_reescribe_01_arquitectura_existente(tmp_path):
     ai.mkdir(parents=True)
     propio = "# 01 — Arquitectura\n\nTexto propio del equipo, sin la sección nueva.\n"
     (ai / "01-arquitectura.md").write_text(propio, encoding="utf-8")
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": ["python"],
-        "features": enabled_features(["python"]),
-        "primary_agent": "codex", "reviewer_agent": "claude", "adopt": True,
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": ["python"],
+            "features": enabled_features(["python"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+            "adopt": True,
+        },
+    )
     assert (ai / "01-arquitectura.md").read_text(encoding="utf-8") == propio
 
 

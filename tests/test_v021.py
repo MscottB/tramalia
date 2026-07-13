@@ -9,11 +9,16 @@ from tramalia.core.skills import add_skill, catalog
 
 
 def _init(tmp_path):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": ["python"],
-        "features": enabled_features(["python"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": ["python"],
+            "features": enabled_features(["python"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     return tmp_path
 
 

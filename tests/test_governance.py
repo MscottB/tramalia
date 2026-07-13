@@ -5,11 +5,16 @@ from tramalia.core.scaffold import scaffold
 
 def _init(tmp_path):
     (tmp_path / "package.json").write_text("{}", encoding="utf-8")
-    scaffold(tmp_path, {
-        "project_name": "d", "stacks": ["node"],
-        "features": enabled_features(["node"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "d",
+            "stacks": ["node"],
+            "features": enabled_features(["node"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
 
 
 def test_gate_tasks_parsed_from_mise(tmp_path):

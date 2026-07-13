@@ -10,7 +10,6 @@ directorio aparte — el sitio en vivo nunca se toca.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -26,7 +25,9 @@ def main() -> int:
     text = CONFIG.read_text(encoding="utf-8")
     marker = "plugins:\n  - search\n"
     if marker not in text:
-        print("no se encontró el bloque 'plugins: - search' esperado en mkdocs.yml", file=sys.stderr)
+        print(
+            "no se encontró el bloque 'plugins: - search' esperado en mkdocs.yml", file=sys.stderr
+        )
         return 1
     patched = text.replace(marker, marker + "  - offline\n", 1)
 
@@ -38,8 +39,17 @@ def main() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             site_dir = Path(tmp) / "site-offline"
             cp = subprocess.run(
-                [sys.executable, "-m", "mkdocs", "build", "--strict",
-                 "-f", str(tmp_config), "-d", str(site_dir)],
+                [
+                    sys.executable,
+                    "-m",
+                    "mkdocs",
+                    "build",
+                    "--strict",
+                    "-f",
+                    str(tmp_config),
+                    "-d",
+                    str(site_dir),
+                ],
                 cwd=ROOT,
             )
             if cp.returncode != 0:

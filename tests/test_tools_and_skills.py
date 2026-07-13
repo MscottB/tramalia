@@ -1,5 +1,5 @@
-from tramalia.core.tools import relevant_tools
 from tramalia.core.skills import read_skills, sync_skills
+from tramalia.core.tools import relevant_tools
 
 
 def test_bootstrap_tools_always_present():

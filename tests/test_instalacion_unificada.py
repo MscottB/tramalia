@@ -32,6 +32,7 @@ def test_oferta_sin_tty_no_pregunta(capsys):
 
 def test_oferta_rechazada_no_instala(monkeypatch):
     import sys
+
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr(commands.menu, "ask_text", lambda *a, **k: "n")
@@ -44,6 +45,7 @@ def test_oferta_rechazada_no_instala(monkeypatch):
 def test_oferta_aceptada_instala(monkeypatch):
     import subprocess
     import sys
+
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     monkeypatch.setattr(commands.menu, "ask_text", lambda *a, **k: "s")

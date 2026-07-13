@@ -18,20 +18,25 @@ from tramalia.core.scaffold import scaffold
 
 
 def _init(tmp_path):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": ["python"],
-        "features": enabled_features(["python"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": ["python"],
+            "features": enabled_features(["python"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     return tmp_path
 
 
 # ---------------------------------------------------------------- detección
 def test_serena_efimera_cuenta_como_instalada(monkeypatch):
     import tramalia.core.tools as tools_mod
+
     # serena no está como binario, pero uv sí → corre vía uvx → instalada
-    monkeypatch.setattr(tools_mod.shutil, "which",
-                        lambda c: "uv" if c == "uv" else None)
+    monkeypatch.setattr(tools_mod.shutil, "which", lambda c: "uv" if c == "uv" else None)
     monkeypatch.setattr(tools_mod, "_uv_has", lambda c: False)
     monkeypatch.setattr(tools_mod, "_go_has", lambda c: False)
     assert backend_installed("serena") is True
@@ -39,6 +44,7 @@ def test_serena_efimera_cuenta_como_instalada(monkeypatch):
 
 def test_serena_sin_uv_no_esta(monkeypatch):
     import tramalia.core.tools as tools_mod
+
     monkeypatch.setattr(tools_mod.shutil, "which", lambda c: None)
     monkeypatch.setattr(tools_mod, "_uv_has", lambda c: False)
     monkeypatch.setattr(tools_mod, "_go_has", lambda c: False)
@@ -53,18 +59,20 @@ def test_backend_desconocido_no_revienta():
 def test_esc_cierra_panel_backend(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     from textual.screen import ModalScreen
+
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
     from tramalia.tui import build_app
+
     app = build_app()()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app.action_context_backend()          # tecla b: abre el modal
+            app.action_context_backend()  # tecla b: abre el modal
             await pilot.pause()
             assert isinstance(app.screen, ModalScreen)
-            await pilot.press("escape")            # debe cerrarlo (antes no)
+            await pilot.press("escape")  # debe cerrarlo (antes no)
             await pilot.pause()
             assert not isinstance(app.screen, ModalScreen)
             assert project.context_backend(tmp_path) == "serena"  # cancelar no cambia
@@ -79,20 +87,20 @@ def test_elegir_backend_no_instalado_lo_fija_igual(tmp_path, monkeypatch):
     _init(tmp_path)
     # simulamos que codegraph NO está instalado
     import tramalia.core.context_backend as cb
-    monkeypatch.setattr(cb, "backend_installed",
-                        lambda k: k != "codegraph")
+
+    monkeypatch.setattr(cb, "backend_installed", lambda k: k != "codegraph")
     from tramalia.tui import build_app
+
     app = build_app()()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app._on_backend_chosen("codegraph")    # no instalado → se fija con aviso
+            app._on_backend_chosen("codegraph")  # no instalado → se fija con aviso
             await pilot.pause()
             # es una preferencia de proyecto: se persiste aunque no esté instalado
             assert project.context_backend(tmp_path) == "codegraph"
-            data = json.loads((tmp_path / ".tramalia" / "config.json")
-                              .read_text(encoding="utf-8"))
+            data = json.loads((tmp_path / ".tramalia" / "config.json").read_text(encoding="utf-8"))
             assert data["context"]["backend"] == "codegraph"
 
     asyncio.run(run())

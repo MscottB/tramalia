@@ -11,11 +11,12 @@ from tramalia.core.doctor import Report
 _PLAIN = False
 
 try:  # modo bonito opcional
-    from rich.console import Console
-    from rich.table import Table
-    from rich.panel import Panel
     from rich import box
-    _console: "Console | None" = Console()
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    _console: Console | None = Console()
     _HAS_RICH = True
 except Exception:  # pragma: no cover - fallback stdlib
     _console = None
@@ -33,14 +34,19 @@ def _rich() -> bool:
 
 def header(project: str, stack: list[str], initialized: bool) -> None:
     from tramalia import __version__
+
     estado = "inicializado" if initialized else "no inicializado"
     stack_txt = " · ".join(stack) if stack else "—"
     if _rich():
-        _console.print(Panel(
-            f"proyecto [bold]{project}[/bold]   stack [bold]{stack_txt}[/bold]   "
-            f"estado [{'green' if initialized else 'yellow'}]{estado}[/]",
-            title=f"Tramalia v{__version__}", border_style="cyan", box=box.ROUNDED,
-        ))
+        _console.print(
+            Panel(
+                f"proyecto [bold]{project}[/bold]   stack [bold]{stack_txt}[/bold]   "
+                f"estado [{'green' if initialized else 'yellow'}]{estado}[/]",
+                title=f"Tramalia v{__version__}",
+                border_style="cyan",
+                box=box.ROUNDED,
+            )
+        )
     else:
         print("=" * 60)
         print(f"Tramalia v{__version__} · proyecto {project} · stack {stack_txt} · {estado}")
@@ -49,12 +55,28 @@ def header(project: str, stack: list[str], initialized: bool) -> None:
 
 # los "feature" se subdividen por dominio para saber qué es contexto/memoria/etc.
 _FEATURE_GROUP = {
-    "context": "context", "memory": "memory", "security": "security",
-    "database": "database", "ux": "ux", "databricks": "analytics",
-    "init": "convention", "sync": "convention", "specs": "convention",
+    "context": "context",
+    "memory": "memory",
+    "security": "security",
+    "database": "database",
+    "ux": "ux",
+    "databricks": "analytics",
+    "init": "convention",
+    "sync": "convention",
+    "specs": "convention",
 }
-GROUP_ORDER = ("bootstrap", "stack", "context", "memory", "security",
-               "database", "ux", "analytics", "convention", "agent")
+GROUP_ORDER = (
+    "bootstrap",
+    "stack",
+    "context",
+    "memory",
+    "security",
+    "database",
+    "ux",
+    "analytics",
+    "convention",
+    "agent",
+)
 
 
 def group_of(tool) -> str:
@@ -76,6 +98,7 @@ def group_statuses(statuses) -> list[tuple[str, list]]:
 def _hint_for(tool) -> str:
     """La mejor sugerencia de instalación para ESTE sistema (no un hint fijo)."""
     from tramalia.core import installer
+
     best = installer.best_auto(tool)
     if best:
         return best.display
@@ -86,6 +109,7 @@ def _hint_for(tool) -> str:
 def _runtime_note(tool, plain: bool = False) -> str:
     """Si automatizar la tool requiere un runtime ausente (Node/Go), avisarlo."""
     from tramalia.core import installer
+
     rt = installer.blocking_runtime(tool)
     if not rt:
         return ""
@@ -103,8 +127,11 @@ def doctor(report: Report) -> int:
     def fila(s):
         if s.present:
             return t("tui.status.ok"), (s.version or "—")
-        estado = (t("tui.status.optional") if s.tool.category in ("feature", "agent")
-                  else t("tui.status.missing"))
+        estado = (
+            t("tui.status.optional")
+            if s.tool.category in ("feature", "agent")
+            else t("tui.status.missing")
+        )
         return estado, _hint_for(s.tool)
 
     if _rich():
@@ -128,9 +155,13 @@ def doctor(report: Report) -> int:
             print(f"\n-- {t('doctor.group.' + cat)} " + "-" * 40)
             for s in rows:
                 _, detalle = fila(s)
-                estado = ("instalada" if s.present else
-                          "no-inst(opc)" if s.tool.category in ("feature", "agent")
-                          else "NO INSTALADA")
+                estado = (
+                    "instalada"
+                    if s.present
+                    else "no-inst(opc)"
+                    if s.tool.category in ("feature", "agent")
+                    else "NO INSTALADA"
+                )
                 if not s.present:
                     detalle += _runtime_note(s.tool, plain=True)
                 print(f"{s.tool.cmd:<13}{estado:<14}{s.tool.role} — {detalle}")

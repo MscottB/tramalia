@@ -2,8 +2,14 @@ from tramalia.core.evidence import build_evidence
 from tramalia.core.handoff import new_handoff
 
 _EXPECTED = [
-    "summary.md", "files-changed.md", "commands.md", "risks.md",
-    "rollback.md", "next-steps.md", "ux-output.txt", "security-output.txt",
+    "summary.md",
+    "files-changed.md",
+    "commands.md",
+    "risks.md",
+    "rollback.md",
+    "next-steps.md",
+    "ux-output.txt",
+    "security-output.txt",
 ]
 
 

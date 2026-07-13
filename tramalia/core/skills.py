@@ -90,8 +90,7 @@ def set_enabled(root: Path, name: str, enabled: bool) -> bool:
             if currently == enabled:
                 return True  # ya está como se pide
             for k in range(start, j):
-                lines[k] = (re.sub(r"^#\s?", "", lines[k]) if enabled
-                            else "# " + lines[k])
+                lines[k] = re.sub(r"^#\s?", "", lines[k]) if enabled else "# " + lines[k]
             f.write_text("\n".join(lines) + "\n", encoding="utf-8")
             return True
         i = j
@@ -156,7 +155,7 @@ def ensure_skills_gitignore(root: Path) -> str:
     text = f.read_text(encoding="utf-8")
     if _GITIGNORE_START in text and _GITIGNORE_END in text:
         pre = text[: text.index(_GITIGNORE_START)]
-        post = text[text.index(_GITIGNORE_END) + len(_GITIGNORE_END):]
+        post = text[text.index(_GITIGNORE_END) + len(_GITIGNORE_END) :]
         new = pre + block.rstrip("\n") + post
         if new != text:
             f.write_text(new, encoding="utf-8")
@@ -174,8 +173,12 @@ def tracked_external_skills(root: Path) -> list[str]:
     if shutil.which("git") is None:
         return []
     try:
-        cp = subprocess.run(["git", "-C", str(root), "ls-files", ".tramalia/skills"],
-                            capture_output=True, text=True, timeout=15)
+        cp = subprocess.run(
+            ["git", "-C", str(root), "ls-files", ".tramalia/skills"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
     except Exception:
         return []
     names: set[str] = set()
@@ -237,8 +240,12 @@ def sync_skills(root: Path, only: str | None = None) -> list[tuple[str, str]]:
         dest = base / name
         try:
             if dest.exists():
-                subprocess.run(["git", "-C", str(dest), "pull", "--ff-only"],
-                               capture_output=True, text=True, timeout=120)
+                subprocess.run(
+                    ["git", "-C", str(dest), "pull", "--ff-only"],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
                 results.append((name, "actualizada"))
             else:
                 cmd = ["git", "clone", "--depth", "1"]
@@ -258,8 +265,12 @@ def _full_installed(root: Path, name: str) -> str | None:
     if not (dest / ".git").exists():
         return None
     try:
-        cp = subprocess.run(["git", "-C", str(dest), "rev-parse", "HEAD"],
-                            capture_output=True, text=True, timeout=10)
+        cp = subprocess.run(
+            ["git", "-C", str(dest), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
         return cp.stdout.strip() if cp.returncode == 0 else None
     except Exception:
         return None
@@ -271,8 +282,9 @@ def _full_remote(source: str, ref: str | None) -> str | None:
     if shutil.which("git") is None or not src:
         return None
     try:
-        cp = subprocess.run(["git", "ls-remote", src, ref or "HEAD"],
-                            capture_output=True, text=True, timeout=20)
+        cp = subprocess.run(
+            ["git", "ls-remote", src, ref or "HEAD"], capture_output=True, text=True, timeout=20
+        )
         if cp.returncode == 0 and cp.stdout.strip():
             return cp.stdout.split()[0]
     except Exception:
@@ -305,7 +317,6 @@ def external_status(root: Path, check_remote: bool = False) -> list[dict]:
             if check_remote:
                 full_remote = _full_remote(s["source"], s.get("ref"))
                 d["available_ref"] = full_remote[:7] if full_remote else None
-                d["update"] = bool(full_local and full_remote
-                                   and full_local != full_remote)
+                d["update"] = bool(full_local and full_remote and full_local != full_remote)
         out.append(d)
     return out

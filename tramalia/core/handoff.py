@@ -11,9 +11,9 @@ _HEADER = (
 )
 
 
-def new_handoff(root: Path, task: str = "TASK-000",
-                agent: str = "", reviewer: str = "",
-                evidence_ref: str = "") -> Path:
+def new_handoff(
+    root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "", evidence_ref: str = ""
+) -> Path:
     path = root / "docs" / "ai" / "07-handoff-agentes.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():

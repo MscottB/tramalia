@@ -17,11 +17,16 @@ _AGENTES_ESPERADOS = {
 
 
 def _init(tmp_path):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": ["node"],
-        "features": enabled_features(["node"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": ["node"],
+            "features": enabled_features(["node"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
 
 
 def _frontmatter_model(texto: str) -> str:

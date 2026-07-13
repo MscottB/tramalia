@@ -17,11 +17,16 @@ def _tool(key):
 
 
 def _init(tmp_path):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": ["python"],
-        "features": enabled_features(["python"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": ["python"],
+            "features": enabled_features(["python"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     return tmp_path
 
 
@@ -35,7 +40,7 @@ def test_codegraph_automatizable_via_npm():
 
 def test_antigravity_cmd_es_agy_no_antigravity():
     tool = _tool("antigravity")
-    assert tool.cmd == "agy"          # el binario real en PATH
+    assert tool.cmd == "agy"  # el binario real en PATH
     assert tool.key == "antigravity"  # la key no cambia (no rompe otros usos)
 
 
@@ -65,7 +70,7 @@ def test_default_backend_es_serena():
     # repomix/markitdown son utilidades, no compiten por el backend
     assert set(UTILITIES) == {"repomix", "markitdown"}
     for meta in {**BACKENDS, **UTILITIES}.values():
-        assert meta["scope"] and meta["ideal"]   # explicación siempre presente
+        assert meta["scope"] and meta["ideal"]  # explicación siempre presente
 
 
 def test_project_context_backend_default_sin_config(tmp_path):
@@ -98,6 +103,7 @@ def test_set_context_backend_persiste_en_config_json(tmp_path):
 # ---------------------------------------------------------------- tools.json
 def test_tools_json_incluye_context_backend(tmp_path):
     from tramalia.core.doctor import diagnose, write_snapshot
+
     _init(tmp_path)
     project.set_context_backend(tmp_path, "codebase-memory-mcp")
     out = write_snapshot(diagnose(tmp_path), tmp_path)
@@ -116,7 +122,9 @@ def test_agents_md_declara_backend_activo(tmp_path):
 # ---------------------------------------------------------------- CLI
 def test_cli_context_set_y_list(tmp_path, monkeypatch, capsys):
     import sys
+
     from tramalia.__main__ import main
+
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
 
@@ -132,7 +140,9 @@ def test_cli_context_set_y_list(tmp_path, monkeypatch, capsys):
 
 def test_cli_context_set_invalido_exit_1(tmp_path, monkeypatch):
     import sys
+
     from tramalia.__main__ import main
+
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
     monkeypatch.setattr(sys, "argv", ["tramalia", "--plain", "context", "set", "loquesea"])
@@ -145,12 +155,13 @@ def test_tui_backend_screen_fija_config(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
     from tramalia.tui import build_app
+
     app = build_app()()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app.action_context_backend()      # tecla b
+            app.action_context_backend()  # tecla b
             await pilot.pause()
             app._on_backend_chosen("codegraph")
             await pilot.pause()
@@ -164,12 +175,13 @@ def test_tui_backend_screen_cancelar_no_cambia_nada(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
     from tramalia.tui import build_app
+
     app = build_app()()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app._on_backend_chosen(None)      # cancelar
+            app._on_backend_chosen(None)  # cancelar
             await pilot.pause()
             assert project.context_backend(tmp_path) == "serena"
 

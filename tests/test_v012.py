@@ -38,10 +38,17 @@ def test_env_manda_sobre_locale(monkeypatch):
 # ---------------------------------------------------------------- guard init
 def test_close_bloqueado_sin_init(tmp_path, monkeypatch):
     from tramalia.cli import commands
+
     monkeypatch.chdir(tmp_path)
-    args = argparse.Namespace(task_pos="TASK-1", task=None, agent=None,
-                              reviewer=None, model=None, allow_fail=False,
-                              engram=False)
+    args = argparse.Namespace(
+        task_pos="TASK-1",
+        task=None,
+        agent=None,
+        reviewer=None,
+        model=None,
+        allow_fail=False,
+        engram=False,
+    )
     assert commands.cmd_close(args) == 1
     assert not (tmp_path / ".tramalia" / "evidence").exists()
 
@@ -54,11 +61,16 @@ def test_is_initialized(tmp_path):
 
 # ---------------------------------------------------------------- tareas
 def _init(tmp_path, stacks):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": stacks,
-        "features": enabled_features(stacks),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": stacks,
+            "features": enabled_features(stacks),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
 
 
 def test_tasks_template_con_horizonte(tmp_path):
@@ -72,7 +84,8 @@ def test_task_description_extrae_seccion(tmp_path):
     (tmp_path / "specs").mkdir()
     (tmp_path / "specs" / "tasks.md").write_text(
         "# Tasks\n\n## TASK-001 — Login\n- Alcance: pantalla\n\n## TASK-002 — Otro\n- x\n",
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     desc = task_description(tmp_path, "TASK-001")
     assert desc and "Login" in desc and "TASK-002" not in desc
     assert task_description(tmp_path, "TASK-999") is None

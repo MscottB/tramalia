@@ -24,8 +24,7 @@ def task_description(root: Path, task_id: str) -> str | None:
     if not f.exists() or not task_id:
         return None
     text = f.read_text(encoding="utf-8")
-    m = re.search(rf"^##\s+{re.escape(task_id)}\b.*?(?=^##\s|\Z)", text,
-                  flags=re.M | re.S)
+    m = re.search(rf"^##\s+{re.escape(task_id)}\b.*?(?=^##\s|\Z)", text, flags=re.M | re.S)
     return m.group(0).strip() if m else None
 
 
@@ -49,6 +48,7 @@ def context_backend(root: Path) -> str:
     """Backend de navegación de código ACTIVO para este proyecto
     (config.json → context.backend). Default: serena (sin huella ni indexado)."""
     from tramalia.core.context_backend import DEFAULT
+
     ctx = read_config(root).get("context", {})
     return str(ctx.get("backend") or DEFAULT)
 
@@ -57,6 +57,7 @@ def set_context_backend(root: Path, name: str) -> bool:
     """Fija el backend de contexto en config.json. False si el nombre no es
     válido o si el proyecto no está inicializado (sin config.json)."""
     from tramalia.core.context_backend import BACKENDS
+
     if name not in BACKENDS:
         return False
     f = root / ".tramalia" / "config.json"
@@ -80,6 +81,7 @@ def set_agents_model_cap(root: Path, cap: str) -> bool:
     """Fija el tope de modelos en config.json. False si el valor no es válido o si
     el proyecto no está inicializado (sin config.json)."""
     from tramalia.core.model_cap import CAPS
+
     if cap not in (*CAPS, "none"):
         return False
     f = root / ".tramalia" / "config.json"
@@ -126,9 +128,14 @@ def current_task_id(root: Path) -> str | None:
     return value.split()[0]
 
 
-def resolve_close_args(root: Path, task_pos: str | None, task_flag: str | None,
-                       agent: str | None, reviewer: str | None,
-                       ask=None) -> tuple[str, str, str]:
+def resolve_close_args(
+    root: Path,
+    task_pos: str | None,
+    task_flag: str | None,
+    agent: str | None,
+    reviewer: str | None,
+    ask=None,
+) -> tuple[str, str, str]:
     """Resuelve (tarea, agente, revisor) aplicando la cadena de defaults.
 
     `ask` es un callable opcional (prompt interactivo) usado solo si no hay

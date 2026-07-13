@@ -10,18 +10,25 @@ from tramalia.core.scaffold import build_mcp_json, scaffold
 
 def _init(tmp_path):
     (tmp_path / "package.json").write_text("{}", encoding="utf-8")
-    scaffold(tmp_path, {
-        "project_name": "d", "stacks": ["node"],
-        "features": enabled_features(["node"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "d",
+            "stacks": ["node"],
+            "features": enabled_features(["node"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
 
 
 def test_doctor_clasifica_headroom_como_opcional(tmp_path, monkeypatch):
     import tramalia.core.tools as tools_mod
+
     real_which = tools_mod.shutil.which
-    monkeypatch.setattr(tools_mod.shutil, "which",
-                        lambda c: None if c == "headroom" else real_which(c))
+    monkeypatch.setattr(
+        tools_mod.shutil, "which", lambda c: None if c == "headroom" else real_which(c)
+    )
     # hermético: headroom no debe verse "presente" por estar en ~/.local/bin o ~/go/bin
     # del equipo que corre los tests (las sondas de filesystem no dependen de `which`).
     monkeypatch.setattr(tools_mod, "_uv_has", lambda c: False)
@@ -44,8 +51,9 @@ def test_init_con_headroom_agrega_mcp(tmp_path):
 def test_close_conserva_salidas_crudas(tmp_path, monkeypatch):
     """El moat: close guarda el output CRUDO de los gates, sin reemplazarlo por comprimido."""
     _init(tmp_path)
-    monkeypatch.setattr(governance, "run_gates",
-                        lambda root: ([("build", 0, "LOG CRUDO DEL BUILD")], True))
+    monkeypatch.setattr(
+        governance, "run_gates", lambda root: ([("build", 0, "LOG CRUDO DEL BUILD")], True)
+    )
     res = governance.close(tmp_path, "TASK-1")
     crudo = (res.evidence_dir / "build-output.txt").read_text(encoding="utf-8")
     assert "LOG CRUDO DEL BUILD" in crudo

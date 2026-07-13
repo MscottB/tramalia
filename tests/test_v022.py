@@ -16,14 +16,18 @@ def test_features_se_reparten_por_dominio():
     assert group_of(_tool("semgrep")) == "security"
     assert group_of(_tool("sqlfluff")) == "database"
     assert group_of(_tool("databricks")) == "analytics"
-    assert group_of(_tool("rulesync")) == "convention"   # feature=sync
+    assert group_of(_tool("rulesync")) == "convention"  # feature=sync
     assert group_of(_tool("claude")) == "agent"
     assert group_of(_tool("mise")) == "bootstrap"
 
 
 def test_grupos_respetan_orden():
-    st = [Status(_tool("databricks"), False), Status(_tool("engram"), False),
-          Status(_tool("mise"), True), Status(_tool("serena"), False)]
+    st = [
+        Status(_tool("databricks"), False),
+        Status(_tool("engram"), False),
+        Status(_tool("mise"), True),
+        Status(_tool("serena"), False),
+    ]
     grupos = [g for g, _ in group_statuses(st)]
     assert grupos == ["bootstrap", "context", "memory", "analytics"]
 
@@ -36,12 +40,14 @@ def test_engram_instalable_en_mac_y_en_windows_con_go():
     win = installer.options_for(_tool("engram"), os_name="windows")
     go = next(o for o in win if o.method == "go")
     assert go.auto and go.requires == "go" and "engram" in go.args[2]
-    assert any(not o.auto for o in win)                   # respaldo manual visible
+    assert any(not o.auto for o in win)  # respaldo manual visible
 
 
 def test_probe_detecta_engram_instalado_por_go(tmp_path, monkeypatch):
     import pathlib
+
     from tramalia.core import tools
+
     (tmp_path / "go" / "bin").mkdir(parents=True)
     (tmp_path / "go" / "bin" / "engram.exe").write_bytes(b"")
     monkeypatch.delenv("GOPATH", raising=False)

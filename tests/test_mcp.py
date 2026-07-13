@@ -7,8 +7,14 @@ pytest.importorskip("mcp")
 from tramalia.mcp_server import build_server
 
 _EXPECTED = {
-    "project_status", "get_agent_rules", "get_failed_attempts", "get_current_task",
-    "doctor", "record_handoff", "build_evidence", "build_context",
+    "project_status",
+    "get_agent_rules",
+    "get_failed_attempts",
+    "get_current_task",
+    "doctor",
+    "record_handoff",
+    "build_evidence",
+    "build_context",
 }
 
 

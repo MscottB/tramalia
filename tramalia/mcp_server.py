@@ -62,7 +62,9 @@ def build_server():
         lines = [f"stack: {', '.join(report.stack) or '—'}"]
         for s in report.statuses:
             mark = "OK" if s.present else ("opcional" if s.tool.category == "feature" else "FALTA")
-            lines.append(f"  [{mark}] {s.tool.cmd} ({s.tool.category}) — {s.version or s.tool.install_hint}")
+            lines.append(
+                f"  [{mark}] {s.tool.cmd} ({s.tool.category}) — {s.version or s.tool.install_hint}"
+            )
         return "\n".join(lines)
 
     @server.tool()

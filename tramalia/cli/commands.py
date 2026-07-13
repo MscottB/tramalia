@@ -31,6 +31,7 @@ def _run(cmd: list[str]) -> int:
 
 # --------------------------------------------------------------------------- #
 
+
 def cmd_doctor(args) -> int:
     report = doctor_core.diagnose(Path.cwd())
     # snapshot para los agentes: qué está instalado (AGENTS.md les dice leerlo)
@@ -40,14 +41,14 @@ def cmd_doctor(args) -> int:
         return code
     from tramalia.core import installer
     from tramalia.i18n import t
+
     faltantes = [s.tool for s in report.statuses if not s.present]
     auto, manual, runtime_offers = installer.plan_for(faltantes)
     # plans: [(label, opt)] — automatizables + runtimes que desbloquean otras tools
     plans = list(auto)
     for name, opt, enables in runtime_offers:
         plans.append((t("tui.install.runtime", rt=name, tools=", ".join(enables)), opt))
-    bloqueadas = [f"{cmd} → {installer._RUNTIME_NAME.get(rt, rt)}"
-                  for cmd, _d, rt in manual if rt]
+    bloqueadas = [f"{cmd} → {installer._RUNTIME_NAME.get(rt, rt)}" for cmd, _d, rt in manual if rt]
     manuales_puras = [cmd for cmd, _d, rt in manual if not rt]
     if bloqueadas:
         render.info(t("doctor.fix.needsruntime", items=", ".join(bloqueadas)))
@@ -55,18 +56,21 @@ def cmd_doctor(args) -> int:
         render.info(t("doctor.fix.manual", names=", ".join(manuales_puras)))
     if not plans:
         return code
-    render.info(t("doctor.fix.plan",
-                  names=", ".join(f"{lbl} ({opt.method})" for lbl, opt in plans)))
+    render.info(
+        t("doctor.fix.plan", names=", ".join(f"{lbl} ({opt.method})" for lbl, opt in plans))
+    )
     # selección múltiple si hay terminal + questionary; si no, todas las auto.
     elegidas = plans
     if sys.stdin.isatty() and sys.stdout.isatty():
         try:
             import questionary
+
             marcadas = questionary.checkbox(
                 t("doctor.fix.pick"),
-                choices=[questionary.Choice(f"{lbl} — {opt.display}",
-                                            value=i, checked=True)
-                         for i, (lbl, opt) in enumerate(plans)],
+                choices=[
+                    questionary.Choice(f"{lbl} — {opt.display}", value=i, checked=True)
+                    for i, (lbl, opt) in enumerate(plans)
+                ],
             ).ask()
             if marcadas is None:
                 return code
@@ -86,8 +90,9 @@ def cmd_doctor(args) -> int:
     if not report.uv_bin_on_path and installer.shutil.which("uv"):
         render.info("uv tool update-shell (PATH de uv)")
         rc, _ = installer.run_install(installer.pathfix_option())
-        (render.ok if rc == 0 else render.warn)(t("doctor.pathfix.done") if rc == 0
-                                                else "uv tool update-shell falló")
+        (render.ok if rc == 0 else render.warn)(
+            t("doctor.pathfix.done") if rc == 0 else "uv tool update-shell falló"
+        )
     render.info("re-evaluando…")
     return render.doctor(doctor_core.diagnose(Path.cwd()))
 
@@ -104,6 +109,7 @@ def cmd_detect(args) -> int:
 def cmd_init(args) -> int:
     from tramalia.core import scaffold
     from tramalia.core.tools import detect_default_agents
+
     root = Path.cwd()
     stack = detect_stack(root)
     adopt = getattr(args, "adopt", False)
@@ -120,8 +126,10 @@ def cmd_init(args) -> int:
         "adopt": adopt,
     }
     render.header(root.name, stack, _is_initialized(root))
-    render.info(f"agentes detectados para config.json: ejecutor={primary}, revisor={reviewer} "
-                f"(editable luego en config.json o en el tab Cierre)")
+    render.info(
+        f"agentes detectados para config.json: ejecutor={primary}, revisor={reviewer} "
+        f"(editable luego en config.json o en el tab Cierre)"
+    )
     results = scaffold.scaffold(root, answers)
     for rel, state in results:
         (render.ok if state in ("creado", "adaptado") else render.info)(f"{state:>9}  {rel}")
@@ -135,19 +143,25 @@ def cmd_init(args) -> int:
     if cap and cap != "none":
         from tramalia.core import model_cap as mc
         from tramalia.core import project as proj
+
         if proj.set_agents_model_cap(root, cap):
             for role, modelo in mc.apply_to_agents(root, cap):
                 render.info(f"tope {cap}: {role} → {modelo}")
     # registra la versión con la que se generó (la usa `tramalia upgrade`).
     from tramalia import __version__
     from tramalia.core import project as _proj
+
     _proj.set_scaffolded_version(root, __version__)
     # aviso de adopción: hay archivos que el repo ya posee y que sin --adopt se saltan.
     if not adopt:
         agents = root / "AGENTS.md"
-        if agents.is_file() and "tramalia:gobierno" not in agents.read_text(encoding="utf-8", errors="ignore"):
-            render.info("detecté un AGENTS.md existente: usa `tramalia init --adopt` para "
-                        "integrar el gobierno sin pisarlo (merge por marcadores).")
+        if agents.is_file() and "tramalia:gobierno" not in agents.read_text(
+            encoding="utf-8", errors="ignore"
+        ):
+            render.info(
+                "detecté un AGENTS.md existente: usa `tramalia init --adopt` para "
+                "integrar el gobierno sin pisarlo (merge por marcadores)."
+            )
     render.info("revisa AGENTS.md y mise.toml; instala lo que falte con `tramalia doctor`.")
     _suggest_fanout(root)
     return 0
@@ -159,14 +173,19 @@ def _suggest_fanout(root: Path) -> None:
     `.claude/` nativo; el resto consume AGENTS.md vía fan-out (no carpetas
     hand-rolled) — AGENTS.md es la fuente única."""
     from tramalia.core import tools
+
     skip = {"claude", "antigravity-ide", "antigravity-2"}  # nativo / apps de escritorio
-    presentes = [tl.cmd for tl in tools.REGISTRY
-                 if tl.category == "agent" and tl.key not in skip
-                 and tools.probe(tl).present]
+    presentes = [
+        tl.cmd
+        for tl in tools.REGISTRY
+        if tl.category == "agent" and tl.key not in skip and tools.probe(tl).present
+    ]
     if presentes:
-        render.info(f"detecté otros agentes ({', '.join(presentes)}). Para propagar tus "
-                    "reglas a sus formatos (.cursor/rules, .github/…), corre `tramalia sync` "
-                    "(rulesync, requiere Node). Agrega tu propio agente con `tramalia sync --to <target>`.")
+        render.info(
+            f"detecté otros agentes ({', '.join(presentes)}). Para propagar tus "
+            "reglas a sus formatos (.cursor/rules, .github/…), corre `tramalia sync` "
+            "(rulesync, requiere Node). Agrega tu propio agente con `tramalia sync --to <target>`."
+        )
 
 
 def cmd_upgrade(args) -> int:
@@ -175,6 +194,7 @@ def cmd_upgrade(args) -> int:
     .gitignore, y registra la versión. Los archivos existentes NO se tocan."""
     from tramalia import __version__
     from tramalia.core import project, scaffold
+
     root = Path.cwd()
     if not project.is_initialized(root):
         render.err("este repo no está inicializado; usa `tramalia init` primero.")
@@ -182,11 +202,14 @@ def cmd_upgrade(args) -> int:
     old = project.scaffolded_version(root)
     stack = detect_stack(root)
     from tramalia.core.tools import detect_default_agents
+
     primary, reviewer = detect_default_agents()
     answers = {
-        "project_name": root.name, "stacks": stack,
+        "project_name": root.name,
+        "stacks": stack,
         "features": enabled_features(stack),
-        "primary_agent": primary, "reviewer_agent": reviewer,
+        "primary_agent": primary,
+        "reviewer_agent": reviewer,
     }
     render.header(root.name, stack, True)
     results = scaffold.scaffold(root, answers)
@@ -195,11 +218,15 @@ def cmd_upgrade(args) -> int:
         render.ok(f"  + {rel}")
     project.set_scaffolded_version(root, __version__)
     desde = f"desde v{old} " if old else ""
-    render.ok(f"upgrade {desde}a v{__version__}: {len(nuevos)} nuevos/actualizados, "
-              f"{len(results) - len(nuevos)} sin cambios (no se pisó nada existente).")
-    render.info("los archivos que ya existían NO se tocaron. Revisa el CHANGELOG por cambios "
-                "de plantilla que quizás quieras adoptar a mano: "
-                "https://github.com/MscottB/tramalia/blob/main/CHANGELOG.md")
+    render.ok(
+        f"upgrade {desde}a v{__version__}: {len(nuevos)} nuevos/actualizados, "
+        f"{len(results) - len(nuevos)} sin cambios (no se pisó nada existente)."
+    )
+    render.info(
+        "los archivos que ya existían NO se tocaron. Revisa el CHANGELOG por cambios "
+        "de plantilla que quizás quieras adoptar a mano: "
+        "https://github.com/MscottB/tramalia/blob/main/CHANGELOG.md"
+    )
     _suggest_fanout(root)
     return 0
 
@@ -215,6 +242,7 @@ def cmd_context(args) -> int:
     from tramalia.core import project
     from tramalia.core.context_backend import BACKENDS, UTILITIES
     from tramalia.i18n import t
+
     root = Path.cwd()
     action = getattr(args, "action", None) or "build"
 
@@ -242,13 +270,13 @@ def cmd_context(args) -> int:
             render.ok(t("context.set.ok", name=name))
             return 0
         if name not in BACKENDS:
-            render.err(t("context.set.invalid", name=name,
-                         opts=", ".join(BACKENDS)))
+            render.err(t("context.set.invalid", name=name, opts=", ".join(BACKENDS)))
         else:
             render.err(t("context.set.noconfig"))
         return 1
 
     from tramalia.core import context
+
     results = context.build_context(root)
     for rel in results:
         render.ok(f"generado  .tramalia/context/{rel}")
@@ -261,6 +289,7 @@ def cmd_context(args) -> int:
 def cmd_agents(args) -> int:
     from tramalia.core import model_cap, project
     from tramalia.i18n import t
+
     root = Path.cwd()
     action = getattr(args, "action", None) or "list"
 
@@ -288,8 +317,7 @@ def cmd_agents(args) -> int:
         return 1
     if not project.set_agents_model_cap(root, cap):
         if cap not in (*model_cap.CAPS, "none"):
-            render.err(t("agents.cap.invalid", name=cap,
-                         opts=", ".join((*model_cap.CAPS, "none"))))
+            render.err(t("agents.cap.invalid", name=cap, opts=", ".join((*model_cap.CAPS, "none"))))
         else:
             render.err(t("agents.cap.noconfig"))
         return 1
@@ -314,6 +342,7 @@ def _engram_save(title: str, body: str) -> None:
 def _interactive_ask_task():
     """Prompt de tarea solo si hay terminal interactiva (los scripts no se cuelgan)."""
     import sys
+
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         return None
     return lambda: menu.ask_text("ID de la tarea (ver specs/tasks.md)", "TASK-001")
@@ -323,6 +352,7 @@ def _require_init() -> bool:
     """Los comandos de gobierno exigen proyecto inicializado (guard de coherencia)."""
     from tramalia.core import project
     from tramalia.i18n import t
+
     if project.is_initialized(Path.cwd()):
         return True
     render.err(t("close.uninit"))
@@ -332,6 +362,7 @@ def _require_init() -> bool:
 def _resolver(args):
     """Aplica la cadena de defaults: posicional > --task > current-task > prompt."""
     from tramalia.core import project
+
     return project.resolve_close_args(
         Path.cwd(),
         getattr(args, "task_pos", None),
@@ -344,6 +375,7 @@ def _resolver(args):
 
 def cmd_evidence(args) -> int:
     from tramalia.core import evidence
+
     if not _require_init():
         return 1
     task, _, _ = _resolver(args)
@@ -357,24 +389,31 @@ def cmd_evidence(args) -> int:
 
 def cmd_handoff(args) -> int:
     from tramalia.core import handoff
+
     if not _require_init():
         return 1
     task, agent, reviewer = _resolver(args)
     path = handoff.new_handoff(Path.cwd(), task, agent, reviewer)
     render.ok(f"handoff agregado a {path.relative_to(Path.cwd())}")
     if getattr(args, "engram", False):
-        _engram_save(f"handoff {task}",
-                     f"Handoff de {task}; ejecutor {agent or '?'}, revisor {reviewer or '?'}.")
+        _engram_save(
+            f"handoff {task}",
+            f"Handoff de {task}; ejecutor {agent or '?'}, revisor {reviewer or '?'}.",
+        )
     return 0
 
 
 def cmd_close(args) -> int:
     from tramalia.core import governance
+
     if not _require_init():
         return 1
     task, agent, reviewer = _resolver(args)
     res = governance.close(
-        Path.cwd(), task, agent, reviewer,
+        Path.cwd(),
+        task,
+        agent,
+        reviewer,
         allow_fail=getattr(args, "allow_fail", False),
         model=getattr(args, "model", None) or "",
     )
@@ -383,18 +422,22 @@ def cmd_close(args) -> int:
     else:
         for name, code, _ in res.gates:
             (render.ok if code == 0 else render.err)(
-                f"gate {name}: {'ok' if code == 0 else 'FALLA'}")
+                f"gate {name}: {'ok' if code == 0 else 'FALLA'}"
+            )
     render.ok(f"evidence: {res.evidence_dir.relative_to(Path.cwd())}  (estado: {res.status})")
     render.ok(f"handoff: {res.handoff_path.relative_to(Path.cwd())}")
     render.info(f"metadata: {(res.evidence_dir / 'metadata.json').relative_to(Path.cwd())}")
     if getattr(args, "engram", False):
-        _engram_save(f"close {task}",
-                     f"Cierre de {task}; estado {res.status}; fallidos: {', '.join(res.failed) or 'ninguno'}.")
+        _engram_save(
+            f"close {task}",
+            f"Cierre de {task}; estado {res.status}; fallidos: {', '.join(res.failed) or 'ninguno'}.",
+        )
     if res.blocked:
         render.err(f"cierre BLOQUEADO por gates fallidos: {', '.join(res.failed)}.")
         render.info("usa --allow-fail solo con una excepción documentada en risks.md.")
         return 1
     from tramalia.i18n import t
+
     if res.status == "no_gates":
         render.warn(t("close.done.nogates", task=task))
     else:
@@ -404,6 +447,7 @@ def cmd_close(args) -> int:
 
 def _log_marks() -> dict:
     from tramalia.i18n import t
+
     return {
         "passed": t("log.passed"),
         "passed_with_exceptions": t("log.exceptions"),
@@ -415,6 +459,7 @@ def _log_marks() -> dict:
 
 def cmd_log(args) -> int:
     from tramalia.core import governance
+
     entries = governance.read_log(Path.cwd())
     if not entries:
         render.info("sin cierres registrados todavía. Usa `tramalia close`.")
@@ -439,19 +484,33 @@ def cmd_sync(args) -> int:
     # CLAUDE.md/Codex no se incluyen: ya leen AGENTS.md nativamente.
     # Targets válidos en rulesync v9: copilot, cursor, cline, antigravity-cli, zed, junie, warp, …
     targets = getattr(args, "to", None) or "copilot,cursor,cline"
-    wanted = {f.strip() for f in
-              (getattr(args, "features", None) or "rules,subagents").split(",") if f.strip()}
+    wanted = {
+        f.strip()
+        for f in (getattr(args, "features", None) or "rules,subagents").split(",")
+        if f.strip()
+    }
     code = 0
     if "rules" in wanted:
         render.info(f"reglas: AGENTS.md → {targets} (rulesync)")
-        code |= _run(["rulesync", "convert", "--from", "agentsmd",
-                      "--to", targets, "--features", "rules"])
+        code |= _run(
+            ["rulesync", "convert", "--from", "agentsmd", "--to", targets, "--features", "rules"]
+        )
     if "subagents" in wanted:
         if (Path.cwd() / ".claude" / "agents").exists():
             render.info(f"subagentes: .claude/agents → {targets} (rulesync)")
             # best-effort: no todos los targets soportan subagentes; rulesync lo reporta.
-            code |= _run(["rulesync", "convert", "--from", "claudecode",
-                          "--to", targets, "--features", "subagents"])
+            code |= _run(
+                [
+                    "rulesync",
+                    "convert",
+                    "--from",
+                    "claudecode",
+                    "--to",
+                    targets,
+                    "--features",
+                    "subagents",
+                ]
+            )
         else:
             render.info("sin .claude/agents; omitiendo fan-out de subagentes.")
     return code
@@ -459,6 +518,7 @@ def cmd_sync(args) -> int:
 
 def _skill_state(s: dict) -> str:
     from tramalia.i18n import t
+
     if s["installed"]:
         return t("skills.state.installed")
     if s["enabled"]:
@@ -469,6 +529,7 @@ def _skill_state(s: dict) -> str:
 def cmd_skills(args) -> int:
     from tramalia.core import skills
     from tramalia.i18n import t
+
     root = Path.cwd()
     action = getattr(args, "action", None) or "sync"
 
@@ -504,13 +565,17 @@ def cmd_skills(args) -> int:
         for s in instaladas:
             if s["update"]:
                 hay = True
-                render.warn(t("skills.outdated.available", name=s["name"],
-                              old=s["installed_ref"], new=s["available_ref"]))
+                render.warn(
+                    t(
+                        "skills.outdated.available",
+                        name=s["name"],
+                        old=s["installed_ref"],
+                        new=s["available_ref"],
+                    )
+                )
             else:
-                render.ok(t("skills.outdated.current", name=s["name"],
-                            ref=s["installed_ref"]))
-        render.info(t("skills.outdated.update_all") if hay
-                    else t("skills.outdated.uptodate"))
+                render.ok(t("skills.outdated.current", name=s["name"], ref=s["installed_ref"]))
+        render.info(t("skills.outdated.update_all") if hay else t("skills.outdated.uptodate"))
         return 0
 
     if action == "add":
@@ -531,8 +596,9 @@ def cmd_skills(args) -> int:
             render.err(t("skills.toggle.needname"))
             return 1
         if skills.set_enabled(root, name, action == "enable"):
-            render.ok(t("skills.toggle.on" if action == "enable" else "skills.toggle.off",
-                        name=name))
+            render.ok(
+                t("skills.toggle.on" if action == "enable" else "skills.toggle.off", name=name)
+            )
             return 0
         render.err(t("skills.toggle.fail", name=name))
         return 1
@@ -558,6 +624,7 @@ def _warn_tracked_external(skills, root) -> None:
     """Avisa si hay skills externas commiteadas en git: el .gitignore no las
     destrackea, hay que sacarlas del índice a mano (git rm -r --cached)."""
     from tramalia.i18n import t
+
     tracked = skills.tracked_external_skills(root)
     if tracked:
         render.warn(t("skills.tracked.warn", names=", ".join(tracked)))
@@ -566,6 +633,7 @@ def _warn_tracked_external(skills, root) -> None:
 
 def cmd_update(args) -> int:
     from tramalia.core import skills
+
     render.info("update = mise upgrade + skills sync (+ copier update, futuro)")
     code = 0
     if shutil.which("mise"):
@@ -592,7 +660,9 @@ def _ofrecer_instalar(paquete: str, para: str) -> bool:
     """
     import subprocess
     import sys
+
     from tramalia.i18n import t
+
     render.warn(t("offer.missing", para=para, paquete=paquete))
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         render.info(t("offer.hint", paquete=paquete))
@@ -605,6 +675,7 @@ def _ofrecer_instalar(paquete: str, para: str) -> bool:
     result = subprocess.run([sys.executable, "-m", "pip", "install", paquete])
     if result.returncode == 0:
         import importlib
+
         importlib.invalidate_caches()
         render.ok(t("offer.installed", paquete=paquete))
         return True
@@ -622,20 +693,24 @@ def _importable(modulo: str) -> bool:
 
 
 def cmd_mcp(args) -> int:
-    if not _importable("mcp") and not (_ofrecer_instalar("mcp", "la fachada MCP")
-                                       and _importable("mcp")):
+    if not _importable("mcp") and not (
+        _ofrecer_instalar("mcp", "la fachada MCP") and _importable("mcp")
+    ):
         return 127
     from tramalia import mcp_server
+
     render.info("levantando Tramalia MCP (stdio)… Ctrl+C para detener.")
     mcp_server.run()
     return 0
 
 
 def cmd_ui(args) -> int:
-    if not _importable("textual") and not (_ofrecer_instalar("textual", "el dashboard TUI")
-                                           and _importable("textual")):
+    if not _importable("textual") and not (
+        _ofrecer_instalar("textual", "el dashboard TUI") and _importable("textual")
+    ):
         return 127
     from tramalia import tui
+
     tui.run()
     return 0
 
@@ -646,22 +721,26 @@ def _guided_args(command: str):
     Prellena con los defaults reales del proyecto: current-task.md y config.json.
     """
     import argparse
+
     from tramalia.core import project
+
     root = Path.cwd()
     primary, rev = project.default_agents(root)
     from tramalia.i18n import t as _t
-    task = menu.ask_text(_t("guided.task"),
-                         project.current_task_id(root) or "TASK-001")
+
+    task = menu.ask_text(_t("guided.task"), project.current_task_id(root) or "TASK-001")
     agent = reviewer = ""
     if command in ("close", "handoff"):
         agent = menu.ask_text(_t("guided.agent"), primary or "codex")
         reviewer = menu.ask_text(_t("guided.reviewer"), rev or "claude")
-    return argparse.Namespace(task=task, task_pos=None, agent=agent, reviewer=reviewer,
-                              engram=False, allow_fail=False)
+    return argparse.Namespace(
+        task=task, task_pos=None, agent=agent, reviewer=reviewer, engram=False, allow_fail=False
+    )
 
 
 def _show_last_close(root: Path) -> None:
     from tramalia.core import governance
+
     entries = governance.read_log(root)
     if entries:
         last = entries[0]

@@ -24,14 +24,20 @@ def test_notebooklm_no_esta_en_registry():
 
 # ---------------------------------------------------------------- plantilla
 def test_agents_md_tiene_criterio_local_primero(tmp_path):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": ["python"], "features": [],
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": ["python"],
+            "features": [],
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     texto = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "local primero" in texto
     assert "prosigue con" in texto  # degradación normal si falta la herramienta
-    assert "una sola" in texto      # una única memoria activa
+    assert "una sola" in texto  # una única memoria activa
 
 
 # ---------------------------------------------------------------- docs

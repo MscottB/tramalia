@@ -2,12 +2,17 @@
 
 import json
 
-from tramalia.core.scaffold import scaffold, _inject_block, _merge_mcp, _GOBIERNO_MARKER
+from tramalia.core.scaffold import _GOBIERNO_MARKER, _inject_block, _merge_mcp, scaffold
 
 
 def _answers(**extra):
-    base = {"project_name": "demo", "stacks": ["python"], "features": [],
-            "primary_agent": "codex", "reviewer_agent": "claude"}
+    base = {
+        "project_name": "demo",
+        "stacks": ["python"],
+        "features": [],
+        "primary_agent": "codex",
+        "reviewer_agent": "claude",
+    }
     base.update(extra)
     return base
 
@@ -16,7 +21,7 @@ def _answers(**extra):
 def test_inject_agrega_bloque_y_conserva_contenido():
     original = "# Mi proyecto\n\nReglas propias del equipo.\n"
     out = _inject_block(original, "tramalia:gobierno", "## Gobierno\ncerrar con close")
-    assert "Reglas propias del equipo." in out          # no pisa lo del usuario
+    assert "Reglas propias del equipo." in out  # no pisa lo del usuario
     assert "<!-- tramalia:gobierno inicio -->" in out
     assert "<!-- tramalia:gobierno fin -->" in out
 
@@ -25,7 +30,7 @@ def test_inject_es_idempotente():
     original = "# X\n\ncontenido\n"
     once = _inject_block(original, "m", "cuerpo v1")
     twice = _inject_block(once, "m", "cuerpo v1")
-    assert once == twice                                 # re-ejecutar no duplica
+    assert once == twice  # re-ejecutar no duplica
     assert once.count("<!-- m inicio -->") == 1
 
 
@@ -42,8 +47,8 @@ def test_merge_mcp_respeta_servidores_del_usuario():
     merged, ok = _merge_mcp(existing, {"serena": {"command": "uvx"}, "mio": {"command": "NO"}})
     assert ok
     data = json.loads(merged)
-    assert data["mcpServers"]["mio"]["command"] == "x"   # no lo pisa
-    assert "serena" in data["mcpServers"]                # agrega el nuevo
+    assert data["mcpServers"]["mio"]["command"] == "x"  # no lo pisa
+    assert "serena" in data["mcpServers"]  # agrega el nuevo
 
 
 def test_merge_mcp_json_malformado_no_se_toca():
@@ -59,7 +64,7 @@ def test_adopt_integra_agents_md_existente(tmp_path):
     results = dict(scaffold(tmp_path, _answers(adopt=True)))
     assert results["AGENTS.md"] == "adaptado"
     texto = agents.read_text(encoding="utf-8")
-    assert "No tocar la carpeta legacy/." in texto        # conserva lo del usuario
+    assert "No tocar la carpeta legacy/." in texto  # conserva lo del usuario
     assert _GOBIERNO_MARKER in texto and "tramalia close" in texto
 
 
@@ -84,6 +89,6 @@ def test_adopt_reejecutado_no_duplica(tmp_path):
     agents = tmp_path / "AGENTS.md"
     agents.write_text("# Reglas\n", encoding="utf-8")
     scaffold(tmp_path, _answers(adopt=True))
-    scaffold(tmp_path, _answers(adopt=True))             # segunda pasada
+    scaffold(tmp_path, _answers(adopt=True))  # segunda pasada
     texto = agents.read_text(encoding="utf-8")
     assert texto.count("<!-- tramalia:gobierno inicio -->") == 1

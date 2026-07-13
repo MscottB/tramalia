@@ -22,13 +22,27 @@ from tramalia.core import evidence as evidence_core
 from tramalia.core import handoff as handoff_core
 from tramalia.core import proc
 
-_GATE_ORDER = ["build", "test", "lint", "format", "security", "database",
-               "bundle", "notebooks", "ux"]
+_GATE_ORDER = [
+    "build",
+    "test",
+    "lint",
+    "format",
+    "security",
+    "database",
+    "bundle",
+    "notebooks",
+    "ux",
+]
 _OUTPUT_FILE = {
-    "build": "build-output.txt", "test": "test-output.txt", "lint": "lint-output.txt",
-    "format": "lint-output.txt", "security": "security-output.txt",
-    "database": "database-output.txt", "bundle": "bundle-output.txt",
-    "notebooks": "notebooks-output.txt", "ux": "ux-output.txt",
+    "build": "build-output.txt",
+    "test": "test-output.txt",
+    "lint": "lint-output.txt",
+    "format": "lint-output.txt",
+    "security": "security-output.txt",
+    "database": "database-output.txt",
+    "bundle": "bundle-output.txt",
+    "notebooks": "notebooks-output.txt",
+    "ux": "ux-output.txt",
 }
 
 
@@ -119,16 +133,23 @@ def run_gates(root: Path) -> tuple[list[tuple[str, int, str]], bool]:
     results: list[tuple[str, int, str]] = []
     for task in gate_tasks(root):
         try:
-            cp = proc.run(["mise", "run", task], cwd=root,
-                          capture_output=True, text=True, timeout=900)
+            cp = proc.run(
+                ["mise", "run", task], cwd=root, capture_output=True, text=True, timeout=900
+            )
             results.append((task, cp.returncode, (cp.stdout or "") + (cp.stderr or "")))
         except Exception as exc:
             results.append((task, 1, f"error al ejecutar: {exc}"))
     return results, True
 
 
-def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "",
-          allow_fail: bool = False, model: str = "") -> CloseResult:
+def close(
+    root: Path,
+    task: str = "TASK-000",
+    agent: str = "",
+    reviewer: str = "",
+    allow_fail: bool = False,
+    model: str = "",
+) -> CloseResult:
     """Ritual de cierre con enforcement: gates → evidence (con salidas) → handoff."""
     started = datetime.datetime.now().astimezone()
     gates, ran = run_gates(root)
@@ -139,21 +160,26 @@ def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "
     for name, code, out in gates:
         fname = _OUTPUT_FILE.get(name, f"{name}-output.txt")
         (evidence_dir / fname).write_text(
-            f"# gate: {name} (exit {code})\n\n{out}\n", encoding="utf-8")
+            f"# gate: {name} (exit {code})\n\n{out}\n", encoding="utf-8"
+        )
 
     if ran:
-        rows = "\n".join(
-            f"| {n} | {c} | {'ok' if c == 0 else 'FALLA'} |" for n, c, _ in gates
-        ) or "| (sin tasks de gate en mise.toml) | — | — |"
+        rows = (
+            "\n".join(f"| {n} | {c} | {'ok' if c == 0 else 'FALLA'} |" for n, c, _ in gates)
+            or "| (sin tasks de gate en mise.toml) | — | — |"
+        )
         gates_md = f"# Estado de gates\n\n| gate | exit | resultado |\n|---|---|---|\n{rows}\n"
     else:
-        gates_md = ("# Estado de gates\n\n"
-                    "> mise ausente: los gates NO se ejecutaron.\n"
-                    "> Excepción documentada — instala mise para validación verificable.\n")
+        gates_md = (
+            "# Estado de gates\n\n"
+            "> mise ausente: los gates NO se ejecutaron.\n"
+            "> Excepción documentada — instala mise para validación verificable.\n"
+        )
     (evidence_dir / "gates-status.md").write_text(gates_md, encoding="utf-8")
 
-    handoff_path = handoff_core.new_handoff(root, task, agent, reviewer,
-                                            evidence_ref=_rel(evidence_dir, root))
+    handoff_path = handoff_core.new_handoff(
+        root, task, agent, reviewer, evidence_ref=_rel(evidence_dir, root)
+    )
 
     # métricas de dominio (analítica/ML): evidencia cruda + umbrales que bloquean.
     metrics = _read_json(root / ".tramalia" / "metrics.json")
@@ -162,13 +188,18 @@ def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "
     if metrics is not None:
         # copia CRUDA a la evidencia (invariante del moat: nunca derivada).
         (evidence_dir / "metrics.json").write_text(
-            json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
     if thresholds is not None:
-        cuerpo = ("todos los umbrales OK" if not violations
-                  else "INCUMPLIMIENTOS:\n" + "\n".join(f"- {v}" for v in violations))
+        cuerpo = (
+            "todos los umbrales OK"
+            if not violations
+            else "INCUMPLIMIENTOS:\n" + "\n".join(f"- {v}" for v in violations)
+        )
         (evidence_dir / "metrics-thresholds.txt").write_text(
             f"# umbrales de métricas (exit {'1' if violations else '0'})\n\n{cuerpo}\n",
-            encoding="utf-8")
+            encoding="utf-8",
+        )
 
     # un incumplimiento de umbral bloquea aunque los gates hayan pasado.
     status = _close_status(ran, failed, allow_fail)
@@ -208,10 +239,12 @@ def close(root: Path, task: str = "TASK-000", agent: str = "", reviewer: str = "
             "passed": not violations,
         }
     (evidence_dir / "metadata.json").write_text(
-        json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
-    return CloseResult(evidence_dir, handoff_path, gates, ran, failed, blocked,
-                       status=status, metadata=metadata)
+    return CloseResult(
+        evidence_dir, handoff_path, gates, ran, failed, blocked, status=status, metadata=metadata
+    )
 
 
 def read_log(root: Path) -> list[dict]:
@@ -231,13 +264,15 @@ def read_log(root: Path) -> list[dict]:
         if meta_file.exists():
             try:
                 m = json.loads(meta_file.read_text(encoding="utf-8"))
-                entries.append({
-                    "id": d.name,
-                    "status": m.get("status"),
-                    "agent": m.get("agent"),
-                    "model": m.get("model"),
-                    "closed_at": m.get("closed_at"),
-                })
+                entries.append(
+                    {
+                        "id": d.name,
+                        "status": m.get("status"),
+                        "agent": m.get("agent"),
+                        "model": m.get("model"),
+                        "closed_at": m.get("closed_at"),
+                    }
+                )
                 continue
             except Exception:
                 pass

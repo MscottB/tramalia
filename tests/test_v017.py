@@ -1,7 +1,7 @@
 """v0.17: instalador personalizado — por SO, por gestor, selección múltiple."""
 
 from tramalia.core import installer
-from tramalia.core.tools import REGISTRY, Tool
+from tramalia.core.tools import REGISTRY
 
 
 def _tool(key):
@@ -31,9 +31,9 @@ def test_uv_por_so():
 def test_repomix_mise_y_npm():
     opts = installer.options_for(_tool("repomix"))
     metodos = [o.method for o in opts]
-    assert metodos[0] == "mise"                      # preferencia: mise
+    assert metodos[0] == "mise"  # preferencia: mise
     npm = next(o for o in opts if o.method == "npm")
-    assert npm.requires == "npm"                     # verificador Node/npm
+    assert npm.requires == "npm"  # verificador Node/npm
     assert npm.args == ("npm", "install", "-g", "repomix")
 
 
@@ -51,7 +51,7 @@ def test_markitdown_pip_deriva_uv_y_pip():
 
 def test_hint_url_es_manual():
     opts = installer.options_for(_tool("claude"))
-    assert opts and not opts[0].auto                 # URL: solo se muestra
+    assert opts and not opts[0].auto  # URL: solo se muestra
 
 
 # ---------------------------------------------------------------- best_auto
@@ -63,8 +63,7 @@ def test_best_auto_respeta_disponibilidad(monkeypatch):
 
 def test_best_auto_elige_el_primero_disponible(monkeypatch):
     # solo npm presente → repomix se instala vía npm (mise ausente)
-    monkeypatch.setattr(installer.shutil, "which",
-                        lambda n: "C:/x/npm.cmd" if n == "npm" else None)
+    monkeypatch.setattr(installer.shutil, "which", lambda n: "C:/x/npm.cmd" if n == "npm" else None)
     best = installer.best_auto(_tool("repomix"))
     assert best is not None and best.method == "npm"
 
@@ -73,10 +72,16 @@ def test_best_auto_elige_el_primero_disponible(monkeypatch):
 def test_doctor_agrupado_orden_fijo():
     from tramalia.cli.render import group_statuses
     from tramalia.core.tools import Status
+
     # semgrep=security, serena=context, engram=memory: cada feature en su dominio
-    statuses = [Status(_tool("claude"), False), Status(_tool("mise"), True),
-                Status(_tool("engram"), False), Status(_tool("serena"), False),
-                Status(_tool("semgrep"), False), Status(_tool("node"), False)]
+    statuses = [
+        Status(_tool("claude"), False),
+        Status(_tool("mise"), True),
+        Status(_tool("engram"), False),
+        Status(_tool("serena"), False),
+        Status(_tool("semgrep"), False),
+        Status(_tool("node"), False),
+    ]
     grupos = [cat for cat, _ in group_statuses(statuses)]
     assert grupos == ["bootstrap", "stack", "context", "memory", "security", "agent"]
 

@@ -9,11 +9,16 @@ from tramalia.core.scaffold import scaffold
 
 
 def _init(tmp_path):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": ["python"],
-        "features": enabled_features(["python"]),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": ["python"],
+            "features": enabled_features(["python"]),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     return tmp_path
 
 
@@ -39,9 +44,13 @@ def test_cap_none_no_cambia_nada():
 
 def test_resolved_models_tope_sonnet():
     r = model_cap.resolved_models("sonnet")
-    assert r == {"planificador": "sonnet", "ejecutor": "inherit",
-                 "revisor": "sonnet", "documentador": "haiku",
-                 "resolutor-profundo": "sonnet"}
+    assert r == {
+        "planificador": "sonnet",
+        "ejecutor": "inherit",
+        "revisor": "sonnet",
+        "documentador": "haiku",
+        "resolutor-profundo": "sonnet",
+    }
 
 
 # ---------------------------------------------------------------- apply / config
@@ -51,7 +60,7 @@ def test_apply_reescribe_solo_la_linea_model(tmp_path):
     model_cap.apply_to_agents(tmp_path, "sonnet")
     despues = (tmp_path / ".claude" / "agents" / "planificador.md").read_text(encoding="utf-8")
     assert _model_of(tmp_path, "planificador") == "sonnet"
-    assert _model_of(tmp_path, "documentador") == "haiku"   # ya estaba debajo
+    assert _model_of(tmp_path, "documentador") == "haiku"  # ya estaba debajo
     # el cuerpo del agente no se toca (solo cambió la línea model:)
     assert antes.replace("model: opus", "") == despues.replace("model: sonnet", "")
 
@@ -61,7 +70,7 @@ def test_cap_none_restaura_defaults(tmp_path):
     model_cap.apply_to_agents(tmp_path, "haiku")
     assert _model_of(tmp_path, "planificador") == "haiku"
     model_cap.apply_to_agents(tmp_path, "none")
-    assert _model_of(tmp_path, "planificador") == "opus"      # vuelve al default de rol
+    assert _model_of(tmp_path, "planificador") == "opus"  # vuelve al default de rol
     assert _model_of(tmp_path, "resolutor-profundo") == "fable"
 
 
@@ -87,13 +96,14 @@ def test_equivalencias_por_capacidad_no_por_modelo():
     lines = model_cap.equivalence_lines("sonnet")
     joined = "\n".join(lines)
     assert "Codex" in joined and "Antigravity" in joined
-    assert "estándar" in joined                  # nivel de capacidad, no "gpt-5"
+    assert "estándar" in joined  # nivel de capacidad, no "gpt-5"
     assert model_cap.equivalence_lines("none") == []
 
 
 # ---------------------------------------------------------------- tools.json
 def test_tools_json_incluye_model_cap(tmp_path):
     from tramalia.core.doctor import diagnose, write_snapshot
+
     _init(tmp_path)
     project.set_agents_model_cap(tmp_path, "sonnet")
     out = write_snapshot(diagnose(tmp_path), tmp_path)
@@ -105,12 +115,14 @@ def test_agents_md_declara_regla_portable(tmp_path):
     _init(tmp_path)
     texto = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "model_cap" in texto and "sin ruteo por rol" in texto
-    assert "son **tuyos**" in texto              # aclara que los 5 archivos son editables
+    assert "son **tuyos**" in texto  # aclara que los 5 archivos son editables
 
 
 def test_init_con_model_cap_aplica(tmp_path, monkeypatch):
     import sys
+
     from tramalia.__main__ import main
+
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, "argv", ["tramalia", "--plain", "init", "--model-cap", "sonnet"])
     assert main() in (0, None)
@@ -121,7 +133,9 @@ def test_init_con_model_cap_aplica(tmp_path, monkeypatch):
 # ---------------------------------------------------------------- CLI
 def test_cli_agents_cap_invalido_exit_1(tmp_path, monkeypatch):
     import sys
+
     from tramalia.__main__ import main
+
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
     monkeypatch.setattr(sys, "argv", ["tramalia", "--plain", "agents", "cap", "turbo"])

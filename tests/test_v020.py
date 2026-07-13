@@ -25,8 +25,7 @@ def test_probe_ve_instaladas_por_uv_fuera_del_path(tmp_path, monkeypatch):
 
 
 def test_serena_efimera_ok_con_uv(monkeypatch):
-    monkeypatch.setattr(tools.shutil, "which",
-                        lambda n: "C:/x/uv.exe" if n == "uv" else None)
+    monkeypatch.setattr(tools.shutil, "which", lambda n: "C:/x/uv.exe" if n == "uv" else None)
     st = tools.probe(_tool("serena"))
     assert st.present is True and "uvx" in (st.version or "")
 
@@ -58,27 +57,24 @@ def test_needs_admin_detecta_marcas():
 # ---------------------------------------------------------------- streaming
 def test_streaming_emite_lineas_en_vivo():
     lineas = []
-    opt = InstallOption("pip", (sys.executable, "-c", "print('uno'); print('dos')"),
-                        "demo")
+    opt = InstallOption("pip", (sys.executable, "-c", "print('uno'); print('dos')"), "demo")
     code, out = run_install_streaming(opt, on_line=lineas.append, timeout=60)
     assert code == 0
-    assert "uno" in lineas and "dos" in lineas   # línea a línea, no al final
+    assert "uno" in lineas and "dos" in lineas  # línea a línea, no al final
 
 
 def test_streaming_cancelar_no_bloquea(tmp_path):
     cancel = threading.Event()
-    script = ("import time,sys\n"
-              "print('arranca', flush=True)\n"
-              "time.sleep(60)\n")
+    script = "import time,sys\nprint('arranca', flush=True)\ntime.sleep(60)\n"
     f = tmp_path / "lento.py"
     f.write_text(script, encoding="utf-8")
     opt = InstallOption("pip", (sys.executable, str(f)), "lento")
 
     def on_line(_ln):
-        cancel.set()      # cancela apenas aparece la primera línea
+        cancel.set()  # cancela apenas aparece la primera línea
 
     code, _out = run_install_streaming(opt, on_line=on_line, cancel=cancel, timeout=60)
-    assert code == 130    # cancelada, no colgada 60s
+    assert code == 130  # cancelada, no colgada 60s
 
 
 def test_streaming_timeout_termina_el_proceso(tmp_path):

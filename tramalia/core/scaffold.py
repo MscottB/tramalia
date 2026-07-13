@@ -28,32 +28,50 @@ def _reglas_stack(stacks: list) -> dict:
     """Bloques de reglas específicos del stack detectado (para docs/ai stack-aware)."""
     code, db, ux = [], [], []
     if "angular" in stacks:
-        code.append("- **Angular**: componentes standalone; `OnPush`/señales para estado local; "
-                    "sin lógica en templates; `inject()` sobre constructor largo.")
+        code.append(
+            "- **Angular**: componentes standalone; `OnPush`/señales para estado local; "
+            "sin lógica en templates; `inject()` sobre constructor largo."
+        )
     if any(s in stacks for s in ("react", "next")):
-        code.append("- **React/Next**: server components por defecto (Next); estado global solo "
-                    "si cruza rutas; keys estables en listas; sin `useEffect` para datos derivables.")
+        code.append(
+            "- **React/Next**: server components por defecto (Next); estado global solo "
+            "si cruza rutas; keys estables en listas; sin `useEffect` para datos derivables."
+        )
     if "dotnet" in stacks:
-        code.append("- **.NET**: async/await de punta a punta (nunca `.Result`/`.Wait()`); "
-                    "DTOs ≠ entidades de dominio; `ILogger` estructurado; config con `IOptions<T>`.")
+        code.append(
+            "- **.NET**: async/await de punta a punta (nunca `.Result`/`.Wait()`); "
+            "DTOs ≠ entidades de dominio; `ILogger` estructurado; config con `IOptions<T>`."
+        )
     if "python" in stacks:
-        code.append("- **Python**: type hints en toda función pública; dataclasses para datos; "
-                    "ruff manda en estilo (no discutir formato en review).")
+        code.append(
+            "- **Python**: type hints en toda función pública; dataclasses para datos; "
+            "ruff manda en estilo (no discutir formato en review)."
+        )
     if "sqlserver" in stacks:
-        db.append("- **SQL Server (tsql)**: `SET NOCOUNT ON` en procedimientos; evitar "
-                  "`NOLOCK` como default; `datetime2`/UTC; paginación con `OFFSET-FETCH`.")
+        db.append(
+            "- **SQL Server (tsql)**: `SET NOCOUNT ON` en procedimientos; evitar "
+            "`NOLOCK` como default; `datetime2`/UTC; paginación con `OFFSET-FETCH`."
+        )
     if "postgres" in stacks:
-        db.append("- **PostgreSQL**: `timestamptz` siempre; índices parciales para flags; "
-                  "`EXPLAIN ANALYZE` antes de optimizar a ciegas; migraciones transaccionales.")
+        db.append(
+            "- **PostgreSQL**: `timestamptz` siempre; índices parciales para flags; "
+            "`EXPLAIN ANALYZE` antes de optimizar a ciegas; migraciones transaccionales."
+        )
     if "databricks" in stacks:
-        db.append("- **Databricks**: Delta como formato por defecto; `OPTIMIZE`/`VACUUM` "
-                  "programados, no manuales; esquemas explícitos (nunca inferSchema en prod).")
+        db.append(
+            "- **Databricks**: Delta como formato por defecto; `OPTIMIZE`/`VACUUM` "
+            "programados, no manuales; esquemas explícitos (nunca inferSchema en prod)."
+        )
     if any(s in stacks for s in _FRONTEND):
-        ux.append("- Accesibilidad mínima verificable: labels en inputs, contraste AA, foco "
-                  "visible, navegable por teclado (el gate ux lo mide con axe/Lighthouse).")
+        ux.append(
+            "- Accesibilidad mínima verificable: labels en inputs, contraste AA, foco "
+            "visible, navegable por teclado (el gate ux lo mide con axe/Lighthouse)."
+        )
         if "tailwind" in stacks:
-            ux.append("- **Tailwind**: tokens del `tailwind.config` (no valores mágicos "
-                      "inline); extraer componente cuando una clase se repite 3+ veces.")
+            ux.append(
+                "- **Tailwind**: tokens del `tailwind.config` (no valores mágicos "
+                "inline); extraer componente cuando una clase se repite 3+ veces."
+            )
     else:
         ux.append("- (Proyecto sin frontend detectado: esta sección aplica si agregas UI.)")
     vacio = "- (Sin reglas específicas del stack detectado: completa según necesidad.)"
@@ -103,7 +121,7 @@ def _inject_block(existing: str, marker: str, body: str) -> str:
     block = f"{start}\n{body}\n{end}"
     if start in existing and end in existing:
         pre = existing[: existing.index(start)]
-        post = existing[existing.index(end) + len(end):]
+        post = existing[existing.index(end) + len(end) :]
         return pre + block + post
     sep = "" if existing.endswith("\n\n") else ("\n" if existing.endswith("\n") else "\n\n")
     return existing + sep + block + "\n"
@@ -115,6 +133,7 @@ def _merge_mcp(existing_text: str, servers: dict) -> tuple[str, bool]:
     Devuelve (texto, ok). ok=False si el JSON está malformado (no se toca).
     """
     import json
+
     try:
         data = json.loads(existing_text)
     except Exception:
@@ -178,8 +197,11 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
         results.append((rel, "creado"))
 
     # 2. archivos generados según stack (`.sqlfluff` solo aplica si hay SQL: builder→None)
-    for name, builder in (("mise.toml", build_mise_toml), (".mcp.json", build_mcp_json),
-                          (".sqlfluff", build_sqlfluff)):
+    for name, builder in (
+        ("mise.toml", build_mise_toml),
+        (".mcp.json", build_mcp_json),
+        (".sqlfluff", build_sqlfluff),
+    ):
         content = builder(answers)
         if content is None:
             continue
@@ -201,6 +223,7 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
     # 3. .gitignore: excluir skills externas (re-sincronizables) sin perder las
     #    propias NN-*; el manifiesto skills.toml basta para re-hidratarlas.
     from tramalia.core.skills import ensure_skills_gitignore
+
     results.append((".gitignore", ensure_skills_gitignore(root)))
 
     return results
@@ -226,31 +249,44 @@ def build_mise_toml(answers: dict) -> str:
     if "ux" in features:
         tools += ['"npm:@lhci/cli" = "latest"', '"npm:playwright" = "latest"']
 
-    build_cmds: list[str] = []
-    test_cmds: list[str] = []
-    lint_cmds: list[str] = []
+    comandos_construccion: list[str] = []
+    comandos_prueba: list[str] = []
+    comandos_lint: list[str] = []
     if "angular" in stacks:
-        build_cmds.append("ng build"); test_cmds.append("ng test --watch=false"); lint_cmds.append("ng lint")
-    elif any(s in stacks for s in ("node", "react", "next", "vue", "svelte")):
-        # cubre también Nest (API Node): usa los scripts de package.json.
-        build_cmds.append("npm run build"); test_cmds.append("npm test"); lint_cmds.append("npm run lint")
+        comandos_construccion.append("ng build")
+        comandos_prueba.append("ng test --watch=false")
+        comandos_lint.append("ng lint")
+    elif any(tecnologia in stacks for tecnologia in ("node", "react", "next", "vue", "svelte")):
+        # Nest y otras API Node usan los scripts declarados por el proyecto.
+        comandos_construccion.append("npm run build")
+        comandos_prueba.append("npm test")
+        comandos_lint.append("npm run lint")
     if "dotnet" in stacks:
-        build_cmds.append("dotnet build"); test_cmds.append("dotnet test")
+        comandos_construccion.append("dotnet build")
+        comandos_prueba.append("dotnet test")
     if "maven" in stacks:
-        build_cmds.append("mvn -B compile"); test_cmds.append("mvn -B test")
+        comandos_construccion.append("mvn -B compile")
+        comandos_prueba.append("mvn -B test")
     elif "gradle" in stacks:
-        build_cmds.append("gradle build -x test"); test_cmds.append("gradle test")
+        comandos_construccion.append("gradle build -x test")
+        comandos_prueba.append("gradle test")
     if "go" in stacks:
-        build_cmds.append("go build ./..."); test_cmds.append("go test ./...")
+        comandos_construccion.append("go build ./...")
+        comandos_prueba.append("go test ./...")
     if "rust" in stacks:
-        build_cmds.append("cargo build"); test_cmds.append("cargo test")
+        comandos_construccion.append("cargo build")
+        comandos_prueba.append("cargo test")
     if "python" in stacks:
-        test_cmds.append("pytest"); lint_cmds.append("ruff check")
+        comandos_prueba.append("pytest")
+        comandos_lint.append("ruff check")
     if "notebooks" in stacks:
-        # notebooks con outputs sucios rompen diffs y auditoría: verificar limpieza
-        lint_cmds.append("uvx nbstripout --verify .")
+        # Los outputs sucios rompen diffs y auditoria; esta puerta verifica limpieza.
+        comandos_lint.append("uvx nbstripout --verify .")
 
-    lines: list[str] = ["# Generado por tramalia init. tools = auto-update; tasks = quality gates.", ""]
+    lines: list[str] = [
+        "# Generado por tramalia init. tools = auto-update; tasks = quality gates.",
+        "",
+    ]
     lines.append("[tools]")
     lines += tools or ["# (sin herramientas declaradas para este stack)"]
     lines.append("")
@@ -269,9 +305,10 @@ def build_mise_toml(answers: dict) -> str:
         lines.append("")
         gate_tasks.append(name)
 
-    emit("build", build_cmds)
-    emit("test", test_cmds)
-    emit("lint", lint_cmds)
+    # Conservar los nombres externos de las tareas mise, no los identificadores internos.
+    emit("build", comandos_construccion)
+    emit("test", comandos_prueba)
+    emit("lint", comandos_lint)
     if "security" in features:
         emit("security", ["gitleaks detect --no-banner", "semgrep scan --error --quiet"])
     if "database" in features:
@@ -331,8 +368,12 @@ def _mcp_servers(answers: dict) -> dict:
     servers: dict = {
         "serena": {
             "command": "uvx",
-            "args": ["--from", "git+https://github.com/oraios/serena",
-                     "serena", "start-mcp-server"],
+            "args": [
+                "--from",
+                "git+https://github.com/oraios/serena",
+                "serena",
+                "start-mcp-server",
+            ],
         }
     }
     # Engram (memoria local, seguro) se auto-cablea si está instalado.
@@ -354,14 +395,20 @@ def build_mcp_json(answers: dict) -> str:
     import json
 
     servers = _mcp_servers(answers)
-    note = ("Serena = código vivo (token-saver). Memoria persistente opcional (N2): "
-            "Engram (`engram mcp`) o basic-memory.")
+    note = (
+        "Serena = código vivo (token-saver). Memoria persistente opcional (N2): "
+        "Engram (`engram mcp`) o basic-memory."
+    )
     if "engram" in servers:
         note += " Engram detectado y añadido."
     if "headroom" in servers:
-        note += (" Headroom añadido por --with-headroom; si tu versión difiere, "
-                 "ajusta con `headroom mcp install`. No reemplaza la evidencia cruda.")
+        note += (
+            " Headroom añadido por --with-headroom; si tu versión difiere, "
+            "ajusta con `headroom mcp install`. No reemplaza la evidencia cruda."
+        )
     if "ponytail" in servers:
-        note += (" Ponytail añadido por --with-ponytail: ejecuta `tramalia skills` y "
-                 "`npm install` en .tramalia/skills/ponytail/ponytail-mcp antes de usarlo.")
+        note += (
+            " Ponytail añadido por --with-ponytail: ejecuta `tramalia skills` y "
+            "`npm install` en .tramalia/skills/ponytail/ponytail-mcp antes de usarlo."
+        )
     return json.dumps({"_note": note, "mcpServers": servers}, indent=2, ensure_ascii=False) + "\n"

@@ -17,9 +17,19 @@ def build_app():
     from textual.app import App, ComposeResult
     from textual.containers import Horizontal, Vertical
     from textual.screen import ModalScreen
-    from textual.widgets import (Button, DataTable, Footer, Header, Input,
-                                 OptionList, RichLog, SelectionList, Static,
-                                 TabbedContent, TabPane)
+    from textual.widgets import (
+        Button,
+        DataTable,
+        Footer,
+        Header,
+        Input,
+        OptionList,
+        RichLog,
+        SelectionList,
+        Static,
+        TabbedContent,
+        TabPane,
+    )
     from textual.widgets.option_list import Option
     from textual.widgets.selection_list import Selection
 
@@ -27,9 +37,8 @@ def build_app():
     from tramalia.core import governance, installer, project
     from tramalia.core import skills as skills_core
     from tramalia.core.context_backend import BACKENDS, backend_installed
-    from tramalia.core.detect import detect_stack
+    from tramalia.core.detect import detect_stack, enabled_features
     from tramalia.core.scaffold import scaffold
-    from tramalia.core.detect import enabled_features
 
     class InstallScreen(ModalScreen):
         """Selección múltiple de qué instalar. Muestra TODAS las faltantes:
@@ -50,7 +59,7 @@ def build_app():
 
         def __init__(self, plans, manuals):
             super().__init__()
-            self._plans = plans      # [(label, InstallOption, enables)] automatizables
+            self._plans = plans  # [(label, InstallOption, enables)] automatizables
             self._manuals = manuals  # [(label, comando_str)] solo manual
 
         def action_dismiss_empty(self) -> None:
@@ -60,14 +69,17 @@ def build_app():
             with Vertical(id="inst-box"):
                 yield Static(f"[b]{t('tui.install.title')}[/b]")
                 if self._plans:
-                    yield SelectionList(*[
-                        Selection(f"{label} — {opt.display}", idx, True)
-                        for idx, (label, opt, _en) in enumerate(self._plans)
-                    ])
+                    yield SelectionList(
+                        *[
+                            Selection(f"{label} — {opt.display}", idx, True)
+                            for idx, (label, opt, _en) in enumerate(self._plans)
+                        ]
+                    )
                 if self._manuals:
                     lineas = "\n".join(f"  • {label} — {cmd}" for label, cmd in self._manuals)
-                    yield Static(f"[dim]{t('tui.install.manual.header')}\n{lineas}[/dim]",
-                                 id="inst-manual")
+                    yield Static(
+                        f"[dim]{t('tui.install.manual.header')}\n{lineas}[/dim]", id="inst-manual"
+                    )
                 with Horizontal(id="inst-botones"):
                     yield Button(t("tui.install.button"), id="inst-ok", variant="primary")
                     yield Button(t("tui.install.cancel"), id="inst-cancel")
@@ -108,14 +120,20 @@ def build_app():
                 for key, meta in BACKENDS.items():
                     inst = backend_installed(key)
                     estado = "✓" if inst else "○"
-                    estado_txt = (t("tui.ctxbackend.installed") if inst
-                                  else t("tui.ctxbackend.notinstalled"))
-                    actual = (f"  [reverse] {t('tui.ctxbackend.current')} [/reverse]"
-                              if key == self._current else "")
-                    texto = (f"{estado} [b]{meta['label']}[/b]{actual}\n"
-                            f"   {meta['scope']}\n"
-                            f"   {t('tui.ctxbackend.ideal')}: {meta['ideal']}\n"
-                            f"   [dim]{estado_txt}[/dim]")
+                    estado_txt = (
+                        t("tui.ctxbackend.installed") if inst else t("tui.ctxbackend.notinstalled")
+                    )
+                    actual = (
+                        f"  [reverse] {t('tui.ctxbackend.current')} [/reverse]"
+                        if key == self._current
+                        else ""
+                    )
+                    texto = (
+                        f"{estado} [b]{meta['label']}[/b]{actual}\n"
+                        f"   {meta['scope']}\n"
+                        f"   {t('tui.ctxbackend.ideal')}: {meta['ideal']}\n"
+                        f"   [dim]{estado_txt}[/dim]"
+                    )
                     opciones.add_option(Option(texto, id=key))
                 yield opciones
                 with Horizontal(id="ctx-botones"):
@@ -174,8 +192,9 @@ def build_app():
                 with TabPane(t("tui.tab.summary"), id="resumen"):
                     yield Static(id="estado")
                     # botón de inicializar aquí mismo cuando el repo no está gobernado
-                    yield Button(t("tui.close.init.button"), id="btn-init-resumen",
-                                 variant="warning")
+                    yield Button(
+                        t("tui.close.init.button"), id="btn-init-resumen", variant="warning"
+                    )
                     yield Static(id="gates-linea")
                     yield Static(id="lastclose")
                     yield Static(id="pathaviso")
@@ -186,8 +205,7 @@ def build_app():
                         yield RichLog(id="instalador", wrap=True, markup=True)
                 with TabPane(t("tui.tab.skills"), id="skills"):
                     yield Static(t("tui.skills.hint"), id="skills-hint")
-                    yield Input(placeholder=t("tui.skills.url.placeholder"),
-                                id="skill-url")
+                    yield Input(placeholder=t("tui.skills.url.placeholder"), id="skill-url")
                     yield DataTable(id="tabla-skills", cursor_type="row")
                     yield RichLog(id="skills-log", wrap=True, markup=True)
                 with TabPane(t("tui.tab.audit"), id="auditoria"):
@@ -202,14 +220,16 @@ def build_app():
                         yield Input(placeholder=t("tui.close.task.placeholder"), id="in-task")
                         yield Static(id="taskinfo")
                         yield Input(placeholder=t("tui.close.agent.placeholder"), id="in-agent")
-                        yield Input(placeholder=t("tui.close.reviewer.placeholder"), id="in-reviewer")
+                        yield Input(
+                            placeholder=t("tui.close.reviewer.placeholder"), id="in-reviewer"
+                        )
                         yield Input(placeholder=t("tui.close.model.placeholder"), id="in-model")
                         yield Button(t("tui.close.button"), id="btn-close", variant="primary")
                         yield RichLog(id="salida", wrap=True, markup=True)
             yield Footer()
 
         def on_mount(self) -> None:
-            self._skill_updates = {}   # name → hay actualización (lo llena la tecla u)
+            self._skill_updates = {}  # name → hay actualización (lo llena la tecla u)
             self.action_refresh()
 
         # ------------------------------------------------------------ refresh
@@ -219,46 +239,47 @@ def build_app():
             stack = detect_stack(root)
             report = doctor_core.diagnose(root)
 
-            estado = (t("tui.state.initialized") if initialized
-                      else t("tui.state.uninitialized"))
+            estado = t("tui.state.initialized") if initialized else t("tui.state.uninitialized")
             self.query_one("#estado", Static).update(
-                t("tui.header", path=str(root), stack=", ".join(stack) or "—",
-                  estado=estado))
+                t("tui.header", path=str(root), stack=", ".join(stack) or "—", estado=estado)
+            )
             # el botón de init vive aquí (Resumen): visible solo si falta inicializar
             self.query_one("#btn-init-resumen", Button).display = not initialized
 
             # gates REALES del proyecto (mise.toml), no features internas
             gates = governance.gate_tasks(root)
             self.query_one("#gates-linea", Static).update(
-                t("tui.gates.line", gates=" · ".join(gates)) if gates
-                else t("tui.gates.none"))
+                t("tui.gates.line", gates=" · ".join(gates)) if gates else t("tui.gates.none")
+            )
 
             entries = governance.read_log(root)
             last = ""
             if entries:
                 e = entries[0]
-                last = t("tui.lastclose", id=e["id"],
-                         mark=_LOG_MARKS.get(e.get("status"), "○ —"))
+                last = t("tui.lastclose", id=e["id"], mark=_LOG_MARKS.get(e.get("status"), "○ —"))
             self.query_one("#lastclose", Static).update(last)
 
             # aviso de PATH de uv (si sus binarios no están en el PATH)
             self.query_one("#pathaviso", Static).update(
-                "" if report.uv_bin_on_path
-                else f"[yellow]▲ {t('doctor.path.uv.missing')}[/yellow]")
+                "" if report.uv_bin_on_path else f"[yellow]▲ {t('doctor.path.uv.missing')}[/yellow]"
+            )
 
             # backend de contexto activo (config.json → context.backend)
             if initialized:
                 self.query_one("#ctxbackend", Static).update(
-                    t("tui.ctxbackend.line", name=project.context_backend(root)))
+                    t("tui.ctxbackend.line", name=project.context_backend(root))
+                )
             else:
                 self.query_one("#ctxbackend", Static).update("")
 
             self._report = report  # lo usa el instalador (tecla i)
             from tramalia.cli.render import group_statuses
+
             tabla = self.query_one("#tabla-doctor", DataTable)
             tabla.clear(columns=True)
-            tabla.add_columns(t("tui.col.tool"), t("tui.col.purpose"),
-                              t("tui.col.state"), t("tui.col.detail"))
+            tabla.add_columns(
+                t("tui.col.tool"), t("tui.col.purpose"), t("tui.col.state"), t("tui.col.detail")
+            )
             for cat, rows in group_statuses(report.statuses):
                 tabla.add_row(f"[bold cyan]· {t('doctor.group.' + cat)}[/]", "", "", "")
                 for s in rows:
@@ -266,12 +287,20 @@ def build_app():
                         mark, detalle = t("tui.status.ok"), (s.version or "—")
                     else:
                         best = installer.best_auto(s.tool)
-                        hint = best.display if best else (
-                            installer.options_for(s.tool)[0].display
-                            if installer.options_for(s.tool) else s.tool.install_hint)
-                        mark = (t("tui.status.optional")
-                                if s.tool.category in ("feature", "agent")
-                                else t("tui.status.missing"))
+                        hint = (
+                            best.display
+                            if best
+                            else (
+                                installer.options_for(s.tool)[0].display
+                                if installer.options_for(s.tool)
+                                else s.tool.install_hint
+                            )
+                        )
+                        mark = (
+                            t("tui.status.optional")
+                            if s.tool.category in ("feature", "agent")
+                            else t("tui.status.missing")
+                        )
                         detalle = hint
                     tabla.add_row(f"  {s.tool.cmd}", s.tool.role, mark, detalle)
 
@@ -282,27 +311,32 @@ def build_app():
         def _refresh_skills(self, root, initialized) -> None:
             tabla = self.query_one("#tabla-skills", DataTable)
             tabla.clear(columns=True)
-            tabla.add_columns(t("tui.skills.col.name"), t("tui.col.state"),
-                              t("tui.skills.col.info"))
+            tabla.add_columns(
+                t("tui.skills.col.name"), t("tui.col.state"), t("tui.skills.col.info")
+            )
             if not initialized:
                 self.query_one("#skills-hint", Static).update(t("tui.skills.uninit"))
                 return
             hint = t("tui.skills.hint")
             tracked = skills_core.tracked_external_skills(root)
             if tracked:
-                hint += ("\n[yellow]" + t("skills.tracked.warn",
-                                          names=", ".join(tracked)) + "[/yellow]")
+                hint += (
+                    "\n[yellow]" + t("skills.tracked.warn", names=", ".join(tracked)) + "[/yellow]"
+                )
             self.query_one("#skills-hint", Static).update(hint)
             tabla.add_row(f"[bold cyan]· {t('skills.group.own')}[/]", "", "")
             for s in skills_core.own_skills(root):
-                tabla.add_row(f"  {s['name']}", t("skills.state.installed"),
-                              s["description"])
+                tabla.add_row(f"  {s['name']}", t("skills.state.installed"), s["description"])
             tabla.add_row(f"[bold cyan]· {t('skills.group.external')}[/]", "", "")
             updates = getattr(self, "_skill_updates", {})
             for s in skills_core.external_status(root):
-                estado = (t("skills.state.installed") if s["installed"]
-                          else t("skills.state.declared") if s["enabled"]
-                          else t("skills.state.available"))
+                estado = (
+                    t("skills.state.installed")
+                    if s["installed"]
+                    else t("skills.state.declared")
+                    if s["enabled"]
+                    else t("skills.state.available")
+                )
                 if s["installed_ref"]:
                     info = f"@{s['installed_ref']}"
                     if updates.get(s["name"]):
@@ -325,8 +359,9 @@ def build_app():
             tabla.add_columns(t("tui.col.close"), t("tui.col.status"), t("tui.col.agent"))
             for e in entries:
                 modelo = f" ({e['model']})" if e.get("model") else ""
-                tabla.add_row(e["id"], str(e.get("status") or "—"),
-                              (e.get("agent") or "—") + modelo)
+                tabla.add_row(
+                    e["id"], str(e.get("status") or "—"), (e.get("agent") or "—") + modelo
+                )
 
         def _refresh_close(self, root, initialized) -> None:
             aviso = self.query_one("#aviso-uninit", Static)
@@ -411,22 +446,19 @@ def build_app():
                               los excluye del repo; el manifiesto la puede re-traer)."""
             root = Path.cwd()
             name = str(event.data_table.get_row(event.row_key)[0]).strip()
-            externa = next((s for s in skills_core.catalog(root)
-                            if s["name"] == name), None)
+            externa = next((s for s in skills_core.catalog(root) if s["name"] == name), None)
             if externa is None:  # encabezado o skill propia: nada que hacer
                 return
             log = self._skills_log()
             if externa["installed"]:
                 # ya instalada → actualizarla (pull de esa sola)
                 log.write(t("skills.update.one", name=name))
-                self.run_worker(lambda: self._sync_one_skill(name),
-                                thread=True, exclusive=True)
+                self.run_worker(lambda: self._sync_one_skill(name), thread=True, exclusive=True)
                 return
             if not externa["enabled"]:
                 skills_core.set_enabled(root, name, True)  # declarar
-            log.write(t("skills.install.one", name=name))   # y clonar en el acto
-            self.run_worker(lambda: self._sync_one_skill(name),
-                            thread=True, exclusive=True)
+            log.write(t("skills.install.one", name=name))  # y clonar en el acto
+            self.run_worker(lambda: self._sync_one_skill(name), thread=True, exclusive=True)
 
         def _sync_one_skill(self, name) -> None:
             results = skills_core.sync_skills(Path.cwd(), only=name)
@@ -462,8 +494,7 @@ def build_app():
             self.call_from_thread(self._after_check_updates, estados)
 
         def _after_check_updates(self, estados) -> None:
-            self._skill_updates = {s["name"]: s["update"]
-                                   for s in estados if s["installed"]}
+            self._skill_updates = {s["name"]: s["update"] for s in estados if s["installed"]}
             n = sum(1 for v in self._skill_updates.values() if v)
             self._skills_log().write(t("skills.update.found", n=n))
             self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
@@ -486,8 +517,9 @@ def build_app():
             for n, (name, act) in enumerate(results, 1):
                 log.write(f"[{n}/{total}] {act:>12}  {name}")
             if results:
-                ok = sum(1 for _, a in results if a in ("clonada", "actualizada",
-                                                        "cloned", "updated"))
+                ok = sum(
+                    1 for _, a in results if a in ("clonada", "actualizada", "cloned", "updated")
+                )
                 log.write(t("tui.skills.sync.summary", ok=ok, total=total))
             self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
 
@@ -503,12 +535,18 @@ def build_app():
             root = Path.cwd()
             stack = detect_stack(root)
             from tramalia.core.tools import detect_default_agents
+
             primary, reviewer = detect_default_agents()
-            scaffold(root, {
-                "project_name": root.name, "stacks": stack,
-                "features": enabled_features(stack),
-                "primary_agent": primary, "reviewer_agent": reviewer,
-            })
+            scaffold(
+                root,
+                {
+                    "project_name": root.name,
+                    "stacks": stack,
+                    "features": enabled_features(stack),
+                    "primary_agent": primary,
+                    "reviewer_agent": reviewer,
+                },
+            )
             project.set_scaffolded_version(root, _tramalia_version)
             button.disabled = False
             self.notify(t("tui.init.done"), markup=False)
@@ -533,14 +571,21 @@ def build_app():
             # ofrecer instalar el runtime (Node/Go) que desbloquea otras herramientas;
             # `enables` deja que el worker las instale encadenadas en la misma corrida
             for name, opt, enables in runtime_offers:
-                plans.append((t("tui.install.runtime", rt=name,
-                                tools=", ".join(enables)), opt, list(enables)))
+                plans.append(
+                    (
+                        t("tui.install.runtime", rt=name, tools=", ".join(enables)),
+                        opt,
+                        list(enables),
+                    )
+                )
             # manuales: anotar "requiere X" si un runtime falta
             manuals = []
             for cmd, display, rt in manual:
-                label = (cmd if not rt else
-                         t("tui.install.needs", tool=cmd,
-                           rt=installer._RUNTIME_NAME.get(rt, rt)))
+                label = (
+                    cmd
+                    if not rt
+                    else t("tui.install.needs", tool=cmd, rt=installer._RUNTIME_NAME.get(rt, rt))
+                )
                 manuals.append((label, display))
             # acción de PATH: si uv está pero su bin no está en el PATH
             if not report.uv_bin_on_path and installer.shutil.which("uv"):
@@ -554,9 +599,9 @@ def build_app():
             if not seleccion:
                 return
             import threading
+
             self._cancel = threading.Event()
-            self.run_worker(lambda: self._install_worker(seleccion),
-                            thread=True, exclusive=True)
+            self.run_worker(lambda: self._install_worker(seleccion), thread=True, exclusive=True)
 
         def action_cancel_install(self) -> None:
             """Tecla c: termina la instalación en curso y sigue con la próxima."""
@@ -566,6 +611,7 @@ def build_app():
 
         def _install_worker(self, seleccion) -> None:
             from tramalia.core.tools import REGISTRY
+
             cola = list(seleccion)  # crece si un runtime desbloquea otras (engram tras Go)
             i = 0
             while i < len(cola):
@@ -574,15 +620,22 @@ def build_app():
                 self._cancel.clear()  # cancelar aplica a UNA herramienta, no a todas
                 self.call_from_thread(
                     self._log_write,
-                    t("tui.install.installing", n=i, total=len(cola), tool=label,
-                      method=opt.method, cmd=opt.display))
+                    t(
+                        "tui.install.installing",
+                        n=i,
+                        total=len(cola),
+                        tool=label,
+                        method=opt.method,
+                        cmd=opt.display,
+                    ),
+                )
                 code, out = installer.run_install_streaming(
-                    opt, on_line=lambda ln: self.call_from_thread(
-                        self._log_write, f"[dim]{ln}[/dim]"),
-                    cancel=self._cancel)
+                    opt,
+                    on_line=lambda ln: self.call_from_thread(self._log_write, f"[dim]{ln}[/dim]"),
+                    cancel=self._cancel,
+                )
                 if code == 0:
-                    self.call_from_thread(
-                        self._log_write, t("tui.install.ok", tool=label))
+                    self.call_from_thread(self._log_write, t("tui.install.ok", tool=label))
                     # el runtime recién instalado ya deja su binario en disco:
                     # refrescar el PATH del proceso y encadenar lo que desbloquea.
                     installer.refresh_runtime_path()
@@ -592,19 +645,18 @@ def build_app():
                         if best:
                             cola.append((cmd, best, []))
                             self.call_from_thread(
-                                self._log_write, t("tui.install.chained", tool=cmd))
+                                self._log_write, t("tui.install.chained", tool=cmd)
+                            )
                 elif code == 130:
-                    self.call_from_thread(
-                        self._log_write, t("tui.install.cancelled", tool=label))
+                    self.call_from_thread(self._log_write, t("tui.install.cancelled", tool=label))
                 elif code == 124:
-                    self.call_from_thread(
-                        self._log_write, t("tui.install.timeout", tool=label))
+                    self.call_from_thread(self._log_write, t("tui.install.timeout", tool=label))
                 else:
                     self.call_from_thread(
-                        self._log_write, t("tui.install.fail", tool=label, code=code))
+                        self._log_write, t("tui.install.fail", tool=label, code=code)
+                    )
                     if installer.needs_admin(out):
-                        self.call_from_thread(
-                            self._log_write, t("tui.install.admin", tool=label))
+                        self.call_from_thread(self._log_write, t("tui.install.admin", tool=label))
             self.call_from_thread(self._after_installs)
 
         # ------------------------------------------------------------ docs
@@ -616,10 +668,12 @@ def build_app():
             Usa una notificación (toast) — NO el panel del instalador.
             """
             import webbrowser
+
             if self.query_one(TabbedContent).active == "skills":
                 url = self._skill_docs_url()
             else:
                 from tramalia.core.tools import REGISTRY, docs_url
+
                 tabla = self.query_one("#tabla-doctor", DataTable)
                 try:
                     fila = tabla.get_row_at(tabla.cursor_row)
@@ -644,8 +698,7 @@ def build_app():
             except Exception:
                 return ""
             name = str(fila[0]).strip()
-            ext = next((s for s in skills_core.catalog(root)
-                        if s["name"] == name), None)
+            ext = next((s for s in skills_core.catalog(root) if s["name"] == name), None)
             if ext and ext.get("source"):
                 return ext["source"].removeprefix("git+").removesuffix(".git")
             if len(name) >= 2 and name[:2].isdigit():
@@ -680,8 +733,11 @@ def build_app():
                 if backend_installed(chosen):
                     self.notify(t("tui.ctxbackend.ok", name=chosen), markup=False)
                 else:
-                    self.notify(t("tui.ctxbackend.oknotinstalled", name=chosen),
-                                severity="warning", markup=False)
+                    self.notify(
+                        t("tui.ctxbackend.oknotinstalled", name=chosen),
+                        severity="warning",
+                        markup=False,
+                    )
                 self.action_refresh()
             else:
                 self.notify(t("tui.ctxbackend.fail"), severity="error", markup=False)
@@ -709,11 +765,13 @@ def build_app():
             model = self.query_one("#in-model", Input).value.strip()
             salida.write(t("tui.close.running", task=task))
             button.disabled = True
-            self.run_worker(lambda: self._run_close(task, agent, reviewer, model),
-                            thread=True, exclusive=True)
+            self.run_worker(
+                lambda: self._run_close(task, agent, reviewer, model), thread=True, exclusive=True
+            )
 
         def _run_close(self, task, agent, reviewer, model) -> None:
             from tramalia.core import governance as gov
+
             try:
                 result = gov.close(Path.cwd(), task, agent, reviewer, model=model)
             except Exception as exc:
@@ -730,8 +788,11 @@ def build_app():
             if not result.gates_ran:
                 salida.write(t("tui.close.nogates"))
             for name, code, _ in result.gates:
-                salida.write(t("tui.close.gate.ok", name=name) if code == 0
-                             else t("tui.close.gate.fail", name=name))
+                salida.write(
+                    t("tui.close.gate.ok", name=name)
+                    if code == 0
+                    else t("tui.close.gate.fail", name=name)
+                )
             salida.write(t("tui.close.status", status=result.status))
             salida.write(t("tui.close.evidence", dir=str(result.evidence_dir)))
             if result.blocked:

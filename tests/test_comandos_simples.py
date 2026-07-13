@@ -9,8 +9,9 @@ from tramalia.core.project import current_task_id, default_agents, resolve_close
 def _proyecto(tmp_path, task_id=None):
     d = tmp_path / ".tramalia"
     d.mkdir()
-    (d / "config.json").write_text(json.dumps(
-        {"agents": {"primary": "codex", "reviewer": "claude"}}), encoding="utf-8")
+    (d / "config.json").write_text(
+        json.dumps({"agents": {"primary": "codex", "reviewer": "claude"}}), encoding="utf-8"
+    )
     if task_id:
         (d / "current-task.md").write_text(f"# Tarea\n\n- ID: {task_id}\n", encoding="utf-8")
 
@@ -30,7 +31,8 @@ def test_flag_task_sigue_funcionando():
 def test_current_task_placeholder_no_cuenta(tmp_path):
     (tmp_path / ".tramalia").mkdir()
     (tmp_path / ".tramalia" / "current-task.md").write_text(
-        "- ID: [TASK-XXX — debe existir en specs/tasks.md]\n", encoding="utf-8")
+        "- ID: [TASK-XXX — debe existir en specs/tasks.md]\n", encoding="utf-8"
+    )
     assert current_task_id(tmp_path) is None
 
 
@@ -47,8 +49,7 @@ def test_defaults_de_config(tmp_path):
 def test_resolucion_completa_sin_flags(tmp_path):
     _proyecto(tmp_path, "TASK-042")
     # `tramalia close` a secas: tarea de current-task, agentes de config
-    assert resolve_close_args(tmp_path, None, None, None, None) == \
-        ("TASK-042", "codex", "claude")
+    assert resolve_close_args(tmp_path, None, None, None, None) == ("TASK-042", "codex", "claude")
 
 
 def test_posicional_gana_y_flags_hacen_override(tmp_path):

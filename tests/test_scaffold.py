@@ -37,11 +37,9 @@ def test_mise_tasks_match_stack(tmp_path):
     scaffold(tmp_path, _answers(["node", "angular", "postgres"]))
     data = tomllib.loads((tmp_path / "mise.toml").read_text(encoding="utf-8"))
     tasks = data["tasks"]
-    assert "ux" in tasks          # frontend detectado
-    assert "database" in tasks    # postgres detectado
-    assert set(tasks["gates"]["depends"]) >= {
-        "build", "test", "lint", "security", "database", "ux"
-    }
+    assert "ux" in tasks  # frontend detectado
+    assert "database" in tasks  # postgres detectado
+    assert set(tasks["gates"]["depends"]) >= {"build", "test", "lint", "security", "database", "ux"}
 
 
 def test_existing_file_is_preserved(tmp_path):

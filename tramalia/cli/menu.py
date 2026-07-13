@@ -9,14 +9,27 @@ from tramalia.i18n import t
 
 try:
     import questionary
+
     _HAS_Q = True
 except Exception:
     _HAS_Q = False
 
 # claves de comando (el orden define el menú); la etiqueta es t("menu.<clave>")
 OPTION_KEYS: list[str] = [
-    "close", "log", "doctor", "detect", "init", "gates", "context",
-    "evidence", "handoff", "sync", "skills", "update", "ui", "quit",
+    "close",
+    "log",
+    "doctor",
+    "detect",
+    "init",
+    "gates",
+    "context",
+    "evidence",
+    "handoff",
+    "sync",
+    "skills",
+    "update",
+    "ui",
+    "quit",
 ]
 
 

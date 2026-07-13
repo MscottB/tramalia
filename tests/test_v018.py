@@ -5,11 +5,16 @@ from tramalia.core.scaffold import scaffold
 
 
 def _init(tmp_path, stacks):
-    scaffold(tmp_path, {
-        "project_name": "demo", "stacks": stacks,
-        "features": enabled_features(stacks),
-        "primary_agent": "codex", "reviewer_agent": "claude",
-    })
+    scaffold(
+        tmp_path,
+        {
+            "project_name": "demo",
+            "stacks": stacks,
+            "features": enabled_features(stacks),
+            "primary_agent": "codex",
+            "reviewer_agent": "claude",
+        },
+    )
     return tmp_path / "docs" / "ai"
 
 
@@ -18,14 +23,14 @@ def test_reglas_codigo_incluyen_stack_detectado(tmp_path):
     ai = _init(tmp_path, ["angular", "dotnet"])
     texto = (ai / "02-reglas-codigo.md").read_text(encoding="utf-8")
     assert "Angular" in texto and ".NET" in texto
-    assert "{{" not in texto            # sin placeholders sin renderizar
+    assert "{{" not in texto  # sin placeholders sin renderizar
 
 
 def test_reglas_bd_con_dialecto_del_motor(tmp_path):
     ai = _init(tmp_path, ["dotnet", "postgres", "sqlserver"])
     texto = (ai / "03-reglas-base-datos.md").read_text(encoding="utf-8")
     assert "SQL Server (tsql)" in texto and "PostgreSQL" in texto
-    assert "rollback" in texto           # lo innegociable de migraciones
+    assert "rollback" in texto  # lo innegociable de migraciones
 
 
 def test_stack_sin_frontend_lo_dice_en_ux(tmp_path):
@@ -45,7 +50,7 @@ def test_deploy_release_existe_con_checklist(tmp_path):
     ai = _init(tmp_path, ["python"])
     texto = (ai / "12-deploy-release.md").read_text(encoding="utf-8")
     assert "rollback" in texto and "feature flag" in texto
-    assert "tramalia close" in texto     # anclado al gobierno
+    assert "tramalia close" in texto  # anclado al gobierno
 
 
 def test_analitica_datos_referencia_metricas(tmp_path):
@@ -59,12 +64,14 @@ def test_analitica_datos_referencia_metricas(tmp_path):
 def test_skills_nuevas_ancladas_a_gobierno(tmp_path):
     _init(tmp_path, ["python"])
     base = tmp_path / ".tramalia" / "skills"
-    for skill, ancla in [("14-deploy-gate", "12-deploy-release"),
-                         ("15-analytics-governance", "metrics.json"),
-                         ("16-threat-modeling", "STRIDE")]:
+    for skill, ancla in [
+        ("14-deploy-gate", "12-deploy-release"),
+        ("15-analytics-governance", "metrics.json"),
+        ("16-threat-modeling", "STRIDE"),
+    ]:
         texto = (base / skill / "SKILL.md").read_text(encoding="utf-8")
         assert ancla in texto, skill
-        assert "tramalia close" in texto, skill   # regla de oro: ancladas al cierre
+        assert "tramalia close" in texto, skill  # regla de oro: ancladas al cierre
 
 
 # ---------------------------------------------------------------- catálogo

@@ -1,7 +1,6 @@
+import tomllib
 from pathlib import Path
 from typing import Any
-import tomllib
-
 
 RAIZ = Path(__file__).resolve().parents[2]
 

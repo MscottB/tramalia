@@ -9,7 +9,7 @@
 import os
 
 from tramalia.core import installer
-from tramalia.core.tools import REGISTRY, Tool
+from tramalia.core.tools import REGISTRY
 
 
 def _tool(key):
@@ -57,11 +57,12 @@ def test_antigravity_ide_y_2_winget_en_windows():
 # ---------------------------------------------------------------- winget detección
 def test_probe_detecta_por_winget_id(monkeypatch):
     import tramalia.core.tools as tools_mod
+
     # simula que winget existe y que 'Google.AntigravityIDE' aparece en el listado
-    monkeypatch.setattr(tools_mod.shutil, "which",
-                        lambda c: "winget" if c == "winget" else None)
-    tools_mod._WINGET_STATE.update({"loaded": True, "text":
-        "Name  Id  Version\nAntigravity IDE  Google.AntigravityIDE  2.0.4"})
+    monkeypatch.setattr(tools_mod.shutil, "which", lambda c: "winget" if c == "winget" else None)
+    tools_mod._WINGET_STATE.update(
+        {"loaded": True, "text": "Name  Id  Version\nAntigravity IDE  Google.AntigravityIDE  2.0.4"}
+    )
     st = tools_mod.probe(_tool("antigravity-ide"))
     assert st.present is True
     tools_mod._WINGET_STATE.update({"loaded": False, "text": ""})  # no contamina
@@ -69,8 +70,8 @@ def test_probe_detecta_por_winget_id(monkeypatch):
 
 def test_probe_winget_id_ausente_es_faltante(monkeypatch):
     import tramalia.core.tools as tools_mod
-    monkeypatch.setattr(tools_mod.shutil, "which",
-                        lambda c: "winget" if c == "winget" else None)
+
+    monkeypatch.setattr(tools_mod.shutil, "which", lambda c: "winget" if c == "winget" else None)
     tools_mod._WINGET_STATE.update({"loaded": True, "text": "Name  Id  Version\n"})
     st = tools_mod.probe(_tool("antigravity-2"))
     assert st.present is False
@@ -92,9 +93,8 @@ def test_refresh_runtime_path_agrega_dirs_existentes(monkeypatch, tmp_path):
 
 def test_engram_bloqueado_por_go_lo_marca_como_runtime(monkeypatch):
     # hermético: simulamos Go ausente (el equipo real puede tenerlo instalado).
-    monkeypatch.setattr(installer.shutil, "which",
-                        lambda c: None if c == "go" else "x")
+    monkeypatch.setattr(installer.shutil, "which", lambda c: None if c == "go" else "x")
     auto, manual, offers = installer.plan_for([_tool("engram")], os_name="windows")
     manual_map = {cmd: rt for cmd, _d, rt in manual}
-    assert manual_map.get("engram") == "go"        # bloqueado por el runtime Go
+    assert manual_map.get("engram") == "go"  # bloqueado por el runtime Go
     assert any("engram" in enables for _n, _o, enables in offers)  # Go lo desbloquea

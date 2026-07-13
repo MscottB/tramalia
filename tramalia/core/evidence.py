@@ -11,7 +11,10 @@ def _git_changed(root: Path) -> str:
     try:
         out = subprocess.run(
             ["git", "diff", "--name-only", "HEAD"],
-            cwd=root, capture_output=True, text=True, timeout=10,
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         names = [n for n in out.stdout.splitlines() if n.strip()]
         if names:
@@ -33,8 +36,7 @@ def build_evidence(root: Path, task: str = "TASK-000") -> Path:
         ),
         "files-changed.md": _git_changed(root),
         "commands.md": (
-            "# Comandos ejecutados\n\n"
-            "| comando | hora | exit | observación |\n|---|---|---|---|\n"
+            "# Comandos ejecutados\n\n| comando | hora | exit | observación |\n|---|---|---|---|\n"
         ),
         "build-output.txt": "",
         "test-output.txt": "",

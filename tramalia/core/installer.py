@@ -13,6 +13,7 @@ import platform
 import shutil
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from tramalia.core import proc
 from tramalia.core.tools import Tool
@@ -29,11 +30,11 @@ def current_os() -> str:
 
 @dataclass(frozen=True)
 class InstallOption:
-    method: str            # "mise" | "uv" | "npm" | "pip" | "winget" | "brew" | ...
+    method: str  # "mise" | "uv" | "npm" | "pip" | "winget" | "brew" | ...
     args: tuple[str, ...]  # comando ejecutable (vacío si es solo manual)
-    display: str           # cómo mostrarlo al usuario
-    requires: str = ""     # binario que debe existir para poder automatizarla
-    auto: bool = True      # False = solo se muestra (p. ej. curl | sh, URLs)
+    display: str  # cómo mostrarlo al usuario
+    requires: str = ""  # binario que debe existir para poder automatizarla
+    auto: bool = True  # False = solo se muestra (p. ej. curl | sh, URLs)
 
     @property
     def available(self) -> bool:
@@ -44,14 +45,20 @@ class InstallOption:
 
 
 def _winget(pkg_id: str) -> InstallOption:
-    args = ("winget", "install", "-e", "--id", pkg_id,
-            "--accept-source-agreements", "--accept-package-agreements")
+    args = (
+        "winget",
+        "install",
+        "-e",
+        "--id",
+        pkg_id,
+        "--accept-source-agreements",
+        "--accept-package-agreements",
+    )
     return InstallOption("winget", args, f"winget install {pkg_id}", requires="winget")
 
 
 def _brew(pkg: str) -> InstallOption:
-    return InstallOption("brew", ("brew", "install", pkg), f"brew install {pkg}",
-                         requires="brew")
+    return InstallOption("brew", ("brew", "install", pkg), f"brew install {pkg}", requires="brew")
 
 
 def _manual(display: str) -> InstallOption:
@@ -60,8 +67,7 @@ def _manual(display: str) -> InstallOption:
 
 def _go_install(pkg: str) -> InstallOption:
     # requiere Go; el binario queda en ~/go/bin (probe lo detecta aunque no esté en PATH)
-    return InstallOption("go", ("go", "install", pkg),
-                         f"go install {pkg}", requires="go")
+    return InstallOption("go", ("go", "install", pkg), f"go install {pkg}", requires="go")
 
 
 # bootstrap y runtimes: opciones por SO, en orden de preferencia.
@@ -69,11 +75,15 @@ def _go_install(pkg: str) -> InstallOption:
 # reales; choco sin verificar) — por eso va primero y las otras como alternativa.
 _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
     "mise": {
-        "windows": [_winget("jdx.mise"),
-                    InstallOption("choco", ("choco", "install", "mise", "-y"),
-                                  "choco install mise", requires="choco"),
-                    InstallOption("scoop", ("scoop", "install", "mise"),
-                                  "scoop install mise", requires="scoop")],
+        "windows": [
+            _winget("jdx.mise"),
+            InstallOption(
+                "choco", ("choco", "install", "mise", "-y"), "choco install mise", requires="choco"
+            ),
+            InstallOption(
+                "scoop", ("scoop", "install", "mise"), "scoop install mise", requires="scoop"
+            ),
+        ],
         "macos": [_brew("mise"), _manual("curl https://mise.run | sh")],
         "linux": [_manual("curl https://mise.run | sh")],
     },
@@ -100,13 +110,19 @@ _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
     # engram (memoria N2): brew en mac; `go install` multiplataforma (incl. Windows)
     # si Go está presente; binario de releases como último recurso manual.
     "engram": {
-        "windows": [_go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
-                    _manual("binario de github.com/Gentleman-Programming/engram/releases")],
-        "macos": [_brew("gentleman-programming/tap/engram"),
-                  _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest")],
-        "linux": [_brew("gentleman-programming/tap/engram"),
-                  _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
-                  _manual("binario de github.com/Gentleman-Programming/engram/releases")],
+        "windows": [
+            _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
+            _manual("binario de github.com/Gentleman-Programming/engram/releases"),
+        ],
+        "macos": [
+            _brew("gentleman-programming/tap/engram"),
+            _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
+        ],
+        "linux": [
+            _brew("gentleman-programming/tap/engram"),
+            _go_install("github.com/Gentleman-Programming/engram/cmd/engram@latest"),
+            _manual("binario de github.com/Gentleman-Programming/engram/releases"),
+        ],
     },
     # codegraph: el binario SÍ se automatiza vía npm (_from_hint lo deriva del
     # install_hint del registro); aquí no hace falta _SYSTEM. El wiring a agentes
@@ -114,8 +130,10 @@ _SYSTEM: dict[str, dict[str, list[InstallOption]]] = {
     # Antigravity CLI (agy): en Windows hay paquete winget oficial (automatizable);
     # en mac/linux solo el script curl|sh, que NUNCA se ejecuta automatizado.
     "antigravity": {
-        "windows": [_winget("Google.AntigravityCLI"),
-                    _manual("irm https://antigravity.google/cli/install.ps1 | iex")],
+        "windows": [
+            _winget("Google.AntigravityCLI"),
+            _manual("irm https://antigravity.google/cli/install.ps1 | iex"),
+        ],
         "macos": [_manual("curl -fsSL https://antigravity.google/cli/install.sh | bash")],
         "linux": [_manual("curl -fsSL https://antigravity.google/cli/install.sh | bash")],
     },
@@ -137,9 +155,13 @@ def known_runtime_bin_dirs() -> list:
     """Dirs donde los instaladores dejan los runtimes (Go/Node) — que winget/etc
     agregan al PATH del USUARIO pero no al del proceso en marcha."""
     from pathlib import Path
+
     if current_os() == "windows":
-        cand = [Path("C:/Program Files/Go/bin"), Path.home() / "go" / "bin",
-                Path("C:/Program Files/nodejs")]
+        cand = [
+            Path("C:/Program Files/Go/bin"),
+            Path.home() / "go" / "bin",
+            Path("C:/Program Files/nodejs"),
+        ]
     else:
         cand = [Path("/usr/local/go/bin"), Path.home() / "go" / "bin"]
     return [d for d in cand if d.exists()]
@@ -150,31 +172,35 @@ def refresh_runtime_path() -> None:
     que una instalación encadenada (p. ej. engram justo después de Go) los vea
     sin reiniciar la terminal. Idempotente."""
     import os
+
     parts = os.environ.get("PATH", "").split(os.pathsep)
     seen = {p.strip().lower().rstrip("\\/") for p in parts}
-    add = [str(d) for d in known_runtime_bin_dirs()
-           if str(d).lower().rstrip("\\/") not in seen]
+    add = [str(d) for d in known_runtime_bin_dirs() if str(d).lower().rstrip("\\/") not in seen]
     if add:
         os.environ["PATH"] = os.pathsep.join(add) + os.pathsep + os.environ.get("PATH", "")
 
 
-def uv_bin_dir() -> "Path":
-    from pathlib import Path
+def uv_bin_dir() -> Path:
+    """Return the directory where uv installs user-level executables."""
     return Path.home() / ".local" / "bin"
 
 
 def uv_bin_on_path() -> bool:
     """¿Está ~/.local/bin (donde uv deja los binarios) en el PATH del proceso?"""
     import os
+
     target = str(uv_bin_dir()).lower()
-    entries = [p.strip().lower().rstrip("\\/") for p in os.environ.get("PATH", "").split(os.pathsep)]
+    entries = [
+        p.strip().lower().rstrip("\\/") for p in os.environ.get("PATH", "").split(os.pathsep)
+    ]
     return target.rstrip("\\/") in entries
 
 
 def pathfix_option() -> InstallOption:
     """Acción para agregar los binarios de uv al PATH (uv tool update-shell)."""
-    return InstallOption("uv", ("uv", "tool", "update-shell"),
-                         "uv tool update-shell", requires="uv")
+    return InstallOption(
+        "uv", ("uv", "tool", "update-shell"), "uv tool update-shell", requires="uv"
+    )
 
 
 def _from_hint(tool: Tool) -> list[InstallOption]:
@@ -187,24 +213,35 @@ def _from_hint(tool: Tool) -> list[InstallOption]:
         if spec.startswith("npm:"):
             pkg = spec.removeprefix("npm:")
             # npm solo si Node está: el verificador es el propio binario npm
-            opts.append(InstallOption("npm", ("npm", "install", "-g", pkg),
-                                      f"npm i -g {pkg}", requires="npm"))
+            opts.append(
+                InstallOption(
+                    "npm", ("npm", "install", "-g", pkg), f"npm i -g {pkg}", requires="npm"
+                )
+            )
         elif spec.startswith("pipx:"):
             pkg = spec.removeprefix("pipx:")
-            opts.append(InstallOption("uv", ("uv", "tool", "install", pkg),
-                                      f"uv tool install {pkg}", requires="uv"))
+            opts.append(
+                InstallOption(
+                    "uv", ("uv", "tool", "install", pkg), f"uv tool install {pkg}", requires="uv"
+                )
+            )
     elif hint.startswith("uv tool install"):
         opts.append(InstallOption("uv", tuple(hint.split()), hint, requires="uv"))
     elif hint.startswith("npm i -g ") or hint.startswith("npm install -g "):
         pkg = hint.split("-g", 1)[1].strip()
-        opts.append(InstallOption("npm", ("npm", "install", "-g", pkg), hint,
-                                  requires="npm"))
+        opts.append(InstallOption("npm", ("npm", "install", "-g", pkg), hint, requires="npm"))
     elif hint.startswith("pip install"):
         pkg = hint.removeprefix("pip install").strip().strip('"').strip("'")
-        opts.append(InstallOption("uv", ("uv", "tool", "install", pkg),
-                                  f"uv tool install \"{pkg}\"", requires="uv"))
-        opts.append(InstallOption("pip", (sys.executable, "-m", "pip", "install", pkg),
-                                  hint, requires=sys.executable))
+        opts.append(
+            InstallOption(
+                "uv", ("uv", "tool", "install", pkg), f'uv tool install "{pkg}"', requires="uv"
+            )
+        )
+        opts.append(
+            InstallOption(
+                "pip", (sys.executable, "-m", "pip", "install", pkg), hint, requires=sys.executable
+            )
+        )
     return opts
 
 
@@ -239,8 +276,7 @@ def blocking_runtime(tool: Tool, os_name: str | None = None) -> str | None:
     if best_auto(tool, os_name):
         return None
     for opt in options_for(tool, os_name):
-        if (opt.auto and opt.requires in _RUNTIME_NAME
-                and shutil.which(opt.requires) is None):
+        if opt.auto and opt.requires in _RUNTIME_NAME and shutil.which(opt.requires) is None:
             return opt.requires
     return None
 
@@ -300,8 +336,16 @@ def run_install(opt: InstallOption, timeout: int = 900) -> tuple[int, str]:
 
 
 # señales típicas de "requiere terminal como administrador" (winget/choco en Windows)
-_ADMIN_MARKS = ("0x8a150049", "0x80070005", "access is denied", "acceso denegado",
-                "administrator", "administrador", "elevation", "elevad")
+_ADMIN_MARKS = (
+    "0x8a150049",
+    "0x80070005",
+    "access is denied",
+    "acceso denegado",
+    "administrator",
+    "administrador",
+    "elevation",
+    "elevad",
+)
 
 
 def needs_admin(output: str) -> bool:
@@ -309,8 +353,9 @@ def needs_admin(output: str) -> bool:
     return any(m in low for m in _ADMIN_MARKS)
 
 
-def run_install_streaming(opt: InstallOption, on_line, cancel=None,
-                          timeout: int = 600) -> tuple[int, str]:
+def run_install_streaming(
+    opt: InstallOption, on_line, cancel=None, timeout: int = 600
+) -> tuple[int, str]:
     """Ejecuta una opción emitiendo la salida LÍNEA A LÍNEA (on_line(str)).
 
     - `cancel`: threading.Event — al activarse se termina el proceso (exit 130)
@@ -325,9 +370,14 @@ def run_install_streaming(opt: InstallOption, on_line, cancel=None,
     if not opt.args:
         return 1, f"opción manual, no ejecutable: {opt.display}"
     try:
-        p = proc.popen(list(opt.args), stdout=subprocess.PIPE,
-                       stderr=subprocess.STDOUT, text=True,
-                       encoding="utf-8", errors="replace")
+        p = proc.popen(
+            list(opt.args),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
     except Exception as exc:
         return 1, str(exc)
 
