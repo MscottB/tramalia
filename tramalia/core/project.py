@@ -13,11 +13,6 @@ import re
 from pathlib import Path
 
 
-def is_initialized(root: Path) -> bool:
-    """Un proyecto está gobernado por Tramalia si existe .tramalia/ (o AGENTS.md)."""
-    return (root / ".tramalia").exists() or (root / "AGENTS.md").exists()
-
-
 def task_description(root: Path, task_id: str) -> str | None:
     """Sección de la tarea en specs/tasks.md (## <ID> … hasta el siguiente ##)."""
     f = root / "specs" / "tasks.md"

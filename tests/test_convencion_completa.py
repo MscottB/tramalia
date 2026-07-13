@@ -56,7 +56,10 @@ def test_agents_md_referencia_skills_y_02(tmp_path):
     texto = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
     assert "02-reglas-codigo" in texto
     assert "16 skills" in texto
-    assert "tramalia close" in texto
+    inicio = "<!-- tramalia:gobierno inicio -->"
+    fin = "<!-- tramalia:gobierno fin -->"
+    assert texto.count(inicio) == texto.count(fin) == 1
+    assert "tramalia close" in texto[texto.index(inicio) : texto.index(fin)]
 
 
 def test_ponytail_declarado_en_skills_toml(tmp_path):

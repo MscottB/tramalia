@@ -20,6 +20,7 @@ def build_server():
     from tramalia.core import doctor as doctor_core
     from tramalia.core import evidence as evidence_core
     from tramalia.core import handoff as handoff_core
+    from tramalia.core.proyecto import exigir_proyecto_gobernado, inspeccionar_estado_proyecto
 
     server = FastMCP("tramalia")
 
@@ -33,7 +34,7 @@ def build_server():
         root = Path.cwd()
         stack = detect.detect_stack(root)
         feats = detect.enabled_features(stack)
-        initialized = (root / "AGENTS.md").exists()
+        initialized = inspeccionar_estado_proyecto(root).listo
         return (
             f"stack: {', '.join(stack) or '—'}\n"
             f"gates aplicables: {', '.join(feats)}\n"
@@ -70,19 +71,25 @@ def build_server():
     @server.tool()
     def record_handoff(task: str, agent: str = "", reviewer: str = "") -> str:
         """Agrega un handoff estructurado a docs/ai/07-handoff-agentes.md."""
-        path = handoff_core.new_handoff(Path.cwd(), task, agent, reviewer)
+        root = Path.cwd()
+        exigir_proyecto_gobernado(root)
+        path = handoff_core.new_handoff(root, task, agent, reviewer)
         return f"handoff agregado a {path}"
 
     @server.tool()
     def build_evidence(task: str = "TASK-000") -> str:
         """Crea el evidence pack de cierre de una tarea."""
-        target = evidence_core.build_evidence(Path.cwd(), task)
+        root = Path.cwd()
+        exigir_proyecto_gobernado(root)
+        target = evidence_core.build_evidence(root, task)
         return f"evidence pack creado en {target}"
 
     @server.tool()
     def build_context() -> str:
         """Regenera la memoria derivada (tech-stack, project-map) para ahorrar tokens."""
-        results = context_core.build_context(Path.cwd())
+        root = Path.cwd()
+        exigir_proyecto_gobernado(root)
+        results = context_core.build_context(root)
         return "generado: " + ", ".join(results)
 
     return server

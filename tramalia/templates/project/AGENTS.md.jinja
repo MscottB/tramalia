@@ -35,6 +35,7 @@ En .tramalia/skills/ hay 16 skills numeradas (01-spec-governance … 16-threat-m
 con los workflows de este repo. Consulta la que corresponda a tu tarea. Skills
 externas adicionales: .tramalia/skills.toml (se clonan con `tramalia skills`).
 
+<!-- tramalia:gobierno inicio -->
 ## Reglas generales (Ponytail / YAGNI)
 - Implementa solo el alcance de la tarea vigente.
 - Prioriza la solución mínima correcta; no abstraigas de más ni dupliques lógica.
@@ -44,6 +45,7 @@ externas adicionales: .tramalia/skills.toml (se clonan con `tramalia skills`).
 - **Respeta el estilo arquitectónico declarado en `docs/ai/01-arquitectura.md`.** Si
   no hay ninguno declarado, usa el más simple que resuelva la tarea (CRUD/Transaction
   Script) — no metas capas de dominio/hexagonal "por si acaso": eso también es YAGNI.
+<!-- tramalia:gobierno fin -->
 
 ## Criterio de herramientas (local primero)
 - **Antes de invocar una herramienta externa, consulta .tramalia/context/tools.json**

@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from tramalia import __version__
 from tramalia.core import installer, project
 from tramalia.core.context_backend import BACKENDS, DEFAULT, UTILITIES
 from tramalia.core.detect import enabled_features
@@ -27,6 +28,7 @@ def _init(tmp_path):
             "reviewer_agent": "claude",
         },
     )
+    project.set_scaffolded_version(tmp_path, __version__)
     return tmp_path
 
 

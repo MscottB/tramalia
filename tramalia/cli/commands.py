@@ -13,10 +13,13 @@ from tramalia.cli import menu, render
 from tramalia.core import doctor as doctor_core
 from tramalia.core import proc
 from tramalia.core.detect import detect_stack, enabled_features
-
-
-def _is_initialized(root: Path) -> bool:
-    return (root / "AGENTS.md").exists() or (root / ".tramalia").exists()
+from tramalia.core.errores import ErrorProyectoNoGobernado
+from tramalia.core.modelos import ValorEstadoProyecto
+from tramalia.core.proyecto import (
+    exigir_proyecto_actualizable,
+    exigir_proyecto_gobernado,
+    inspeccionar_estado_proyecto,
+)
 
 
 def _run(cmd: list[str]) -> int:
@@ -101,7 +104,7 @@ def cmd_detect(args) -> int:
     root = Path.cwd()
     stack = detect_stack(root)
     feats = enabled_features(stack)
-    render.header(root.name, stack, _is_initialized(root))
+    render.header(root.name, stack, inspeccionar_estado_proyecto(root).listo)
     render.info(f"gates aplicables: {', '.join(feats)}")
     return 0
 
@@ -125,7 +128,7 @@ def cmd_init(args) -> int:
         "with_notebook_exec": getattr(args, "with_notebook_exec", False),
         "adopt": adopt,
     }
-    render.header(root.name, stack, _is_initialized(root))
+    render.header(root.name, stack, inspeccionar_estado_proyecto(root).listo)
     render.info(
         f"agentes detectados para config.json: ejecutor={primary}, revisor={reviewer} "
         f"(editable luego en config.json o en el tab Cierre)"
@@ -196,7 +199,9 @@ def cmd_upgrade(args) -> int:
     from tramalia.core import project, scaffold
 
     root = Path.cwd()
-    if not project.is_initialized(root):
+    try:
+        estado_proyecto = exigir_proyecto_actualizable(root)
+    except ErrorProyectoNoGobernado:
         render.err("este repo no está inicializado; usa `tramalia init` primero.")
         return 1
     old = project.scaffolded_version(root)
@@ -210,6 +215,7 @@ def cmd_upgrade(args) -> int:
         "features": enabled_features(stack),
         "primary_agent": primary,
         "reviewer_agent": reviewer,
+        "adopt": estado_proyecto.estado is ValorEstadoProyecto.HEREDADO,
     }
     render.header(root.name, stack, True)
     results = scaffold.scaffold(root, answers)
@@ -348,17 +354,6 @@ def _interactive_ask_task():
     return lambda: menu.ask_text("ID de la tarea (ver specs/tasks.md)", "TASK-001")
 
 
-def _require_init() -> bool:
-    """Los comandos de gobierno exigen proyecto inicializado (guard de coherencia)."""
-    from tramalia.core import project
-    from tramalia.i18n import t
-
-    if project.is_initialized(Path.cwd()):
-        return True
-    render.err(t("close.uninit"))
-    return False
-
-
 def _resolver(args):
     """Aplica la cadena de defaults: posicional > --task > current-task > prompt."""
     from tramalia.core import project
@@ -375,12 +370,17 @@ def _resolver(args):
 
 def cmd_evidence(args) -> int:
     from tramalia.core import evidence
+    from tramalia.i18n import t
 
-    if not _require_init():
+    root = Path.cwd()
+    try:
+        exigir_proyecto_gobernado(root)
+    except ErrorProyectoNoGobernado:
+        render.err(t("close.uninit"))
         return 1
     task, _, _ = _resolver(args)
-    target = evidence.build_evidence(Path.cwd(), task)
-    render.ok(f"evidence pack creado: {target.relative_to(Path.cwd())}")
+    target = evidence.build_evidence(root, task)
+    render.ok(f"evidence pack creado: {target.relative_to(root)}")
     render.info("completa summary.md, risks.md y next-steps.md antes de cerrar.")
     if getattr(args, "engram", False):
         _engram_save(f"evidence {task}", f"Evidence pack de {task} en {target}.")
@@ -389,12 +389,17 @@ def cmd_evidence(args) -> int:
 
 def cmd_handoff(args) -> int:
     from tramalia.core import handoff
+    from tramalia.i18n import t
 
-    if not _require_init():
+    root = Path.cwd()
+    try:
+        exigir_proyecto_gobernado(root)
+    except ErrorProyectoNoGobernado:
+        render.err(t("close.uninit"))
         return 1
     task, agent, reviewer = _resolver(args)
-    path = handoff.new_handoff(Path.cwd(), task, agent, reviewer)
-    render.ok(f"handoff agregado a {path.relative_to(Path.cwd())}")
+    path = handoff.new_handoff(root, task, agent, reviewer)
+    render.ok(f"handoff agregado a {path.relative_to(root)}")
     if getattr(args, "engram", False):
         _engram_save(
             f"handoff {task}",
@@ -405,12 +410,17 @@ def cmd_handoff(args) -> int:
 
 def cmd_close(args) -> int:
     from tramalia.core import governance
+    from tramalia.i18n import t
 
-    if not _require_init():
+    root = Path.cwd()
+    try:
+        exigir_proyecto_gobernado(root)
+    except ErrorProyectoNoGobernado:
+        render.err(t("close.uninit"))
         return 1
     task, agent, reviewer = _resolver(args)
     res = governance.close(
-        Path.cwd(),
+        root,
         task,
         agent,
         reviewer,
@@ -424,9 +434,9 @@ def cmd_close(args) -> int:
             (render.ok if code == 0 else render.err)(
                 f"gate {name}: {'ok' if code == 0 else 'FALLA'}"
             )
-    render.ok(f"evidence: {res.evidence_dir.relative_to(Path.cwd())}  (estado: {res.status})")
-    render.ok(f"handoff: {res.handoff_path.relative_to(Path.cwd())}")
-    render.info(f"metadata: {(res.evidence_dir / 'metadata.json').relative_to(Path.cwd())}")
+    render.ok(f"evidence: {res.evidence_dir.relative_to(root)}  (estado: {res.status})")
+    render.ok(f"handoff: {res.handoff_path.relative_to(root)}")
+    render.info(f"metadata: {(res.evidence_dir / 'metadata.json').relative_to(root)}")
     if getattr(args, "engram", False):
         _engram_save(
             f"close {task}",
@@ -436,8 +446,6 @@ def cmd_close(args) -> int:
         render.err(f"cierre BLOQUEADO por gates fallidos: {', '.join(res.failed)}.")
         render.info("usa --allow-fail solo con una excepción documentada en risks.md.")
         return 1
-    from tramalia.i18n import t
-
     if res.status == "no_gates":
         render.warn(t("close.done.nogates", task=task))
     else:
@@ -752,7 +760,7 @@ def cmd_menu(args) -> int:
     root = Path.cwd()
     while True:
         stack = detect_stack(root)
-        render.header(root.name, stack, _is_initialized(root))
+        render.header(root.name, stack, inspeccionar_estado_proyecto(root).listo)
         _show_last_close(root)
         try:
             choice = menu.choose()

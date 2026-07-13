@@ -38,6 +38,8 @@ def build_app():
     from tramalia.core import skills as skills_core
     from tramalia.core.context_backend import BACKENDS, backend_installed
     from tramalia.core.detect import detect_stack, enabled_features
+    from tramalia.core.errores import ErrorProyectoNoGobernado
+    from tramalia.core.proyecto import exigir_proyecto_gobernado, inspeccionar_estado_proyecto
     from tramalia.core.scaffold import scaffold
 
     class InstallScreen(ModalScreen):
@@ -235,16 +237,16 @@ def build_app():
         # ------------------------------------------------------------ refresh
         def action_refresh(self) -> None:
             root = Path.cwd()
-            initialized = project.is_initialized(root)
+            inicializado = inspeccionar_estado_proyecto(root).listo
             stack = detect_stack(root)
             report = doctor_core.diagnose(root)
 
-            estado = t("tui.state.initialized") if initialized else t("tui.state.uninitialized")
+            estado = t("tui.state.initialized") if inicializado else t("tui.state.uninitialized")
             self.query_one("#estado", Static).update(
                 t("tui.header", path=str(root), stack=", ".join(stack) or "—", estado=estado)
             )
             # el botón de init vive aquí (Resumen): visible solo si falta inicializar
-            self.query_one("#btn-init-resumen", Button).display = not initialized
+            self.query_one("#btn-init-resumen", Button).display = not inicializado
 
             # gates REALES del proyecto (mise.toml), no features internas
             gates = governance.gate_tasks(root)
@@ -265,7 +267,7 @@ def build_app():
             )
 
             # backend de contexto activo (config.json → context.backend)
-            if initialized:
+            if inicializado:
                 self.query_one("#ctxbackend", Static).update(
                     t("tui.ctxbackend.line", name=project.context_backend(root))
                 )
@@ -304,9 +306,9 @@ def build_app():
                         detalle = hint
                     tabla.add_row(f"  {s.tool.cmd}", s.tool.role, mark, detalle)
 
-            self._refresh_skills(root, initialized)
-            self._refresh_audit(root, initialized, entries)
-            self._refresh_close(root, initialized)
+            self._refresh_skills(root, inicializado)
+            self._refresh_audit(root, inicializado, entries)
+            self._refresh_close(root, inicializado)
 
         def _refresh_skills(self, root, initialized) -> None:
             tabla = self.query_one("#tabla-skills", DataTable)
@@ -414,7 +416,7 @@ def build_app():
             if ok:
                 log.write(t("skills.add.ok", name=resultado))
                 event.input.value = ""
-                self._refresh_skills(root, project.is_initialized(root))
+                self._refresh_skills(root, inspeccionar_estado_proyecto(root).listo)
             else:
                 log.write(t(f"skills.add.{resultado}"))
 
@@ -476,13 +478,14 @@ def build_app():
             else:
                 log.write(t("skills.install.fail", name=name))
             self._skill_updates.pop(name, None)  # ya no está desactualizada
-            self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
+            root = Path.cwd()
+            self._refresh_skills(root, inspeccionar_estado_proyecto(root).listo)
 
         def action_check_updates(self) -> None:
             """Tecla u: comprueba en los remotos qué skills externas tienen
             una versión más nueva (git ls-remote), y lo marca en la tabla."""
             root = Path.cwd()
-            if not project.is_initialized(root):
+            if not inspeccionar_estado_proyecto(root).listo:
                 self.notify(t("tui.close.uninit"), severity="warning", markup=False)
                 return
             self.query_one(TabbedContent).active = "skills"
@@ -497,7 +500,8 @@ def build_app():
             self._skill_updates = {s["name"]: s["update"] for s in estados if s["installed"]}
             n = sum(1 for v in self._skill_updates.values() if v)
             self._skills_log().write(t("skills.update.found", n=n))
-            self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
+            root = Path.cwd()
+            self._refresh_skills(root, inspeccionar_estado_proyecto(root).listo)
 
         def action_skills_sync(self) -> None:
             self.query_one(TabbedContent).active = "skills"
@@ -521,7 +525,8 @@ def build_app():
                     1 for _, a in results if a in ("clonada", "actualizada", "cloned", "updated")
                 )
                 log.write(t("tui.skills.sync.summary", ok=ok, total=total))
-            self._refresh_skills(Path.cwd(), project.is_initialized(Path.cwd()))
+            root = Path.cwd()
+            self._refresh_skills(root, inspeccionar_estado_proyecto(root).listo)
 
         def on_button_pressed(self, event) -> None:
             if event.button.id in ("btn-init", "btn-init-resumen"):
@@ -717,7 +722,9 @@ def build_app():
         def action_context_backend(self) -> None:
             """Tecla b: elegir el backend de contexto activo del proyecto."""
             root = Path.cwd()
-            if not project.is_initialized(root):
+            try:
+                exigir_proyecto_gobernado(root)
+            except ErrorProyectoNoGobernado:
                 self.notify(t("tui.close.uninit"), severity="warning", markup=False)
                 return
             actual = project.context_backend(root)
@@ -727,6 +734,11 @@ def build_app():
             if not chosen:
                 return
             root = Path.cwd()
+            try:
+                exigir_proyecto_gobernado(root)
+            except ErrorProyectoNoGobernado:
+                self.notify(t("tui.close.uninit"), severity="warning", markup=False)
+                return
             if project.set_context_backend(root, chosen):
                 # el backend es una PREFERENCIA de proyecto: se fija aunque no esté
                 # instalado, pero se avisa y se dice cómo obtenerlo (tecla i / doctor).
@@ -753,7 +765,9 @@ def build_app():
         def _start_close(self, button) -> None:
             root = Path.cwd()
             salida = self.query_one("#salida", RichLog)
-            if not project.is_initialized(root):
+            try:
+                exigir_proyecto_gobernado(root)
+            except ErrorProyectoNoGobernado:
                 salida.write(t("tui.close.uninit"))
                 return
             task = self.query_one("#in-task", Input).value.strip()

@@ -14,6 +14,7 @@ from tramalia import __version__
 from tramalia.cli import commands
 from tramalia.core import project
 from tramalia.core.detect import enabled_features
+from tramalia.core.proyecto import inspeccionar_estado_proyecto
 from tramalia.core.scaffold import scaffold
 
 
@@ -71,6 +72,26 @@ def test_upgrade_registra_gitignore(tmp_path, monkeypatch):
     assert ".tramalia/skills/*/" in txt  # upgrade dejó el bloque
 
 
+def test_upgrade_cli_migra_heredado_sin_pisar_contenido(tmp_path, monkeypatch):
+    _init(tmp_path)
+    agentes = tmp_path / "AGENTS.md"
+    agentes.write_text(
+        "# Reglas del equipo\n\nNo tocar legacy/.\nCierre: tramalia close.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(commands, "_suggest_fanout", lambda raiz: None)
+
+    assert commands.cmd_upgrade(types.SimpleNamespace()) == 0
+
+    texto = agentes.read_text(encoding="utf-8")
+    inicio = "<!-- tramalia:gobierno inicio -->"
+    fin = "<!-- tramalia:gobierno fin -->"
+    assert "No tocar legacy/." in texto
+    assert texto.count(inicio) == texto.count(fin) == 1
+    assert inspeccionar_estado_proyecto(tmp_path).listo
+
+
 def test_suggest_fanout_no_revienta(tmp_path):
     commands._suggest_fanout(tmp_path)  # solo imprime; nunca debe lanzar
 
@@ -92,8 +113,38 @@ def test_boton_init_en_resumen(tmp_path, monkeypatch):
             assert btn.display is True  # visible cuando falta init
             app._run_init(btn)  # inicializa desde Resumen
             await pilot.pause()
-            assert project.is_initialized(tmp_path)
+            assert inspeccionar_estado_proyecto(tmp_path).listo
             assert project.scaffolded_version(tmp_path) == __version__
             assert app.query_one("#btn-init-resumen", Button).display is False  # se oculta
 
     asyncio.run(run())
+
+
+def test_tui_trata_proyecto_parcial_como_no_inicializado(tmp_path, monkeypatch):
+    pytest.importorskip("textual")
+    from textual.widgets import Button, Input
+
+    from tramalia.core import governance
+    from tramalia.tui import build_app
+
+    llamadas = []
+
+    def cierre_prohibido(*args, **kwargs):
+        llamadas.append((*args, kwargs))
+        raise AssertionError("el cierre no debe ejecutarse")
+
+    (tmp_path / ".tramalia").mkdir()
+    monkeypatch.setattr(governance, "close", cierre_prohibido)
+    monkeypatch.chdir(tmp_path)
+    aplicacion = build_app()()
+
+    async def verificar():
+        async with aplicacion.run_test() as piloto:
+            await piloto.pause()
+            assert aplicacion.query_one("#btn-init-resumen", Button).display is True
+            aplicacion.query_one("#in-task", Input).value = "TASK-1"
+            aplicacion._start_close(aplicacion.query_one("#btn-close", Button))
+            await piloto.pause()
+            assert llamadas == []
+
+    asyncio.run(verificar())

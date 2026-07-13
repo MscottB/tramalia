@@ -3,11 +3,13 @@
 import argparse
 import json
 
+import pytest
+
 from tramalia import i18n
 from tramalia.core import governance
 from tramalia.core.detect import detect_stack, enabled_features
 from tramalia.core.doctor import diagnose
-from tramalia.core.project import is_initialized, task_description
+from tramalia.core.project import task_description
 from tramalia.core.scaffold import scaffold
 from tramalia.core.tools import REGISTRY, relevant_tools
 
@@ -53,10 +55,46 @@ def test_close_bloqueado_sin_init(tmp_path, monkeypatch):
     assert not (tmp_path / ".tramalia" / "evidence").exists()
 
 
-def test_is_initialized(tmp_path):
-    assert is_initialized(tmp_path) is False
+@pytest.mark.parametrize(
+    ("comando", "modulo", "atributo"),
+    [
+        ("cmd_evidence", "evidence", "build_evidence"),
+        ("cmd_handoff", "handoff", "new_handoff"),
+        ("cmd_close", "governance", "close"),
+    ],
+)
+def test_mutaciones_cli_capturan_proyecto_parcial_sin_escribir(
+    tmp_path,
+    monkeypatch,
+    comando,
+    modulo,
+    atributo,
+):
+    from tramalia.cli import commands
+    from tramalia.core import evidence, handoff
+
+    modulos = {"evidence": evidence, "governance": governance, "handoff": handoff}
+    llamadas = []
+
+    def mutacion_prohibida(*args, **kwargs):
+        llamadas.append((*args, kwargs))
+        raise AssertionError("la mutacion no debe ejecutarse")
+
+    monkeypatch.setattr(modulos[modulo], atributo, mutacion_prohibida)
+    monkeypatch.chdir(tmp_path)
     (tmp_path / ".tramalia").mkdir()
-    assert is_initialized(tmp_path) is True
+    argumentos = argparse.Namespace(
+        task_pos="TASK-1",
+        task=None,
+        agent=None,
+        reviewer=None,
+        model=None,
+        allow_fail=False,
+        engram=False,
+    )
+
+    assert getattr(commands, comando)(argumentos) == 1
+    assert llamadas == []
 
 
 # ---------------------------------------------------------------- tareas
