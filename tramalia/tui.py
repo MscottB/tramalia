@@ -766,7 +766,7 @@ def build_app():
             root = Path.cwd()
             salida = self.query_one("#salida", RichLog)
             try:
-                exigir_proyecto_gobernado(root)
+                estado_proyecto = exigir_proyecto_gobernado(root)
             except ErrorProyectoNoGobernado:
                 salida.write(t("tui.close.uninit"))
                 return
@@ -780,14 +780,17 @@ def build_app():
             salida.write(t("tui.close.running", task=task))
             button.disabled = True
             self.run_worker(
-                lambda: self._run_close(task, agent, reviewer, model), thread=True, exclusive=True
+                lambda: self._run_close(estado_proyecto.raiz, task, agent, reviewer, model),
+                thread=True,
+                exclusive=True,
             )
 
-        def _run_close(self, task, agent, reviewer, model) -> None:
+        def _run_close(self, raiz: Path, task, agent, reviewer, model) -> None:
             from tramalia.core import governance as gov
 
             try:
-                result = gov.close(Path.cwd(), task, agent, reviewer, model=model)
+                exigir_proyecto_gobernado(raiz)
+                result = gov.close(raiz, task, agent, reviewer, model=model)
             except Exception as exc:
                 self.call_from_thread(self._show_close_error, str(exc))
                 return

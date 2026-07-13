@@ -97,6 +97,25 @@ def test_mutaciones_cli_capturan_proyecto_parcial_sin_escribir(
     assert llamadas == []
 
 
+def test_sync_bloquea_proyecto_parcial_sin_ejecutar(tmp_path, monkeypatch):
+    from tramalia.cli import commands
+
+    llamadas = []
+
+    def ejecucion_prohibida(argumentos):
+        llamadas.append(argumentos)
+        return 0
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "AGENTS.md").write_text("# Reglas arbitrarias\n", encoding="utf-8")
+    monkeypatch.setattr(commands.shutil, "which", lambda programa: programa)
+    monkeypatch.setattr(commands, "_run", ejecucion_prohibida)
+    argumentos = argparse.Namespace(to=None, features="rules")
+
+    assert commands.cmd_sync(argumentos) == 1
+    assert llamadas == []
+
+
 # ---------------------------------------------------------------- tareas
 def _init(tmp_path, stacks):
     scaffold(

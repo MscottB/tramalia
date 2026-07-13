@@ -47,6 +47,8 @@ def test_upgrade_sin_inicializar_falla(tmp_path, monkeypatch):
 
 def test_upgrade_recrea_lo_que_falta_y_no_pisa(tmp_path, monkeypatch):
     _init(tmp_path)
+    agentes = tmp_path / "AGENTS.md"
+    agentes_antes = agentes.read_bytes()
     # el usuario editó un archivo y borró otro
     arq = tmp_path / "docs" / "ai" / "01-arquitectura.md"
     arq.write_text("MI CONTENIDO EDITADO", encoding="utf-8")
@@ -58,6 +60,7 @@ def test_upgrade_recrea_lo_que_falta_y_no_pisa(tmp_path, monkeypatch):
     assert commands.cmd_upgrade(types.SimpleNamespace()) == 0
 
     assert borrado.exists()  # lo que faltaba: recreado
+    assert agentes.read_bytes() == agentes_antes  # faltar versión no adopta AGENTS.md
     assert arq.read_text(encoding="utf-8") == "MI CONTENIDO EDITADO"  # lo editado: intacto
     assert project.scaffolded_version(tmp_path) == __version__  # versión registrada
 
@@ -146,5 +149,54 @@ def test_tui_trata_proyecto_parcial_como_no_inicializado(tmp_path, monkeypatch):
             aplicacion._start_close(aplicacion.query_one("#btn-close", Button))
             await piloto.pause()
             assert llamadas == []
+
+    asyncio.run(verificar())
+
+
+def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
+    pytest.importorskip("textual")
+    from textual.widgets import Button, Input
+
+    from tramalia.core import governance
+    from tramalia.tui import build_app
+
+    raiz_original = tmp_path / "original"
+    raiz_alterna = tmp_path / "alterna"
+    raiz_original.mkdir()
+    raiz_alterna.mkdir()
+    _init(raiz_original)
+    _init(raiz_alterna)
+    project.set_scaffolded_version(raiz_original, __version__)
+    project.set_scaffolded_version(raiz_alterna, __version__)
+
+    cierres = []
+    trabajos = []
+
+    def cierre_prohibido(raiz, *args, **kwargs):
+        cierres.append(raiz)
+        raise AssertionError("el cierre no debe ejecutarse")
+
+    def capturar_worker(trabajo, **kwargs):
+        trabajos.append(trabajo)
+        return None
+
+    monkeypatch.setattr(governance, "close", cierre_prohibido)
+    monkeypatch.chdir(raiz_original)
+    aplicacion = build_app()()
+
+    async def verificar():
+        async with aplicacion.run_test() as piloto:
+            await piloto.pause()
+            monkeypatch.setattr(aplicacion, "run_worker", capturar_worker)
+            aplicacion.query_one("#in-task", Input).value = "TASK-1"
+            aplicacion._start_close(aplicacion.query_one("#btn-close", Button))
+            assert len(trabajos) == 1
+
+            (raiz_original / "AGENTS.md").unlink()
+            monkeypatch.chdir(raiz_alterna)
+            await asyncio.to_thread(trabajos[0])
+            await piloto.pause()
+
+            assert cierres == []
 
     asyncio.run(verificar())

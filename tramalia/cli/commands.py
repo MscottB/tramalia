@@ -14,7 +14,6 @@ from tramalia.core import doctor as doctor_core
 from tramalia.core import proc
 from tramalia.core.detect import detect_stack, enabled_features
 from tramalia.core.errores import ErrorProyectoNoGobernado
-from tramalia.core.modelos import ValorEstadoProyecto
 from tramalia.core.proyecto import (
     exigir_proyecto_actualizable,
     exigir_proyecto_gobernado,
@@ -215,7 +214,7 @@ def cmd_upgrade(args) -> int:
         "features": enabled_features(stack),
         "primary_agent": primary,
         "reviewer_agent": reviewer,
-        "adopt": estado_proyecto.estado is ValorEstadoProyecto.HEREDADO,
+        "adopt": "AGENTS.md sin marcadores tramalia:gobierno" in estado_proyecto.problemas,
     }
     render.header(root.name, stack, True)
     results = scaffold.scaffold(root, answers)
@@ -486,7 +485,10 @@ def cmd_sync(args) -> int:
     if shutil.which("rulesync") is None:
         render.err("falta 'rulesync'. Instálalo con: mise use npm:rulesync")
         return 127
-    if not (Path.cwd() / "AGENTS.md").exists():
+    root = Path.cwd()
+    try:
+        exigir_proyecto_gobernado(root)
+    except ErrorProyectoNoGobernado:
         render.err("no hay AGENTS.md. Ejecuta `tramalia init` primero.")
         return 1
     # CLAUDE.md/Codex no se incluyen: ya leen AGENTS.md nativamente.
