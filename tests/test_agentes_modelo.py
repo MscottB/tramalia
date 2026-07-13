@@ -2,7 +2,7 @@
 
 import re
 
-from tramalia.__main__ import build_parser
+from tramalia.__main__ import construir_parser
 from tramalia.core.detect import enabled_features
 from tramalia.core.scaffold import scaffold
 
@@ -53,7 +53,7 @@ def test_subagentes_anclados_a_tramalia(tmp_path):
 
 
 def test_parser_acepta_model_y_features():
-    p = build_parser()
+    p = construir_parser()
     args = p.parse_args(["close", "--task", "T-1", "--model", "opus"])
     assert args.model == "opus"
     args = p.parse_args(["sync", "--features", "rules"])

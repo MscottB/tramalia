@@ -298,16 +298,21 @@ def build_app():
                 self.query_one("#ctxbackend", Static).update("")
 
             self._report = report  # lo usa el instalador (tecla i)
-            from tramalia.cli.render import group_statuses
+            from tramalia.cli.renderizado import agrupar_estados
 
             tabla = self.query_one("#tabla-doctor", DataTable)
             tabla.clear(columns=True)
             tabla.add_columns(
                 t("tui.col.tool"), t("tui.col.purpose"), t("tui.col.state"), t("tui.col.detail")
             )
-            for cat, rows in group_statuses(report.statuses):
-                tabla.add_row(f"[bold cyan]· {t('doctor.group.' + cat)}[/]", "", "", "")
-                for estado in rows:
+            for categoria, filas in agrupar_estados(report.statuses):
+                tabla.add_row(
+                    f"[bold cyan]· {t('doctor.group.' + categoria)}[/]",
+                    "",
+                    "",
+                    "",
+                )
+                for estado in filas:
                     if estado.presente:
                         mark, detalle = t("tui.status.ok"), (estado.version or "—")
                     else:

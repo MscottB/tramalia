@@ -70,7 +70,7 @@ def test_antigravity_ide_y_2_excluidos_de_deteccion(monkeypatch):
 
 # ---------------------------------------------------------------- init usa la detección
 def test_init_config_json_usa_agentes_detectados(tmp_path, monkeypatch):
-    # cmd_init importa `detectar_agentes_predeterminados` dentro de la función:
+    # comando_inicializar importa `detectar_agentes_predeterminados` dentro de la función:
     # el cuerpo de la función: parchar el atributo del módulo alcanza.
     monkeypatch.setattr(
         integraciones,
@@ -78,9 +78,9 @@ def test_init_config_json_usa_agentes_detectados(tmp_path, monkeypatch):
         lambda: ("opencode", "opencode"),
     )
     monkeypatch.chdir(tmp_path)
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
-    commands.cmd_init(types.SimpleNamespace())
+    comandos.comando_inicializar(types.SimpleNamespace())
     data = json.loads((tmp_path / ".tramalia" / "config.json").read_text(encoding="utf-8"))
     assert data["agents"]["primary"] == "opencode"
     assert data["agents"]["reviewer"] == "opencode"
@@ -101,7 +101,7 @@ def test_upgrade_no_pisa_config_existente(tmp_path, monkeypatch):
     cfg = tmp_path / ".tramalia" / "config.json"
     original = cfg.read_text(encoding="utf-8")
     monkeypatch.chdir(tmp_path)
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
-    commands.cmd_upgrade(types.SimpleNamespace())
+    comandos.comando_actualizar_proyecto(types.SimpleNamespace())
     assert cfg.read_text(encoding="utf-8") == original

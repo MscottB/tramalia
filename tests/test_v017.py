@@ -70,7 +70,7 @@ def test_best_auto_elige_el_primero_disponible(monkeypatch):
 
 # ---------------------------------------------------------------- agrupación
 def test_doctor_agrupado_orden_fijo():
-    from tramalia.cli.render import group_statuses
+    from tramalia.cli.renderizado import agrupar_estados
     from tramalia.core.integraciones import EstadoHerramienta
 
     # semgrep=security, serena=context, engram=memory: cada feature en su dominio
@@ -82,7 +82,7 @@ def test_doctor_agrupado_orden_fijo():
         EstadoHerramienta(_herramienta("semgrep"), False),
         EstadoHerramienta(_herramienta("node"), False),
     ]
-    grupos = [cat for cat, _ in group_statuses(statuses)]
+    grupos = [cat for cat, _ in agrupar_estados(statuses)]
     assert grupos == ["bootstrap", "stack", "context", "memory", "security", "agent"]
 
 

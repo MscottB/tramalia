@@ -1,7 +1,4 @@
-"""Menú interactivo: usa questionary si está; si no, menú numerado stdlib.
-
-Etiquetas vía tramalia.i18n (claves menu.*), resueltas al momento de mostrar.
-"""
+"""Render the interactive CLI menu with Questionary or a stdlib fallback."""
 
 from __future__ import annotations
 
@@ -10,12 +7,12 @@ from tramalia.i18n import t
 try:
     import questionary
 
-    _HAS_Q = True
+    _TIENE_QUESTIONARY = True
 except Exception:
-    _HAS_Q = False
+    _TIENE_QUESTIONARY = False
 
-# claves de comando (el orden define el menú); la etiqueta es t("menu.<clave>")
-OPTION_KEYS: list[str] = [
+# Las claves son comandos públicos heredados; el orden define el menú.
+CLAVES_OPCIONES: list[str] = [
     "close",
     "log",
     "doctor",
@@ -33,35 +30,53 @@ OPTION_KEYS: list[str] = [
 ]
 
 
-def _options() -> list[tuple[str, str]]:
-    return [(key, t(f"menu.{key}")) for key in OPTION_KEYS]
+def _opciones() -> list[tuple[str, str]]:
+    return [(clave, t(f"menu.{clave}")) for clave in CLAVES_OPCIONES]
 
 
-def choose() -> str:
-    options = _options()
-    if _HAS_Q:
-        answer = questionary.select(
+def elegir() -> str:
+    """Prompt for one stable public command.
+
+    Returns:
+        Selected public command, or ``quit`` when the prompt is cancelled.
+    """
+    opciones = _opciones()
+    if _TIENE_QUESTIONARY:
+        respuesta = questionary.select(
             t("menu.title"),
-            choices=[questionary.Choice(title=label, value=key) for key, label in options],
+            choices=[
+                questionary.Choice(title=etiqueta, value=clave) for clave, etiqueta in opciones
+            ],
             qmark="?",
             instruction=t("menu.instruction"),
         ).ask()
-        return answer or "quit"
+        return respuesta or "quit"
 
-    # fallback stdlib
     print(f"\n{t('menu.title')}")
-    for i, (_, label) in enumerate(options, 1):
-        print(f"  {i:>2}. {label}")
-    raw = input(t("menu.option")).strip()
-    if not raw.isdigit() or not (1 <= int(raw) <= len(options)):
+    for indice, (_, etiqueta) in enumerate(opciones, 1):
+        print(f"  {indice:>2}. {etiqueta}")
+    entrada = input(t("menu.option")).strip()
+    if not entrada.isdigit() or not (1 <= int(entrada) <= len(opciones)):
         return "quit"
-    return options[int(raw) - 1][0]
+    return opciones[int(entrada) - 1][0]
 
 
-def ask_text(prompt: str, default: str = "") -> str:
-    """Pregunta un texto (questionary si está; input stdlib si no)."""
-    if _HAS_Q:
-        answer = questionary.text(prompt, default=default, qmark="?").ask()
-        return (answer if answer is not None else default).strip() or default
-    raw = input(f"{prompt} [{default}]> ").strip()
-    return raw or default
+def pedir_texto(pregunta: str, predeterminado: str = "") -> str:
+    """Prompt for text without requiring Questionary.
+
+    Args:
+        pregunta: User-facing prompt.
+        predeterminado: Value returned for an empty or cancelled response.
+
+    Returns:
+        Trimmed response or the supplied default.
+    """
+    if _TIENE_QUESTIONARY:
+        respuesta = questionary.text(
+            pregunta,
+            default=predeterminado,
+            qmark="?",
+        ).ask()
+        return (respuesta if respuesta is not None else predeterminado).strip() or predeterminado
+    entrada = input(f"{pregunta} [{predeterminado}]> ").strip()
+    return entrada or predeterminado

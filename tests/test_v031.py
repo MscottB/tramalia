@@ -123,10 +123,10 @@ def test_cli_habilidades_desactualizadas(tmp_path, monkeypatch):
     proyecto = _proyecto_con_habilidad(tmp_path, remoto)
     habilidades.sincronizar_habilidades(proyecto)
     monkeypatch.chdir(proyecto)
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     argumentos = types.SimpleNamespace(action="outdated", name=None)
-    assert commands.cmd_skills(argumentos) == 0
+    assert comandos.comando_habilidades(argumentos) == 0
 
 
 def test_cli_habilidades_desactualizadas_renderiza_fallo_remoto_y_devuelve_uno(
@@ -144,13 +144,13 @@ def test_cli_habilidades_desactualizadas_renderiza_fallo_remoto_y_devuelve_uno(
             ResultadoProceso(("git", "ls-remote"), 128, "", "remoto inaccesible", False, False),
         ),
     )
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     errores: list[str] = []
-    monkeypatch.setattr(commands.render, "err", errores.append)
+    monkeypatch.setattr(comandos.renderizado, "error", errores.append)
     argumentos = types.SimpleNamespace(action="outdated", name=None)
 
-    codigo = commands.cmd_skills(argumentos)
+    codigo = comandos.comando_habilidades(argumentos)
 
     assert codigo == 1
     assert any("mihabilidad" in error and "git_salida_no_cero" in error for error in errores)
@@ -207,13 +207,13 @@ def test_cli_habilidades_desactualizadas_renderiza_git_ausente_y_devuelve_uno(
         "_ejecutar_git",
         lambda argumentos, **_opciones: ResultadoProceso(tuple(argumentos), 127, "", "git ausente"),
     )
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     errores: list[str] = []
-    monkeypatch.setattr(commands.render, "err", errores.append)
+    monkeypatch.setattr(comandos.renderizado, "error", errores.append)
     argumentos = types.SimpleNamespace(action="outdated", name=None)
 
-    codigo = commands.cmd_skills(argumentos)
+    codigo = comandos.comando_habilidades(argumentos)
 
     assert codigo == 1
     assert any(
@@ -315,8 +315,8 @@ def test_cli_habilidades_sincroniza_una(tmp_path, monkeypatch):
     remoto = _crear_remoto(tmp_path)
     proyecto = _proyecto_con_habilidad(tmp_path, remoto)
     monkeypatch.chdir(proyecto)
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     argumentos = types.SimpleNamespace(action="sync", name="mihabilidad")
-    assert commands.cmd_skills(argumentos) == 0
+    assert comandos.comando_habilidades(argumentos) == 0
     assert (proyecto / ".tramalia" / "habilidades" / "mihabilidad").exists()

@@ -11,7 +11,7 @@ import types
 import pytest
 
 from tramalia import __version__
-from tramalia.cli import commands
+from tramalia.cli import comandos
 from tramalia.core import configuracion
 from tramalia.core.detect import enabled_features
 from tramalia.core.proyecto import inspeccionar_estado_proyecto
@@ -42,7 +42,7 @@ def test_version_marker_round_trip(tmp_path):
 # ---------------------------------------------------------------- upgrade
 def test_upgrade_sin_inicializar_falla(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert commands.cmd_upgrade(types.SimpleNamespace()) == 1
+    assert comandos.comando_actualizar_proyecto(types.SimpleNamespace()) == 1
 
 
 def test_upgrade_recrea_lo_que_falta_y_no_pisa(tmp_path, monkeypatch):
@@ -57,7 +57,7 @@ def test_upgrade_recrea_lo_que_falta_y_no_pisa(tmp_path, monkeypatch):
     assert not borrado.exists()
 
     monkeypatch.chdir(tmp_path)
-    assert commands.cmd_upgrade(types.SimpleNamespace()) == 0
+    assert comandos.comando_actualizar_proyecto(types.SimpleNamespace()) == 0
 
     assert borrado.exists()  # lo que faltaba: recreado
     assert agentes.read_bytes() == agentes_antes  # faltar versión no adopta AGENTS.md
@@ -70,7 +70,7 @@ def test_upgrade_registra_gitignore(tmp_path, monkeypatch):
     _init(tmp_path)
     (tmp_path / ".gitignore").unlink(missing_ok=True)
     monkeypatch.chdir(tmp_path)
-    commands.cmd_upgrade(types.SimpleNamespace())
+    comandos.comando_actualizar_proyecto(types.SimpleNamespace())
     txt = (tmp_path / ".gitignore").read_text(encoding="utf-8")
     assert ".tramalia/habilidades/*/" in txt  # upgrade dejó el bloque
 
@@ -83,9 +83,9 @@ def test_upgrade_cli_migra_heredado_sin_pisar_contenido(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(commands, "_suggest_fanout", lambda raiz: None)
+    monkeypatch.setattr(comandos, "_sugerir_propagacion", lambda raiz: None)
 
-    assert commands.cmd_upgrade(types.SimpleNamespace()) == 0
+    assert comandos.comando_actualizar_proyecto(types.SimpleNamespace()) == 0
 
     texto = agentes.read_text(encoding="utf-8")
     inicio = "<!-- tramalia:gobierno inicio -->"
@@ -95,8 +95,8 @@ def test_upgrade_cli_migra_heredado_sin_pisar_contenido(tmp_path, monkeypatch):
     assert inspeccionar_estado_proyecto(tmp_path).listo
 
 
-def test_suggest_fanout_no_revienta(tmp_path):
-    commands._suggest_fanout(tmp_path)  # solo imprime; nunca debe lanzar
+def test_sugerir_propagacion_no_revienta(tmp_path):
+    comandos._sugerir_propagacion(tmp_path)  # solo imprime; nunca debe lanzar
 
 
 # ---------------------------------------------------------------- TUI: botón init en Resumen

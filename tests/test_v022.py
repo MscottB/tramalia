@@ -1,6 +1,6 @@
 """v0.22: subgrupos por dominio, estado instalada/no, PATH de uv, selector completo."""
 
-from tramalia.cli.render import group_of, group_statuses
+from tramalia.cli.renderizado import agrupar_estados, grupo_de
 from tramalia.core import installer
 from tramalia.core.integraciones import REGISTRO, EstadoHerramienta
 
@@ -11,14 +11,14 @@ def _herramienta(clave):
 
 # ---------------------------------------------------------------- subgrupos
 def test_features_se_reparten_por_dominio():
-    assert group_of(_herramienta("serena")) == "context"
-    assert group_of(_herramienta("engram")) == "memory"
-    assert group_of(_herramienta("semgrep")) == "security"
-    assert group_of(_herramienta("sqlfluff")) == "database"
-    assert group_of(_herramienta("databricks")) == "analytics"
-    assert group_of(_herramienta("rulesync")) == "convention"  # capacidad=sync
-    assert group_of(_herramienta("claude")) == "agent"
-    assert group_of(_herramienta("mise")) == "bootstrap"
+    assert grupo_de(_herramienta("serena")) == "context"
+    assert grupo_de(_herramienta("engram")) == "memory"
+    assert grupo_de(_herramienta("semgrep")) == "security"
+    assert grupo_de(_herramienta("sqlfluff")) == "database"
+    assert grupo_de(_herramienta("databricks")) == "analytics"
+    assert grupo_de(_herramienta("rulesync")) == "convention"  # capacidad=sync
+    assert grupo_de(_herramienta("claude")) == "agent"
+    assert grupo_de(_herramienta("mise")) == "bootstrap"
 
 
 def test_grupos_respetan_orden():
@@ -28,7 +28,7 @@ def test_grupos_respetan_orden():
         EstadoHerramienta(_herramienta("mise"), True),
         EstadoHerramienta(_herramienta("serena"), False),
     ]
-    grupos = [g for g, _ in group_statuses(st)]
+    grupos = [g for g, _ in agrupar_estados(st)]
     assert grupos == ["bootstrap", "context", "memory", "analytics"]
 
 

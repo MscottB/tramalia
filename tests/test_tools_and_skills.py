@@ -96,7 +96,7 @@ def test_cli_solicitada_devuelve_uno_si_git_no_esta_disponible(tmp_path, monkeyp
     )
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(habilidades, "git_disponible", lambda: False)
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     argumentos = types.SimpleNamespace(action="sync", name=None)
-    assert commands.cmd_skills(argumentos) == 1
+    assert comandos.comando_habilidades(argumentos) == 1

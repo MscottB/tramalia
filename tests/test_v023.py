@@ -11,13 +11,13 @@ def _herramienta(clave):
 # ---------------------------------------------------------------- versión en UI
 def test_header_muestra_version(capsys):
     from tramalia import __version__
-    from tramalia.cli import render
+    from tramalia.cli import renderizado
 
-    render.set_plain(True)
-    render.header("demo", ["python"], True)
+    renderizado.fijar_plano(True)
+    renderizado.cabecera("demo", ["python"], True)
     out = capsys.readouterr().out
     assert f"Tramalia v{__version__}" in out
-    render.set_plain(False)
+    renderizado.fijar_plano(False)
 
 
 def test_tui_title_incluye_version():

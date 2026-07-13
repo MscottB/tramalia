@@ -8,11 +8,11 @@ from types import SimpleNamespace
 import pytest
 
 import tramalia.mcp_server as servidor_mcp
-from tramalia.__main__ import build_parser
-from tramalia.cli import commands
-from tramalia.cli.commands import _construir_excepciones
+from tramalia.__main__ import construir_parser, main
+from tramalia.cli import comandos
+from tramalia.cli.comandos import construir_excepciones
 from tramalia.core import operaciones
-from tramalia.core.errores import ErrorExcepcionInvalida
+from tramalia.core.errores import ErrorExcepcionInvalida, ErrorIdentificadorInseguro
 from tramalia.core.modelos import (
     EjecucionPuertas,
     ResultadoCierre,
@@ -23,6 +23,84 @@ from tramalia.core.operaciones import cerrar_proyecto, crear_evidencia, registra
 from tramalia.core.procesos import ResultadoProceso
 
 
+def test_cli_evidencia_delega_en_crear_evidencia(tmp_path, monkeypatch, capsys) -> None:
+    llamadas: list[tuple[Path, str]] = []
+
+    class Paquete:
+        id_paquete = "paquete-1"
+        ruta = tmp_path / ".tramalia" / "evidencia" / "paquete-1"
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "tramalia.cli.comandos.crear_evidencia",
+        lambda raiz, id_tarea, **_opciones: llamadas.append((raiz, id_tarea)) or Paquete(),
+    )
+    assert main(["--plain", "evidence", "TASK-1"]) == 0
+    assert llamadas == [(tmp_path, "TASK-1")]
+    assert "paquete-1" in capsys.readouterr().out
+
+
+def test_cli_traspaso_delega_y_crea_paquete_nuevo(tmp_path, monkeypatch, capsys) -> None:
+    class Paquete:
+        id_paquete = "traspaso-1"
+        ruta = tmp_path / ".tramalia" / "evidencia" / "traspaso-1"
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("tramalia.cli.comandos.registrar_traspaso", lambda *_a, **_k: Paquete())
+    assert main(["--plain", "handoff", "TASK-2"]) == 0
+    assert "traspaso-1" in capsys.readouterr().out
+
+
+def test_cli_error_de_dominio_conserva_codigo(tmp_path, monkeypatch, capsys) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    def fallar(*_argumentos, **_opciones):
+        raise ErrorIdentificadorInseguro(
+            mensaje="ID inseguro",
+            sugerencia="usa letras ASCII",
+            ruta=None,
+            detalles={"id_tarea": "../x"},
+        )
+
+    monkeypatch.setattr("tramalia.cli.comandos.crear_evidencia", fallar)
+    assert main(["--plain", "evidence", "../x"]) == 2
+    salida = capsys.readouterr().out
+    assert "id_tarea_inseguro" in salida
+    assert "usa letras ASCII" in salida
+
+
+def test_cli_cierre_bloqueado_devuelve_uno_sin_recalcular(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    resultado = ResultadoCierre(
+        estado=ValorEstadoCierre.BLOQUEADO,
+        id_tarea="TASK-3",
+        id_paquete="paquete-3",
+        ruta_paquete=tmp_path / "paquete-3",
+        ruta_traspaso=None,
+        ejecucion=EjecucionPuertas(estado=ValorEstadoPuertas.SIN_CONFIGURAR),
+        excepciones=(),
+        bloqueos=("sin_configurar",),
+    )
+    monkeypatch.setattr(
+        "tramalia.cli.comandos.cerrar_proyecto",
+        lambda *_argumentos, **_opciones: resultado,
+    )
+    assert main(["--plain", "close", "TASK-3"]) == 1
+
+
+def test_alias_allow_fail_sin_campos_es_rechazado_antes_de_operar(tmp_path, monkeypatch) -> None:
+    llamado = False
+
+    def cerrar(*_argumentos, **_opciones):
+        nonlocal llamado
+        llamado = True
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("tramalia.cli.comandos.cerrar_proyecto", cerrar)
+    assert main(["--plain", "close", "TASK-4", "--allow-fail"]) == 2
+    assert not llamado
+
+
 def test_firmas_publicas_compartidas() -> None:
     assert str(inspect.signature(cerrar_proyecto)) == (
         "(raiz: 'Path', id_tarea: 'str', *, agente: 'str' = '', revisor: 'str' = '', "
@@ -31,8 +109,8 @@ def test_firmas_publicas_compartidas() -> None:
     )
 
 
-def test_cli_y_mcp_comparten_el_constructor_de_excepciones() -> None:
-    assert commands.construir_excepciones_fallo is operaciones.construir_excepciones_fallo
+def test_cli_y_mcp_comparten_el_constructor_de_excepciones_del_nucleo() -> None:
+    assert comandos.construir_excepciones_fallo is operaciones.construir_excepciones_fallo
     assert servidor_mcp.construir_excepciones_fallo is operaciones.construir_excepciones_fallo
     assert str(inspect.signature(crear_evidencia)) == (
         "(raiz: 'Path', id_tarea: 'str', *, agente: 'str' = '', revisor: 'str' = '', "
@@ -45,7 +123,7 @@ def test_cli_y_mcp_comparten_el_constructor_de_excepciones() -> None:
 
 
 def test_parser_expone_un_solo_juego_de_campos_de_excepcion() -> None:
-    argumentos = build_parser().parse_args(
+    argumentos = construir_parser().parse_args(
         [
             "close",
             "TASK-1",
@@ -78,7 +156,7 @@ def test_parser_expone_un_solo_juego_de_campos_de_excepcion() -> None:
 
 def test_alias_allow_fail_sin_campos_no_construye_excepcion_vacia() -> None:
     with pytest.raises(ErrorExcepcionInvalida):
-        _construir_excepciones(SimpleNamespace(allow_fail=True), "ana")
+        construir_excepciones(SimpleNamespace(allow_fail=True), "ana")
 
 
 def test_alias_allow_fail_con_campos_construye_excepcion_completa() -> None:
@@ -93,7 +171,7 @@ def test_alias_allow_fail_con_campos_construye_excepcion_completa() -> None:
         condicion_remediacion="",
     )
 
-    excepciones = _construir_excepciones(argumentos, "revisor por defecto")
+    excepciones = construir_excepciones(argumentos, "revisor por defecto")
 
     assert len(excepciones) == 1
     assert excepciones[0].control_afectado == "test"
@@ -113,24 +191,11 @@ def test_campos_explicitos_construyen_excepcion_sin_requerir_alias() -> None:
         condicion_remediacion="corregir antes del release",
     )
 
-    excepciones = _construir_excepciones(argumentos, "revisor por defecto")
+    excepciones = construir_excepciones(argumentos, "revisor por defecto")
 
     assert len(excepciones) == 1
     assert excepciones[0].referencia == "ISSUE-2"
     assert excepciones[0].condicion_remediacion == "corregir antes del release"
-
-
-def test_export_engram_es_best_effort_ante_error_inesperado(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(commands.shutil, "which", lambda _programa: "engram")
-
-    def fallar(*argumentos: object, **opciones: object) -> object:
-        raise OSError("servicio no disponible")
-
-    monkeypatch.setattr(commands.procesos, "ejecutar", fallar)
-
-    commands._engram_save("cierre", "paquete ya publicado")
 
 
 def test_cli_ejecutable_ausente_no_duplica_el_error_interno(
@@ -139,7 +204,7 @@ def test_cli_ejecutable_ausente_no_duplica_el_error_interno(
 ) -> None:
     errores: list[str] = []
     monkeypatch.setattr(
-        commands.procesos,
+        comandos.procesos,
         "ejecutar",
         lambda _comando: ResultadoProceso(
             ("ausente",),
@@ -148,9 +213,9 @@ def test_cli_ejecutable_ausente_no_duplica_el_error_interno(
             "[WinError 2] El sistema no puede encontrar el archivo",
         ),
     )
-    monkeypatch.setattr(commands.render, "err", errores.append)
+    monkeypatch.setattr(comandos.renderizado, "error", errores.append)
 
-    codigo = commands._run(["ausente"])
+    codigo = comandos._ejecutar(["ausente"])
 
     captura = capsys.readouterr()
     assert codigo == 127
@@ -161,8 +226,8 @@ def test_cli_ejecutable_ausente_no_duplica_el_error_interno(
 @pytest.mark.parametrize(
     ("nombre_comando", "nombre_operacion"),
     [
-        ("cmd_evidence", "crear_evidencia"),
-        ("cmd_handoff", "registrar_traspaso"),
+        ("comando_evidencia", "crear_evidencia"),
+        ("comando_traspaso", "registrar_traspaso"),
     ],
 )
 def test_cli_evidencia_y_traspaso_delegan_una_sola_vez(
@@ -182,10 +247,10 @@ def test_cli_evidencia_y_traspaso_delegan_una_sola_vez(
         return paquete
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(commands, "_resolver", lambda _argumentos: ("TASK-1", "codex", "ana"))
-    monkeypatch.setattr(commands, nombre_operacion, operar)
+    monkeypatch.setattr(comandos, "_resolver", lambda _argumentos: ("TASK-1", "codex", "ana"))
+    monkeypatch.setattr(comandos, nombre_operacion, operar)
 
-    codigo = getattr(commands, nombre_comando)(SimpleNamespace(engram=False))
+    codigo = getattr(comandos, nombre_comando)(SimpleNamespace(engram=False))
 
     assert codigo == 0
     assert llamadas == [(tmp_path, "TASK-1", {"agente": "codex", "revisor": "ana"})]
@@ -220,11 +285,11 @@ def test_cli_cierre_usa_el_resultado_sin_recalcular(
         return resultado
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(commands, "_resolver", lambda _argumentos: ("TASK-2", "codex", "ana"))
-    monkeypatch.setattr(commands, "cerrar_proyecto", cerrar)
+    monkeypatch.setattr(comandos, "_resolver", lambda _argumentos: ("TASK-2", "codex", "ana"))
+    monkeypatch.setattr(comandos, "cerrar_proyecto", cerrar)
     argumentos = SimpleNamespace(allow_fail=False, model="gpt-5", engram=False)
 
-    assert commands.cmd_close(argumentos) == codigo_esperado
+    assert comandos.comando_cerrar(argumentos) == codigo_esperado
     assert len(llamadas) == 1
     assert llamadas[0]["modelo"] == "gpt-5"
     assert llamadas[0]["excepciones"] == ()
@@ -241,16 +306,22 @@ def test_cli_allow_fail_incompleto_falla_antes_de_operar(
         llamado = True
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(commands, "_resolver", lambda _argumentos: ("TASK-3", "codex", "ana"))
-    monkeypatch.setattr(commands, "cerrar_proyecto", cerrar)
+    monkeypatch.setattr(comandos, "_resolver", lambda _argumentos: ("TASK-3", "codex", "ana"))
+    monkeypatch.setattr(comandos, "cerrar_proyecto", cerrar)
 
-    assert commands.cmd_close(SimpleNamespace(allow_fail=True, engram=False)) == 2
+    assert (
+        comandos.despachar(
+            "close",
+            SimpleNamespace(allow_fail=True, engram=False),
+        )
+        == 2
+    )
     assert llamado is False
 
 
 def test_superficies_importan_las_operaciones_compartidas() -> None:
     esperados = {
-        Path("tramalia/cli/commands.py"): {
+        Path("tramalia/cli/comandos.py"): {
             "cerrar_proyecto",
             "crear_evidencia",
             "registrar_traspaso",

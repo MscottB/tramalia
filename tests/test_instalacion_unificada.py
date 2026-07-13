@@ -3,7 +3,7 @@
 import tomllib
 from pathlib import Path
 
-from tramalia.cli import commands
+from tramalia.cli import comandos
 
 
 def _pyproject():
@@ -27,7 +27,7 @@ def test_alias_full_existe():
 
 def test_oferta_sin_tty_no_pregunta(capsys):
     # en pytest no hay TTY: debe imprimir el hint y devolver False, sin colgarse
-    assert commands._ofrecer_instalar("textual", "el dashboard TUI") is False
+    assert comandos._ofrecer_instalar("textual", "el dashboard TUI") is False
 
 
 def test_oferta_rechazada_no_instala(monkeypatch):
@@ -35,10 +35,10 @@ def test_oferta_rechazada_no_instala(monkeypatch):
 
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr(commands.menu, "ask_text", lambda *a, **k: "n")
+    monkeypatch.setattr(comandos.menu, "pedir_texto", lambda *a, **k: "n")
     llamado = []
     monkeypatch.setattr("subprocess.run", lambda *a, **k: llamado.append(a))
-    assert commands._ofrecer_instalar("textual", "el dashboard TUI") is False
+    assert comandos._ofrecer_instalar("textual", "el dashboard TUI") is False
     assert not llamado  # nunca se invocó pip
 
 
@@ -48,13 +48,13 @@ def test_oferta_aceptada_instala(monkeypatch):
 
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
-    monkeypatch.setattr(commands.menu, "ask_text", lambda *a, **k: "s")
-    comandos = []
+    monkeypatch.setattr(comandos.menu, "pedir_texto", lambda *a, **k: "s")
+    invocaciones = []
 
-    def fake_run(cmd, **kwargs):
-        comandos.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0)
+    def ejecutar_falso(comando, **_opciones):
+        invocaciones.append(comando)
+        return subprocess.CompletedProcess(comando, 0)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    assert commands._ofrecer_instalar("textual", "el dashboard TUI") is True
-    assert comandos and comandos[0][-2:] == ["install", "textual"]
+    monkeypatch.setattr(subprocess, "run", ejecutar_falso)
+    assert comandos._ofrecer_instalar("textual", "el dashboard TUI") is True
+    assert invocaciones and invocaciones[0][-2:] == ["install", "textual"]

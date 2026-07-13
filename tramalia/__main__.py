@@ -1,6 +1,4 @@
-"""Punto de entrada de la CLI. Usa argparse (stdlib) para no exigir dependencias;
-Rich/Questionary se activan solos si están instalados (extra `pretty`).
-"""
+"""Expose Tramalia's stable public commands through an argparse entry point."""
 
 from __future__ import annotations
 
@@ -10,7 +8,12 @@ import sys
 from tramalia import __version__
 
 
-def build_parser() -> argparse.ArgumentParser:
+def construir_parser() -> argparse.ArgumentParser:
+    """Build the backwards-compatible public CLI parser.
+
+    Returns:
+        Parser containing Tramalia's established English commands and arguments.
+    """
     p = argparse.ArgumentParser(
         prog="tramalia",
         description="Capa fina que orquesta herramientas externas para desarrollo con agentes IA.",
@@ -203,6 +206,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run Tramalia's command-line surface.
+
+    Args:
+        argv: Optional argument list without the executable name.
+
+    Returns:
+        Stable process exit code for the selected command.
+    """
     # En Windows la consola puede no ser UTF-8; lo forzamos para acentos y símbolos.
     for stream in (sys.stdout, sys.stderr):
         try:
@@ -210,20 +221,20 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:
             pass
 
-    raw = list(argv if argv is not None else sys.argv[1:])
+    argumentos_crudos = list(argv if argv is not None else sys.argv[1:])
     # --plain se acepta en cualquier posición; se extrae antes de parsear
-    plain = "--plain" in raw
-    raw = [a for a in raw if a != "--plain"]
-    args = build_parser().parse_args(raw)
+    plano = "--plain" in argumentos_crudos
+    argumentos_crudos = [valor for valor in argumentos_crudos if valor != "--plain"]
+    argumentos = construir_parser().parse_args(argumentos_crudos)
 
-    from tramalia.cli import render
+    from tramalia.cli import renderizado
 
-    if plain:
-        render.set_plain(True)
+    if plano:
+        renderizado.fijar_plano(True)
 
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
-    return commands.dispatch(args.command or "menu", args)
+    return comandos.despachar(argumentos.command or "menu", argumentos)
 
 
 if __name__ == "__main__":

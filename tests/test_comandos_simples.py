@@ -2,7 +2,7 @@
 
 import json
 
-from tramalia.__main__ import build_parser
+from tramalia.__main__ import construir_parser
 from tramalia.core.configuracion import (
     agentes_predeterminados,
     id_tarea_actual,
@@ -21,14 +21,14 @@ def _proyecto(tmp_path, task_id=None):
 
 
 def test_parser_acepta_task_posicional():
-    argumentos = build_parser().parse_args(["close", "TASK-9"])
+    argumentos = construir_parser().parse_args(["close", "TASK-9"])
     assert argumentos.task_pos == "TASK-9"
-    argumentos = build_parser().parse_args(["handoff", "TASK-9"])
+    argumentos = construir_parser().parse_args(["handoff", "TASK-9"])
     assert argumentos.task_pos == "TASK-9"
 
 
 def test_flag_task_sigue_funcionando():
-    argumentos = build_parser().parse_args(["close", "--task", "TASK-9"])
+    argumentos = construir_parser().parse_args(["close", "--task", "TASK-9"])
     assert argumentos.task == "TASK-9" and argumentos.task_pos is None
 
 

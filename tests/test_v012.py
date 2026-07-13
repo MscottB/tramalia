@@ -38,10 +38,10 @@ def test_env_manda_sobre_locale(monkeypatch):
 
 # ---------------------------------------------------------------- guard init
 def test_close_bloqueado_sin_init(tmp_path, monkeypatch):
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     monkeypatch.chdir(tmp_path)
-    args = argparse.Namespace(
+    argumentos = argparse.Namespace(
         task_pos="TASK-1",
         task=None,
         agent=None,
@@ -50,16 +50,16 @@ def test_close_bloqueado_sin_init(tmp_path, monkeypatch):
         allow_fail=False,
         engram=False,
     )
-    assert commands.cmd_close(args) == 2
+    assert comandos.despachar("close", argumentos) == 2
     assert not (tmp_path / ".tramalia" / "evidencia").exists()
 
 
 @pytest.mark.parametrize(
     "comando",
     [
-        "cmd_evidence",
-        "cmd_handoff",
-        "cmd_close",
+        "evidence",
+        "handoff",
+        "close",
     ],
 )
 def test_mutaciones_cli_capturan_proyecto_parcial_sin_escribir(
@@ -67,7 +67,7 @@ def test_mutaciones_cli_capturan_proyecto_parcial_sin_escribir(
     monkeypatch,
     comando,
 ):
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".tramalia").mkdir()
@@ -81,12 +81,12 @@ def test_mutaciones_cli_capturan_proyecto_parcial_sin_escribir(
         engram=False,
     )
 
-    assert getattr(commands, comando)(argumentos) == 2
+    assert comandos.despachar(comando, argumentos) == 2
     assert list((tmp_path / ".tramalia").iterdir()) == []
 
 
 def test_sync_bloquea_proyecto_parcial_sin_ejecutar(tmp_path, monkeypatch):
-    from tramalia.cli import commands
+    from tramalia.cli import comandos
 
     llamadas = []
 
@@ -96,11 +96,11 @@ def test_sync_bloquea_proyecto_parcial_sin_ejecutar(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     (tmp_path / "AGENTS.md").write_text("# Reglas arbitrarias\n", encoding="utf-8")
-    monkeypatch.setattr(commands.shutil, "which", lambda programa: programa)
-    monkeypatch.setattr(commands, "_run", ejecucion_prohibida)
+    monkeypatch.setattr(comandos.shutil, "which", lambda programa: programa)
+    monkeypatch.setattr(comandos, "_ejecutar", ejecucion_prohibida)
     argumentos = argparse.Namespace(to=None, features="rules")
 
-    assert commands.cmd_sync(argumentos) == 1
+    assert comandos.comando_sincronizar(argumentos) == 1
     assert llamadas == []
 
 
