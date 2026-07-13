@@ -125,7 +125,7 @@ def test_carga_excluye_agregado_gates_y_conserva_build(tmp_path: Path) -> None:
     assert tuple(puerta.nombre for puerta in puertas_calidad.cargar_puertas(tmp_path)) == ("build",)
 
 
-def test_catalogo_publico_respeta_orden_e_incluye_bundle_y_notebooks(
+def test_catalogo_publico_incluye_bundle_y_notebooks(
     tmp_path: Path,
 ) -> None:
     nombres = (
