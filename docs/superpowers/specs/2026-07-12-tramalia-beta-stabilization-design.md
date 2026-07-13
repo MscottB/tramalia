@@ -30,11 +30,12 @@ de código.
   proyectos consumidores que requieran compatibilidad con el formato previo sin
   versión.
 - Las integraciones opcionales no serán necesarias para usar el núcleo repo-first.
+- No se usará Figma; la mejora visual se implementará y probará directamente en la TUI y en MkDocs Material.
 - Los comentarios internos se escribirán en español.
 - Los docstrings de la API pública se escribirán en inglés y con estilo Google.
-- Los nombres propios de archivos, módulos, clases, funciones, métodos, variables,
-  fixtures y markers se escribirán en español ASCII. La letra `ñ` se representará
-  como `n`.
+- Los nombres propios creados o refactorizados en archivos, módulos, clases,
+  funciones, métodos, variables, funciones auxiliares de pytest y marcadores se escribirán en español
+  ASCII. La letra `ñ` se representará como `n`.
 - Se conservarán en inglés únicamente nombres impuestos por Python, GitHub,
   PyPI, MkDocs, MCP, formatos externos o comandos públicos ya establecidos.
 - Las guías explicativas alrededor de la API tendrán versiones española e inglesa.
@@ -151,7 +152,7 @@ Flujo de cierre:
   números, punto, guion y guion bajo.
 - Se rechazarán separadores, `..`, controles, saltos de línea y nombres reservados
   de Windows.
-- Se verificará que toda ruta resuelta permanezca bajo `.tramalia/evidence`.
+- Se verificará que toda ruta resuelta permanezca bajo `.tramalia/evidencia`.
 
 ### 5.2 Escritura atómica
 
@@ -162,17 +163,17 @@ parcial ni modificará evidencia previa.
 
 ### 5.3 Contenido mínimo
 
-`metadata.json` incluirá claves en español ASCII:
+`metadatos.json` incluirá claves en español ASCII:
 
 - `version_esquema: 1`
 - `id_paquete`, `id_tarea`, operación y marcas de tiempo UTC
-- versión de Tramalia, Python, sistema operativo y toolchain
-- commit, branch, estado Git y base de comparación
-- comandos exactos, duración, código de salida y hashes de outputs
-- gates descubiertos, ejecutados, omitidos y fallidos
+- versión de Tramalia, Python, sistema operativo y cadena de herramientas
+- commit, rama, estado Git y base de comparación
+- comandos exactos, duración, código de salida y hashes de salidas
+- puertas descubiertas, ejecutadas, omitidas y fallidas
 - métricas, umbrales y errores de validación
 - excepciones, referencia, revisor y expiración
-- archivos tracked, staged, untracked, renombrados y eliminados
+- archivos rastreados, preparados en el índice, no rastreados, renombrados y eliminados
 - vínculo al handoff canónico
 
 Las salidas crudas de cada gate permanecerán separadas. `lint` y `format` nunca
@@ -180,8 +181,8 @@ compartirán archivo.
 
 ### 5.4 Traspaso y lectura estructurada
 
-El pack contendrá el traspaso (*handoff*) canónico con el resultado ya calculado.
-El archivo global `docs/ai/07-handoff-agentes.md` será una proyección atómica que
+El paquete contendrá el traspaso (*handoff*) canónico con el resultado ya calculado.
+El archivo global `docs/ai/07-traspaso-agentes.md` será una proyección atómica que
 enlaza el `id_paquete`; un fallo de esa proyección no invalidará el traspaso
 canónico.
 
@@ -223,7 +224,7 @@ representará un intento fallido y propagará código de salida no cero.
 
 Las skills Git conservarán `fuente`, `referencia` y `sha_resuelto`. El modo Team
 no usará ramas flotantes ni `latest`; una actualización explícita moverá el lock.
-El runtime del paquete conservará rangos compatibles, mientras CI, docs y release
+Las dependencias de ejecución del paquete conservarán rangos compatibles, mientras CI, docs y release
 usarán entornos reproducibles.
 
 ## 8. TUI
@@ -237,21 +238,21 @@ Primera separación:
 - Textual: widgets, navegación, bindings y mensajes.
 
 Las sondas y procesos externos se ejecutarán fuera del event loop. La corrupción
-de metadata, cancelación, timeout y estados degradados tendrán representación
+de metadatos, cancelación, tiempo agotado y estados degradados tendrán representación
 explícita y pruebas mediante la API pública de `pilot`.
 
 ## 9. Comentarios y docstrings
 
 ### 9.1 Convención de nombres
 
-El código propio usará español ASCII y `snake_case` para módulos, archivos,
-funciones, métodos, variables y fixtures; las clases usarán `PascalCase` en
-español ASCII. Ejemplos: `puertas_calidad.py`, `cargar_configuracion`,
+El código propio creado o refactorizado usará español ASCII y `snake_case` para
+módulos, archivos, funciones, métodos, variables y auxiliares de pytest; las clases usarán
+`PascalCase` en español ASCII. Ejemplos: `puertas_calidad.py`, `cargar_configuracion`,
 `resultado_cierre`, `EstadoIntegracion` y `proyecto_inicializado`.
 
 La `ñ` se escribirá como `n`: `tamano`, `contrasena` y `companero`. No se usarán
 traducciones forzadas para nombres exigidos por librerías o protocolos, como
-`metadata.json`, `pyproject.toml`, `workflow_dispatch`, `MCP` o métodos especiales
+`METADATA`, `pyproject.toml`, `workflow_dispatch`, `MCP` o métodos especiales
 de Python.
 
 ### 9.2 Política de comentarios
@@ -357,7 +358,7 @@ Markers:
 - `publicacion`: wheel, metadata y smoke tests
 
 Se conservarán los comportamientos de regresión valiosos, pero se parametrizarán
-matrices repetidas de stacks, sistemas, herramientas e instaladores. Se retirarán
+matrices repetidas de tecnologías, sistemas, herramientas e instaladores. Se retirarán
 duplicados, pruebas de constantes privadas, pruebas que sólo afirman “no lanza” y
 comprobaciones de prosa que pertenecen al pipeline documental.
 
@@ -369,8 +370,8 @@ Los primeros tests nuevos cubrirán:
 - traversal, nombres Windows y containment
 - fallo inyectado durante la publicación atómica
 - MCP sin init y ejecución real de tools
-- Git pull/clone no cero, timeout y ref inválido
-- tracked, staged, untracked, renames y deletes
+- Git pull/clone no cero, tiempo agotado y referencia inválida
+- archivos rastreados, preparados, no rastreados, renombrados y eliminados
 - importación y smoke en Python 3.11–3.14
 - release bloqueada si tests, versión o wheel fallan
 
@@ -383,27 +384,32 @@ publicación PyPI no redeplegará GitHub Pages.
 Workflows:
 
 1. `validacion.yml`: PR y push; ejecuta pruebas, contratos, plataformas y paquete.
-2. `documentacion.yml`: cambios de docs en `main`; valida y despliega GitHub Pages.
-3. `documentacion-offline.yml`: genera el ZIP navegable y lo conserva como
+2. `documentacion.yml`: después de una `validacion` exitosa en `main`, reconstruye
+   desde el SHA validado y despliega GitHub Pages con permisos sólo en el job final.
+3. `documentacion-sin-conexion.yml`: genera el ZIP navegable y lo conserva como
    artefacto o asset de lanzamiento.
 4. `lanzamiento-github.yml`: valida tag, versión y changelog; toma wheel, sdist,
-   hashes y docs offline ya validados; crea GitHub Release con notas y assets.
+   hashes y documentación sin conexión ya validados; atestigua procedencia y crea
+   siempre un borrador de GitHub Release con notas y assets.
 5. `publicar-pypi.yml`: se activa al publicar GitHub Release, descarga exactamente
    los wheel/sdist del release, verifica hashes y publica mediante Trusted
-   Publishing. Nunca reconstruye el paquete.
+   Publishing. La verificación corre sin OIDC; el job OIDC no ejecuta código del
+   repositorio. Nunca reconstruye el paquete.
 
 Jobs obligatorios de `validacion.yml`:
 
 1. `nucleo`: unidad y contratos en Python 3.11–3.14.
-2. `plataformas`: integración crítica en Windows, Linux y macOS.
-3. `opcionales`: TUI y MCP con extras instalados.
-4. `documentacion`: pares ES/EN, enlaces y `mkdocs build --strict`.
-5. `paquete`: build sdist/wheel, `twine check`, instalación limpia y smoke CLI.
+2. `calidad`: Ruff, formato y tipado estático.
+3. `plataformas`: integración crítica en Windows, Linux y macOS.
+4. `opcionales`: TUI y MCP con extras instalados.
+5. `documentacion`: pares ES/EN, enlaces y `mkdocs build --strict`.
+6. `paquete`: build reproducible sdist/wheel, `twine check`, instalación limpia y smoke CLI.
 
 El flujo de lanzamiento y el de PyPI consumirán exactamente el artefacto del job
-`paquete`. Sólo aceptarán tags `v*` cuya versión coincida con metadata y changelog.
-Una ejecución manual desde una rama podrá validar o crear un borrador, pero nunca
-publicará en PyPI.
+`paquete`. Sólo aceptarán tags `v*` cuya versión coincida con metadata interna de
+wheel/sdist, `tramalia.__version__` y changelog. Tanto un tag como una ejecución
+manual seleccionada sobre ese mismo tag existente crearán sólo un borrador; una persona lo revisará y publicará. Ese evento
+humano activa PyPI y evita depender de eventos recursivos del `GITHUB_TOKEN`.
 
 Las GitHub Actions se fijarán por SHA con comentario de versión. Las dependencias
 de desarrollo, docs y release tendrán resolución reproducible y actualización
@@ -445,7 +451,7 @@ la siguiente.
 - IDs inseguros no pueden escapar del directorio administrado.
 - El paquete de evidencia formal registra cambios completos, comandos, entorno y
   hashes.
-- Handoff y metadata coinciden en tarea, pack, resultado y excepción.
+- Traspaso y metadatos coinciden en tarea, paquete, resultado y excepción.
 - Fallos externos nunca se presentan como éxito o ausencia silenciosa.
 - La suite se ejecuta en Python 3.11–3.14 y en los tres sistemas objetivo.
 - El wheel validado por CI es el mismo artefacto publicado.
