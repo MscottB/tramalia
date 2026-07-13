@@ -35,23 +35,23 @@ La igualdad de líneas o contextos de cobertura **sólo crea un candidato**. La 
 
 | Grupo candidato | Decisión | Condición y no-equivalencia |
 |---|---|---|
-| Estado/puertas/cierre: v012, v016, governance, metadata, evidence-handoff | reemplazar | Plan 02 Tasks 2--8; no retirar nada hasta cubrir guardia CLI sin write, exclusión del agregado `gates`, métricas conformes/artefactos y salida no comprimida |
-| Agrupación v017/v022 | consolidar | Sólo después de parametrizar todas las categorías/órdenes; hoy las entradas y assertions difieren |
+| Estado/puertas/cierre: v012, v016, governance, metadata, evidence-handoff | conservar | Sigue siendo candidato de reemplazo por Plan 02 Tasks 2--8, pero no se aplica una decisión grupal mientras falten crear y probar todas las trazabilidades exactas de guardia CLI sin write, exclusión del agregado `gates` y métricas conformes/artefactos. Las 39 decisiones por archivo conservan sus reemplazos puntuales. |
+| Agrupación v017/v022 | conservar | Sigue siendo candidato: no existe todavía un `ruta::test` parametrizado que preserve todas las categorías, órdenes, entradas y assertions; sólo podrá consolidarse después de crear y probar esa trazabilidad. |
 | Registro/instalador: v013, v015, v017, v020, v022, v023, v027, doctor, engram | conservar | Compartir fixture de herramienta es válido; matrices de SO/stack, runtime, PATH, streaming y opcionalidad no son equivalentes |
 | Engram v022/v023/v027 | conservar | Opciones, bloqueo, oferta de runtime y refresh de PATH protegen capas distintas |
 | Scaffold/adopción: v014, v018, v026, scaffold, convención, v029/v030/v032 | conservar | Centralizar preparación no autoriza perder idempotencia, contenido stack-aware, `--adopt`, upgrade, gitignore ni preservación byte a byte |
 | Manifiesto/habilidades: v018, v019, v021, v029, v031, tools-and-skills | conservar | Catálogo/toggle, compatibilidad legacy, higiene, filtro read-only/CLI y locks SHA son complementarios |
-| Snapshot `tools.json`: v021/v024/v025 | consolidar | Puede unificarse esquema base + extensiones; no equivale a `InstantaneaTablero` en memoria |
+| Snapshot `tools.json`: v021/v024/v025 | conservar | Sigue siendo candidato: no existe todavía un `ruta::test` canónico para el esquema base más extensiones; `InstantaneaTablero` en memoria no es equivalente. Consolidar sólo después de crear y probar esa trazabilidad. |
 | Título: v023 + Speckit | consolidar | `tests/interfaz/test_interfaz_terminal.py::test_titulo_incluye_version`, preservando igualdad exacta con `__version__`, Plan 03 Task 4 |
-| Proveedor/TUI: v024/v028 | consolidar | Mover sólo flujos públicos a `test_interfaz_terminal.py`; conservar catálogo, config, sonda efímera, ESC sin mutación y preferencia no instalada |
-| TUI v021b/v023/v024/v028/v030/Speckit | consolidar | Cada reemplazo nombrado debe usar `pilot`; un modal o snapshot no reemplaza otro panel/acción |
+| Proveedor/TUI: v024/v028 | consolidar | `tests/interfaz/test_interfaz_terminal.py::test_selector_proveedor_fija_configuracion`, `tests/interfaz/test_interfaz_terminal.py::test_cancelar_selector_proveedor_no_cambia_configuracion`, `tests/interfaz/test_interfaz_terminal.py::test_escape_cierra_selector_de_proveedor_sin_mutar_configuracion` y `tests/interfaz/test_interfaz_terminal.py::test_proveedor_no_disponible_se_persiste_como_preferencia`, Plan 03 Task 4; conservar catálogo, config y sonda efímera. |
+| TUI v021b/v023/v024/v028/v030/Speckit | consolidar | `tests/interfaz/test_interfaz_terminal.py::test_tecla_d_no_abre_panel_de_instalacion`, `tests/interfaz/test_interfaz_terminal.py::test_escape_cierra_paneles_de_instalacion_y_habilidades`, `tests/interfaz/test_interfaz_terminal.py::test_titulo_incluye_version` y `tests/interfaz/test_interfaz_terminal.py::test_boton_inicializar_en_resumen_refleja_estado_tipado`, Plan 03 Task 4; deben usar `pilot` y no tratar otro modal/snapshot como equivalente. |
 | Antigravity v024/v027/v032 | conservar | Comando/seguridad, IDs/sonda y exclusión como agente son contratos distintos |
 | Habilidades Git v029/v031 + locks nuevos | conservar | Managed `.gitignore`, tracked externas, `solo`, consulta remota y CLI no están cubiertos por locks/SHA |
 | Upgrade v030/v032 | conservar | Recrear faltantes sin pisar documentos no equivale a preservar `config.json` byte por byte |
 | Detección v012/v015/`test_detect.py` | conservar | Comparten detector con firmas/features diferentes; no hay sustitución total |
-| MCP discovery/transporte | consolidar | El listado puede pasar con una tool rota y una llamada puede pasar con otras ausentes; conservar ambos tipos de assertion |
+| MCP discovery/transporte | consolidar | `tests/integracion/test_mcp_operaciones.py::test_servidor_registra_herramientas_publicas`, junto con las invocaciones stdio del mismo archivo, Plan 03 Task 4; discovery y transporte deben conservar ambos tipos de assertion. |
 | Doctor con cobertura dinámica idéntica | conservar | `needs_node=True` con Node ausente y `False` con herramientas vacías usan entradas/assertions opuestas |
-| Gobierno/evidencia + Headroom | consolidar | Bytes/hash no prueban ausencia de `*.compressed.md`; añadir assertion canónica antes de mover el caso |
+| Gobierno/evidencia + Headroom | conservar | Sigue siendo candidato: bytes/hash no prueban ausencia de `*.compressed.md`. No consolidar hasta crear y probar `tests/integracion/test_operaciones.py::test_salidas_crudas_no_se_reemplazan_por_compresion` en Plan 02 Task 8. |
 
 ## Pruebas lentas
 
