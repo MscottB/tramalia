@@ -1,11 +1,12 @@
 from pathlib import Path
+from typing import Any
 import tomllib
 
 
 RAIZ = Path(__file__).resolve().parents[2]
 
 
-def cargar_proyecto() -> dict[str, object]:
+def cargar_proyecto() -> dict[str, Any]:
     with (RAIZ / "pyproject.toml").open("rb") as archivo:
         return tomllib.load(archivo)
 
