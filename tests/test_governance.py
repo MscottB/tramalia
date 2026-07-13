@@ -26,11 +26,3 @@ def test_close_standalone_without_mise(tmp_path, monkeypatch):
     assert res.handoff_path.exists()
     assert res.gates_ran is False
     assert res.blocked is False  # sin gates ejecutados no bloquea; queda documentado
-
-
-def test_read_log_lists_closes(tmp_path, monkeypatch):
-    _init(tmp_path)
-    monkeypatch.setattr(governance.proc, "which", lambda c: None)
-    governance.close(tmp_path, "TASK-1")
-    entries = governance.read_log(tmp_path)
-    assert entries and entries[0]["id"].endswith("TASK-1")

@@ -1,223 +1,300 @@
 # Full workflow, step by step
 
-This is the real journey of a project governed by Tramalia, from scratch to the auditable close of a task. The recommended path **leads with `tramalia close`**.
-
-Every step has **two equivalent paths**: CLI (scriptable, CI-friendly) or `tramalia ui` (TUI, visual, with prefilled forms). Neither is "the right one" — each step's table shows both; use whichever fits the moment. Full interface detail: [The interface (TUI)](interfaz.md).
+This is the recommended path for a Tramalia-governed project: prepare the
+repository, work on a task, verify it, and publish an auditable close. The CLI
+and `tramalia ui` consume the same core result; the interface does not redefine
+policy or recalculate the outcome.
 
 ## Overview
 
 ```mermaid
 flowchart LR
-    classDef step fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
-    A["pip install"]:::step --> B["tramalia init"]:::step
-    B --> C["tramalia doctor"]:::step
-    C --> D["tramalia sync"]:::step
-    D --> E["tramalia context"]:::step
-    E --> F["work with your agent"]:::step
-    F --> G["tramalia close"]:::step
-    G --> H["tramalia log"]:::step
-    H --> F
+    A["Install"] --> B["tramalia init"]
+    B --> C["tramalia doctor"]
+    C --> D["tramalia sync / context"]
+    D --> E["Work on the task"]
+    E --> F["tramalia close"]
+    F --> G["Package in .tramalia/evidencia"]
+    G --> H["tramalia log"]
+    H --> E
 ```
 
-## The closing ritual, inside
+## What a quality gate is
+
+A **quality gate** is an automated control that a task must pass before it can
+be closed. Examples include compiling, running tests, checking formatting,
+scanning for vulnerabilities, or validating a migration. It is not a separate
+service: in Tramalia it is an exact command declared in `mise.toml`, recorded
+with its duration, exit code, output file, and hash.
+
+Tramalia is **fail-closed**. A failed gate, invalid configuration, unavailable
+runner, or complete absence of gates is never interpreted as success. The close
+is `bloqueado` unless every failure is covered by a formal, reviewed, current
+exception.
+
+The formal aggregate gate states intentionally remain Spanish ASCII values in
+every locale because they are part of the v1 data contract:
+
+| Formal state | Meaning |
+|---|---|
+| `aprobado` | Every required gate completed successfully. |
+| `fallido` | At least one gate returned a failed result. |
+| `ejecutor_no_disponible` | `mise` or another required runner was unavailable. |
+| `sin_configurar` | No gates are declared; this is not approval. |
+| `configuracion_invalida` | The gate declaration fails schema validation. |
+| `error_ejecucion` | A command could not be launched or controlled. |
+
+The final close state is limited to `aprobado`,
+`aprobado_con_excepciones`, or `bloqueado`.
+
+## What happens during a close
 
 ```mermaid
 sequenceDiagram
-    participant U as You / agent
+    participant U as Person or agent
     participant T as tramalia close
-    participant M as mise (gates)
-    participant E as evidence pack
+    participant G as Quality gates
+    participant E as Evidence package
+    participant D as Documentation projection
     U->>T: close TASK-001
-    T->>M: mise run build / test / lint / security…
-    M-->>T: raw output + exit codes
-    T->>E: writes *-output.txt (RAW) + gates-status.md
-    T->>E: writes metadata.json (honest status)
-    T->>E: adds handoff in docs/ai/07
-    alt a gate fails and no --allow-fail
-        T-->>U: ✗ close BLOCKED (exit 1)
-    else all pass (or documented exception)
-        T-->>U: ✓ task closed with evidence
-    end
+    T->>G: discover and execute commands
+    G-->>T: results, timings, codes, and hashes
+    T->>T: compute one final close state
+    T->>E: publish metadatos.json + traspaso.md + outputs
+    E-->>T: complete atomic package
+    T-->>D: project docs/ai/07-traspaso-agentes.md
+    Note over D: Projection is auxiliary and may fail without changing the package
+    T-->>U: aprobado, aprobado_con_excepciones, or bloqueado
 ```
 
-## 1. Install Tramalia (Python only)
+## 1. Install Tramalia
 
 ```bash
-pip install tramalia-cli   # one command: core + colors + menu included
+pip install tramalia-cli
 ```
 
-Tramalia already runs. No Node, no cloud services.
+The core runs with Python. Optional integrations are diagnosed separately and
+never hide their failures.
 
 ## 2. Initialize the convention
 
 | CLI | TUI |
 |---|---|
-| `tramalia init` | **Overview** tab → **⚙ Initialize** button (visible while the repo isn't governed yet) |
+| `tramalia init` | **Overview** tab → **Initialize** |
 
-Drops into your repo, idempotent (never overwrites existing files):
-
-```text
-AGENTS.md              # single rules for all agents
-CLAUDE.md              # → @AGENTS.md (no duplication)
-docs/ai/               # full convention (14 files, 00-13: architecture, stack-aware rules, deploy, analytics…)
-specs/                 # constitution · specification · plan · tasks · checklist
-.claude/agents/        # 5 subagents with model routing (planner→opus, executor→inherit…)
-mise.toml              # tools + gates tailored to the detected stack
-.mcp.json              # Serena (Engram if present; Headroom/Ponytail via --with-*)
-.gitignore              # block that excludes external skills from the repo (keeps the own ones)
-.tramalia/             # config, version, current-task, skills.toml, 16 skills, context/, evidence/
-```
-
-`init` **detects the agent CLIs you already have installed** (Claude, Codex, OpenCode…) and uses them as the default executor/reviewer in `config.json` — not a fixed example. If you have other agents besides Claude Code, it suggests `tramalia sync` to propagate rules to them (step 4).
-
-## 3. See what's missing to install
-
-| CLI | TUI |
-|---|---|
-| `tramalia doctor` | **Overview** tab, live table — `i` key installs what's missing, `u` checks skill updates |
-
-Classifies into **bootstrap** (mise/git/uv), **stack** (node/dotnet…) and **feature/gate** (semgrep, sqlfluff, lighthouse, engram, headroom…). It flags what requires Node. Once you have `mise`:
-
-```bash
-mise install          # installs everything declared in mise.toml
-```
-
-## 4. Propagate rules to other agents (interop)
-
-```bash
-tramalia sync         # rulesync: AGENTS.md → Cursor, Copilot, Cline…
-```
-
-## 5. Choose the context backend and refresh it
-
-| CLI | TUI |
-|---|---|
-| `tramalia context set <backend>` · `tramalia context` | `b` key (choose) · `i` key (refresh) |
-
-If you have several code-navigation tools installed (Serena, CodeGraph, codebase-memory-mcp, Graphify), **only one** stays active per project (`.tramalia/config.json → context.backend`, default `serena`) — this prevents the agent from alternating between inconsistent indexes. `tramalia context` (no arguments) refreshes the derived snapshot (tech-stack + project-map, via Repomix if present). Detail: [Context & code intelligence](interop-contexto.md).
-
-## 6. Install the skills you need
-
-| CLI | TUI |
-|---|---|
-| `tramalia skills list` · `tramalia skills enable <n>` + `tramalia skills` | **Skills** tab, Enter on an external one installs it in one step |
-
-The 16 own skills already ship; the external catalog (`skills.toml`) is optional and **isn't committed to the repo** (it's re-hydrated with `tramalia skills` after cloning). Detail: [Skills](skills-guia.md).
-
-## 7. (Optional) Model cap for the subagents
-
-```bash
-tramalia agents cap sonnet   # lowers opus/fable to sonnet; keeps haiku and inherit
-```
-
-Only if you want to cap which models the 5 governance subagents use (e.g. no opus/fable access). Portable to other hosts as a convention — see [Model cap](multi-host.md#model-cap-portable-across-providers).
-
-With this, you work with your agent (Claude/Codex/…), which reads `AGENTS.md` + `docs/ai/`.
-
-## 8. Close the task (the heart of the product)
-
-| CLI | TUI |
-|---|---|
-| `tramalia close TASK-001` | **Close** tab: prefilled form (task, agent, reviewer — detected; model, optional) → **▶ Run close** button |
-
-```bash
-tramalia close TASK-001    # agent and reviewer: defaults from config.json
-```
-
-In the TUI, the form comes prefilled with the project's **real** values: the task comes from `.tramalia/current-task.md` if you declared it, agent/reviewer from `config.json` (the agents `init` detected), and the **model** field is left blank on purpose — it's optional, just so `tramalia log` records which model closed the task; leaving it blank blocks nothing. Full detail: [The interface (TUI) → Close tab](interfaz.md#close-tab).
-
-!!! info "`close` doesn't invoke the agent"
-    The agent/reviewer fields are an **audit record** (who did the work, who reviews it) — not a selection. What `close` executes are the **gates** via `mise`; the AI work already happened earlier, with whichever agent you chose.
-
-This, in one step:
-
-1. Runs each gate (`mise run build/test/lint/security/database/ux`).
-2. Writes the **raw output** of each into `.tramalia/evidence/<date>-TASK-001/*-output.txt`.
-3. Generates **`metadata.json`** with an honest `status`.
-4. Adds the **handoff** to `docs/ai/07-handoff-agentes.md`.
-5. **Blocks** the close (exit 1) if a gate fails, unless `--allow-fail` with the exception noted in `risks.md`.
-
-Typical pack result:
+Initialization is idempotent and creates, without overwriting existing files:
 
 ```text
-.tramalia/evidence/2026-06-30-1015-TASK-001/
-├── metadata.json        ← structured audit
-├── gates-status.md
-├── build-output.txt     ← RAW, official
-├── test-output.txt      ← RAW, official
-├── security-output.txt  ← RAW, official
-├── summary.md · risks.md · rollback.md · next-steps.md
+AGENTS.md
+CLAUDE.md
+docs/ai/                         # rules and visible transfer projection
+specs/                           # constitution, specification, plan, tasks
+.claude/agents/                  # governance subagents
+mise.toml                        # stack tools and quality gates
+.mcp.json
+.tramalia/
+├── config.json
+├── current-task.md
+├── context/
+├── skills/
+└── evidencia/                   # formal packages, ignored by Git
 ```
 
-`metadata.json` looks like this:
+`init` detects the stack and available agent CLIs to propose initial values.
+`tramalia upgrade` adds new convention files without overwriting project
+customizations.
+
+## 3. Diagnose tools
+
+| CLI | TUI |
+|---|---|
+| `tramalia doctor` | **Overview** tab |
+
+`doctor` distinguishes base tools, stack toolchains, and optional integrations.
+When appropriate:
+
+```bash
+tramalia doctor --fix
+mise install
+```
+
+An optional tool is merely a capability that may not have been requested. If a
+required gate depends on it and it is unavailable, the close is blocked.
+
+## 4. Propagate rules and build context
+
+```bash
+tramalia sync
+tramalia context set serena
+tramalia context
+```
+
+`sync` translates `AGENTS.md` into supported formats. `context set` chooses one
+code-navigation backend, and `context` refreshes derived project memory. Neither
+command replaces the evidence package.
+
+## 5. Prepare and work on a task
+
+Record tasks in `specs/tasks.md`. To let `close` resolve the ID automatically,
+declare the current one in `.tramalia/current-task.md`. IDs allow 1–64 ASCII
+letters, digits, dots, hyphens, and underscores; paths, `..`, and reserved system
+names are rejected.
+
+Work with any agent you choose. The `agente`, `revisor`, and `modelo` fields are
+declared audit data: they are not cryptographic proof of identity, and they do
+not make `close` invoke a model.
+
+## 6. Close the task
+
+| CLI | TUI |
+|---|---|
+| `tramalia close TASK-001` | **Close** tab → **Run close** |
+
+```bash
+tramalia close TASK-001
+```
+
+The core inspects the project, loads gates, runs commands, evaluates metrics and
+thresholds, computes policy once, and publishes the package. Raw outputs remain
+separate files; a summary or compressed derivative can never replace them.
+
+An exception is not a generic bypass. To cover a failure it must declare a
+reason, accepted risk, affected control, reference, reviewer, and either expiry
+or remediation condition. `--allow-fail` remains a compatibility alias, but it
+cannot approve a result without those complete fields.
+
+## 7. Understand the formal v1 package
+
+Every operation creates a unique identity and publishes its directory
+atomically. A final package never appears half-written:
+
+```text
+.tramalia/evidencia/20260713T183012.123456Z-a1b2c3d4/
+├── metadatos.json       # structured v1 contract
+├── traspaso.md          # canonical transfer for this package
+└── test-salida.txt      # raw output, hashed by the formal data
+```
+
+`metadatos.json` uses stable Spanish ASCII keys and states in both locales. The
+following is abbreviated but includes every required top-level section:
 
 ```json
 {
-  "task": "TASK-001",
-  "agent": "codex",
-  "reviewer": "claude",
-  "started_at": "2026-06-30T10:15:00-04:00",
-  "closed_at": "2026-06-30T10:22:00-04:00",
-  "status": "passed",
-  "allow_fail": false,
-  "gates_ran": true,
-  "gates": { "build": { "status": "passed", "exit_code": 0, "output": "build-output.txt" } },
-  "handoff": "docs/ai/07-handoff-agentes.md",
-  "evidence_dir": ".tramalia/evidence/2026-06-30-1015-TASK-001"
+  "version_esquema": 1,
+  "id_paquete": "20260713T183012.123456Z-a1b2c3d4",
+  "id_tarea": "TASK-001",
+  "operacion": "cierre",
+  "inicio_utc": "2026-07-13T18:30:12.123456Z",
+  "fin_utc": "2026-07-13T18:30:18.123456Z",
+  "entorno": {
+    "tramalia": "0.34.0b1",
+    "python": "3.13.5",
+    "sistema_operativo": "Windows-11",
+    "cadena_herramientas": {"mise": "2026.7.0", "pytest": "9.0.0"}
+  },
+  "git": {
+    "commit": "0123456789abcdef",
+    "rama": "main",
+    "limpio": false,
+    "base_comparacion": "origin/main",
+    "rastreados": ["tramalia/core/operaciones.py"],
+    "preparados": [],
+    "no_rastreados": [],
+    "renombrados": [],
+    "eliminados": []
+  },
+  "comandos": [{
+    "nombre": "test",
+    "comando": ["mise", "run", "test"],
+    "estado": "aprobado",
+    "inicio_utc": "2026-07-13T18:30:13.000000Z",
+    "fin_utc": "2026-07-13T18:30:17.000000Z",
+    "duracion_segundos": 4.0,
+    "codigo_salida": 0,
+    "hash_salida": "0000000000000000000000000000000000000000000000000000000000000000",
+    "archivo_salida": "test-salida.txt"
+  }],
+  "puertas": {
+    "estado": "aprobado",
+    "descubiertas": ["test"],
+    "ejecutadas": ["test"],
+    "omitidas": [],
+    "fallidas": [],
+    "errores_validacion": []
+  },
+  "estado_cierre": "aprobado",
+  "agente": "codex",
+  "modelo": null,
+  "metricas": {},
+  "umbrales": {},
+  "errores_validacion": [],
+  "excepciones": [],
+  "vinculo_traspaso": "traspaso.md"
 }
 ```
 
-!!! warning "Honest status"
-    A forced failure with `--allow-fail` is recorded as `passed_with_exceptions`, **never** as `passed`. Without mise, the status is `no_gates`. The audit is not glossed over.
+Timestamps are UTC and ordered. SHA-256 hashes bind each executed result to its
+output. Unsafe paths, non-finite numbers, unknown enums, or truncated structures
+make the log entry invalid; Tramalia never guesses a result from Markdown.
 
-## 9. Review the audit trail
+## 8. Canonical transfer and visible projection
+
+The transfer that belongs to a close is
+`.tramalia/evidencia/<id_paquete>/traspaso.md`. It is the only canonical source:
+it contains package and task identity, the already-computed outcome, blockers,
+exceptions, agent, and reviewer, without duplicating raw outputs.
+
+`docs/ai/07-traspaso-agentes.md` is a **projection** of the latest transfer. It
+contains a relative link to the canonical file, is replaced atomically, and is
+best-effort. A permission or write problem under `docs/ai/` does not modify the
+package or turn a valid close into a failure.
+
+The public command keeps its historical name for compatibility:
+
+```bash
+tramalia handoff TASK-001
+```
+
+Documentation and generated files describe the concept as **traspaso**
+(*transfer*).
+
+## 9. Read the audit log
 
 | CLI | TUI |
 |---|---|
-| `tramalia log` | **Audit** tab: browsable table — Enter on a close shows its full `metadata.json` |
+| `tramalia log` | **Audit** tab |
 
-```bash
-tramalia log
-```
+The audit log reads only `.tramalia/evidencia/*/metadatos.json`, sorts by
+descending `id_paquete`, and ignores staging directories. It does not rebuild
+states from historical documents.
 
 ```text
-i audit trail — 3 closes (newest first):
-✓ 2026-06-30-1015-TASK-001  ·  ✓ passed  ·  codex
-⚠ 2026-06-29-1740-TASK-000  ·  ⚠ with exceptions (forced)  ·  claude
-○ 2026-06-28-0930-SETUP     ·  ○ no gates
+✓ 20260713T183012.123456Z-a1b2c3d4 · aprobado · TASK-001 · codex
+⚠ 20260713T170200.654321Z-b2c3d4e5 · aprobado_con_excepciones · TASK-000
+✗ paquete-corrupto · invalida · formal data could not be read
 ```
 
-**Audit only reads, Close only writes** — they're the two halves of the same cycle: every `close` leaves an evidence pack, and `log`/the Audit tab is how you **come back** to that work later — to review what was done, with which agent/model, and whether it passed clean or with an exception. Full detail, including the comparison table: [The interface (TUI) → Audit vs. Close](interfaz.md#audit-vs-close-two-different-things).
+A corrupt package appears as `invalida` without preventing other entries from
+being read. Its safe error message does not expose output content or sensitive
+paths.
 
-## Re-planning tasks (short · medium · long term)
+## 10. Re-plan and maintain
 
-`specs/tasks.md` is versioned Markdown: **re-planning is editing it**, anytime and via three paths:
-
-- **You by hand** — change scope, order or horizon of any future task.
-- **The AI** — ask the `planificador` subagent: *"re-plan tasks 5-10 considering X"* and it edits the file (its role, skill 01).
-- **A specific one** — *"adjust only TASK-007"*.
-
-Each task carries `Estado` (pending · in-progress · closed) and `Horizonte` (now · next · later). The rule that makes it safe: **closed tasks are immutable through evidence** — their close lives in `.tramalia/evidence/` + `log`, so editing the future plan never rewrites history.
-
-This full workflow — plan, divide into tasks/horizons, verify with gates, and close, all on top of `AGENTS.md` — is the practical application of the [4 pillars of governance](como-trabaja-ia.md#the-4-pillars-of-governance) (plan · divide · verify · rules).
-
-## 10. Maintenance
-
-Two different commands for two different things — they don't overlap:
-
-| Command | What it updates |
-|---|---|
-| `tramalia update` | the **orchestrated tools**: `mise upgrade` (build/test/lint versions…) + syncs declared external skills |
-| `tramalia upgrade` | **the repo itself**: adds the new convention files your Tramalia version didn't have (after `pip install -U tramalia-cli`), without overwriting anything existing |
+`specs/tasks.md` remains the versioned plan: future tasks may be edited freely,
+while a past close remains immutable in its package. To maintain the environment:
 
 ```bash
-pip install -U tramalia-cli   # 1. update the CLI
-tramalia upgrade               # 2. bring your repo's CONVENTION up to date
-tramalia update                 # 3. bring the orchestrated TOOLS up to date
+pip install -U tramalia-cli
+tramalia upgrade
+tramalia update
 ```
 
-Detail on `upgrade`: [Commands → upgrade](comandos.md#upgrade-update-an-already-initialized-repo).
+- `upgrade` adds new convention files without overwriting existing ones.
+- `update` updates orchestrated tools and declared skills.
+- PyPI distributes the package, GitHub Pages publishes the documentation, and
+  GitHub releases record versions. They are separate channels and must be
+  verified separately.
 
-## Standalone vs. with tools
-
-The **core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`) works **with Python only**. If `mise` and the rest aren't present, Tramalia still governs and records the absences as **documented exceptions**. You can work **with Tramalia alone** or **combine it** with Gentle-AI, Engram, Headroom and the rest of the [ecosystem](ecosistema.md).
+The core (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`) can run with
+Python. Gates and integrations add capabilities, but never change the central
+principle: a result is approved only when sufficient formal evidence exists.

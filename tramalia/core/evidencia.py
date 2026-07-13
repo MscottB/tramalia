@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -19,9 +20,14 @@ from tramalia.core.errores import (
     ErrorPersistenciaEvidencia,
 )
 from tramalia.core.modelos import (
+    EntradaBitacora,
     EstadoGit,
     MetadatosPaqueteEvidencia,
     PaqueteEvidencia,
+    ValorEstadoBitacora,
+    ValorEstadoCierre,
+    ValorEstadoPuertas,
+    ValorResultadoPuerta,
 )
 
 _ID_SEGURO = re.compile(r"^[A-Za-z0-9._-]{1,64}$", re.ASCII)
@@ -219,6 +225,27 @@ def _rechazar_campo_comando(nombre: object, campo: str) -> None:
     )
 
 
+def _archivo_salida_es_seguro(valor: object) -> bool:
+    if not isinstance(valor, str):
+        return False
+    nombre_base_windows = valor.split(".", 1)[0].upper()
+    return bool(
+        _ARCHIVO_SALIDA_SEGURO.fullmatch(valor)
+        and ".." not in valor
+        and not valor.endswith(".")
+        and nombre_base_windows not in _RESERVADOS_WINDOWS
+    )
+
+
+def _numero_finito_no_negativo(valor: object) -> bool:
+    if isinstance(valor, bool) or not isinstance(valor, (int, float)):
+        return False
+    try:
+        return math.isfinite(valor) and valor >= 0
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
 def _validar_resultado_comando(resultado: object) -> None:
     """Validate persisted command fields without exposing their raw output."""
     nombre = getattr(resultado, "nombre", None)
@@ -234,12 +261,7 @@ def _validar_resultado_comando(resultado: object) -> None:
         _rechazar_campo_comando(nombre, "comando")
 
     duracion = getattr(resultado, "duracion_segundos", None)
-    if (
-        isinstance(duracion, bool)
-        or not isinstance(duracion, (int, float))
-        or not math.isfinite(duracion)
-        or duracion < 0
-    ):
+    if not _numero_finito_no_negativo(duracion):
         _rechazar_campo_comando(nombre, "duracion_segundos")
 
     codigo_salida = getattr(resultado, "codigo_salida", None)
@@ -253,16 +275,7 @@ def _validar_resultado_comando(resultado: object) -> None:
         _rechazar_campo_comando(nombre, "hash_salida")
 
     archivo_salida = getattr(resultado, "archivo_salida", None)
-    nombre_base_windows = (
-        archivo_salida.split(".", 1)[0].upper() if isinstance(archivo_salida, str) else ""
-    )
-    if (
-        not isinstance(archivo_salida, str)
-        or not _ARCHIVO_SALIDA_SEGURO.fullmatch(archivo_salida)
-        or ".." in archivo_salida
-        or archivo_salida.endswith(".")
-        or nombre_base_windows in _RESERVADOS_WINDOWS
-    ):
+    if not _archivo_salida_es_seguro(archivo_salida):
         _rechazar_campo_comando(nombre, "archivo_salida")
 
 
@@ -609,3 +622,386 @@ def publicar_paquete(
             final,
             detalles={"tipo_error": type(error).__name__},
         ) from error
+
+
+_CLAVES_METADATOS_V1 = frozenset(
+    {
+        "version_esquema",
+        "id_paquete",
+        "id_tarea",
+        "operacion",
+        "inicio_utc",
+        "fin_utc",
+        "entorno",
+        "git",
+        "comandos",
+        "puertas",
+        "estado_cierre",
+        "agente",
+        "modelo",
+        "metricas",
+        "umbrales",
+        "errores_validacion",
+        "excepciones",
+        "vinculo_traspaso",
+    }
+)
+
+
+def _exigir_objeto(valor: object, nombre: str) -> Mapping[str, object]:
+    if not isinstance(valor, Mapping) or any(not isinstance(clave, str) for clave in valor):
+        raise ValueError(f"{nombre} debe ser un objeto")
+    return valor
+
+
+def _exigir_lista_textos(valor: object, nombre: str) -> list[str]:
+    if not isinstance(valor, list) or any(not isinstance(elemento, str) for elemento in valor):
+        raise ValueError(f"{nombre} debe ser una lista de textos")
+    return valor
+
+
+def _validar_json_finito(valor: object, nombre: str) -> None:
+    if isinstance(valor, float) and not math.isfinite(valor):
+        raise ValueError(f"{nombre} debe contener valores finitos")
+    if isinstance(valor, Mapping):
+        for clave, elemento in valor.items():
+            if not isinstance(clave, str):
+                raise ValueError(f"{nombre} contiene una clave no textual")
+            _validar_json_finito(elemento, f"{nombre}.{clave}")
+    elif isinstance(valor, list):
+        for indice, elemento in enumerate(valor):
+            _validar_json_finito(elemento, f"{nombre}[{indice}]")
+    elif not isinstance(valor, (str, int, float, bool, type(None))):
+        raise ValueError(f"{nombre} contiene un valor no JSON")
+
+
+def _instante_desde_json(valor: object, nombre: str) -> datetime:
+    if not isinstance(valor, str):
+        raise ValueError(f"{nombre} debe ser un timestamp UTC")
+    try:
+        instante = datetime.fromisoformat(valor)
+        desfase = instante.utcoffset()
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{nombre} debe ser un timestamp UTC") from error
+    if desfase is None or desfase.total_seconds() != 0:
+        raise ValueError(f"{nombre} debe ser un timestamp UTC")
+    return instante.astimezone(UTC)
+
+
+def _validar_metadatos_bitacora(
+    datos_crudos: object,
+    id_directorio: str,
+) -> Mapping[str, object]:
+    datos = _exigir_objeto(datos_crudos, "metadatos.json")
+    _validar_json_finito(datos, "metadatos")
+    faltantes = sorted(_CLAVES_METADATOS_V1 - set(datos))
+    if faltantes:
+        raise ValueError(f"faltan claves formales: {', '.join(faltantes)}")
+    if type(datos["version_esquema"]) is not int or datos["version_esquema"] != 1:
+        raise ValueError("version_esquema no soportada")
+
+    id_paquete = datos["id_paquete"]
+    if not isinstance(id_paquete, str) or not _ID_PAQUETE.fullmatch(id_paquete):
+        raise ValueError("id_paquete no cumple el formato formal")
+    if id_paquete != id_directorio:
+        raise ValueError("id_paquete no coincide con el directorio")
+    id_tarea = datos["id_tarea"]
+    try:
+        validar_id_tarea(id_tarea)  # type: ignore[arg-type]
+    except ErrorIdentificadorInseguro as error:
+        raise ValueError("id_tarea no es seguro") from error
+
+    operacion = datos["operacion"]
+    if not isinstance(operacion, str) or operacion not in {
+        "cierre",
+        "evidencia",
+        "traspaso",
+    }:
+        raise ValueError("operacion no soportada")
+    inicio = _instante_desde_json(datos["inicio_utc"], "inicio_utc")
+    fin = _instante_desde_json(datos["fin_utc"], "fin_utc")
+    if fin < inicio:
+        raise ValueError("fin_utc precede a inicio_utc")
+
+    estado_cierre = datos["estado_cierre"]
+    if not isinstance(estado_cierre, str):
+        raise ValueError("estado_cierre invalido")
+    try:
+        ValorEstadoCierre(estado_cierre)
+    except (TypeError, ValueError) as error:
+        raise ValueError("estado_cierre invalido") from error
+
+    entorno = _exigir_objeto(datos["entorno"], "entorno")
+    claves_entorno = {"tramalia", "python", "sistema_operativo", "cadena_herramientas"}
+    if not claves_entorno <= set(entorno):
+        raise ValueError("estructura entorno incompleta")
+    for nombre in ("tramalia", "python", "sistema_operativo"):
+        valor_entorno = entorno[nombre]
+        if not isinstance(valor_entorno, str) or not valor_entorno.strip():
+            raise ValueError(f"entorno.{nombre} debe ser texto no vacio")
+    herramientas = _exigir_objeto(
+        entorno["cadena_herramientas"],
+        "entorno.cadena_herramientas",
+    )
+    if any(valor is not None and not isinstance(valor, str) for valor in herramientas.values()):
+        raise ValueError("entorno.cadena_herramientas invalida")
+
+    git = _exigir_objeto(datos["git"], "git")
+    claves_git = {
+        "commit",
+        "rama",
+        "limpio",
+        "base_comparacion",
+        "rastreados",
+        "preparados",
+        "no_rastreados",
+        "renombrados",
+        "eliminados",
+    }
+    if not claves_git <= set(git):
+        raise ValueError("estructura git incompleta")
+    for nombre in ("commit", "rama", "base_comparacion"):
+        if git[nombre] is not None and not isinstance(git[nombre], str):
+            raise ValueError(f"git.{nombre} debe ser texto o nulo")
+    if git["limpio"] is not None and not isinstance(git["limpio"], bool):
+        raise ValueError("git.limpio debe ser booleano o nulo")
+    for nombre in ("rastreados", "preparados", "no_rastreados", "renombrados", "eliminados"):
+        _exigir_lista_textos(git[nombre], f"git.{nombre}")
+
+    puertas = _exigir_objeto(datos["puertas"], "puertas")
+    claves_puertas = {
+        "estado",
+        "descubiertas",
+        "ejecutadas",
+        "omitidas",
+        "fallidas",
+        "errores_validacion",
+    }
+    if not claves_puertas <= set(puertas):
+        raise ValueError("estructura puertas incompleta")
+    estado_puertas = puertas["estado"]
+    if not isinstance(estado_puertas, str):
+        raise ValueError("puertas.estado invalido")
+    try:
+        ValorEstadoPuertas(estado_puertas)
+    except (TypeError, ValueError) as error:
+        raise ValueError("puertas.estado invalido") from error
+    for nombre in ("descubiertas", "ejecutadas", "omitidas", "fallidas", "errores_validacion"):
+        _exigir_lista_textos(puertas[nombre], f"puertas.{nombre}")
+
+    for nombre in ("metricas", "umbrales"):
+        _exigir_objeto(datos[nombre], nombre)
+    _exigir_lista_textos(datos["errores_validacion"], "errores_validacion")
+
+    comandos = datos["comandos"]
+    if not isinstance(comandos, list):
+        raise ValueError("comandos debe ser una lista")
+    claves_comando = {
+        "nombre",
+        "comando",
+        "estado",
+        "inicio_utc",
+        "fin_utc",
+        "duracion_segundos",
+        "codigo_salida",
+        "hash_salida",
+        "archivo_salida",
+    }
+    for indice, comando_crudo in enumerate(comandos):
+        comando = _exigir_objeto(comando_crudo, f"comandos[{indice}]")
+        if not claves_comando <= set(comando):
+            raise ValueError(f"comandos[{indice}] incompleto")
+        if not isinstance(comando["nombre"], str) or not comando["nombre"].strip():
+            raise ValueError(f"comandos[{indice}].nombre invalido")
+        argumentos = _exigir_lista_textos(comando["comando"], f"comandos[{indice}].comando")
+        if not argumentos or any(not argumento for argumento in argumentos):
+            raise ValueError(f"comandos[{indice}].comando no puede estar vacio")
+        estado_comando = comando["estado"]
+        if not isinstance(estado_comando, str):
+            raise ValueError(f"comandos[{indice}].estado invalido")
+        try:
+            ValorResultadoPuerta(estado_comando)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"comandos[{indice}].estado invalido") from error
+        inicio_comando = _instante_desde_json(
+            comando["inicio_utc"],
+            f"comandos[{indice}].inicio_utc",
+        )
+        fin_comando = _instante_desde_json(
+            comando["fin_utc"],
+            f"comandos[{indice}].fin_utc",
+        )
+        if inicio_comando < inicio or fin_comando > fin or fin_comando < inicio_comando:
+            raise ValueError(f"comandos[{indice}] queda fuera del intervalo")
+        duracion = comando["duracion_segundos"]
+        if not _numero_finito_no_negativo(duracion):
+            raise ValueError(f"comandos[{indice}].duracion_segundos invalida")
+        codigo = comando["codigo_salida"]
+        if codigo is not None and (isinstance(codigo, bool) or not isinstance(codigo, int)):
+            raise ValueError(f"comandos[{indice}].codigo_salida invalido")
+        hash_salida = comando["hash_salida"]
+        if not isinstance(hash_salida, str) or not _HASH_SHA256.fullmatch(hash_salida):
+            raise ValueError(f"comandos[{indice}].hash_salida invalido")
+        if not _archivo_salida_es_seguro(comando["archivo_salida"]):
+            raise ValueError(f"comandos[{indice}].archivo_salida invalido")
+
+    excepciones = datos["excepciones"]
+    if not isinstance(excepciones, list):
+        raise ValueError("excepciones debe ser una lista")
+    claves_excepcion = {
+        "razon",
+        "riesgo_aceptado",
+        "control_afectado",
+        "referencia",
+        "revisor",
+        "expira_en",
+        "condicion_remediacion",
+    }
+    for indice, excepcion_cruda in enumerate(excepciones):
+        excepcion = _exigir_objeto(excepcion_cruda, f"excepciones[{indice}]")
+        if not claves_excepcion <= set(excepcion):
+            raise ValueError(f"excepciones[{indice}] incompleta")
+        for nombre in ("razon", "riesgo_aceptado", "control_afectado", "referencia", "revisor"):
+            valor_excepcion = excepcion[nombre]
+            if not isinstance(valor_excepcion, str) or not valor_excepcion.strip():
+                raise ValueError(f"excepciones[{indice}].{nombre} invalido")
+        expiracion = excepcion["expira_en"]
+        condicion = excepcion["condicion_remediacion"]
+        if expiracion is not None:
+            _instante_desde_json(expiracion, f"excepciones[{indice}].expira_en")
+        if condicion is not None and not isinstance(condicion, str):
+            raise ValueError(f"excepciones[{indice}].condicion_remediacion invalida")
+        if expiracion is None and not (isinstance(condicion, str) and condicion.strip()):
+            raise ValueError(f"excepciones[{indice}] no tiene vigencia ni remediacion")
+
+    if datos["vinculo_traspaso"] != "traspaso.md":
+        raise ValueError("vinculo_traspaso no es canonico")
+    for nombre in ("agente", "modelo"):
+        if datos[nombre] is not None and not isinstance(datos[nombre], str):
+            raise ValueError(f"{nombre} debe ser texto o nulo")
+    return datos
+
+
+def _validar_archivos_paquete(ruta: Path, datos: Mapping[str, object]) -> None:
+    ruta_resuelta = ruta.resolve(strict=True)
+    traspaso = ruta / "traspaso.md"
+    if (
+        not traspaso.is_file()
+        or traspaso.is_symlink()
+        or traspaso.resolve(strict=True).parent != ruta_resuelta
+    ):
+        raise ValueError("falta traspaso.md canonico")
+
+    comandos = datos["comandos"]
+    if not isinstance(comandos, list):
+        raise ValueError("comandos debe ser una lista")
+    for indice, comando_crudo in enumerate(comandos):
+        comando = _exigir_objeto(comando_crudo, f"comandos[{indice}]")
+        nombre = comando["archivo_salida"]
+        if not isinstance(nombre, str):
+            raise ValueError(f"archivo de salida {indice} invalido")
+        salida = ruta / nombre
+        if (
+            not salida.is_file()
+            or salida.is_symlink()
+            or salida.resolve(strict=True).parent != ruta_resuelta
+        ):
+            raise ValueError(f"archivo de salida {indice} ausente o inseguro")
+        resumen = hashlib.sha256()
+        with salida.open("rb") as archivo:
+            for bloque in iter(lambda: archivo.read(1024 * 1024), b""):
+                resumen.update(bloque)
+        if resumen.hexdigest() != comando["hash_salida"]:
+            raise ValueError(f"archivo de salida {indice} no coincide con su hash")
+
+
+def _objeto_sin_claves_duplicadas(pares: list[tuple[str, object]]) -> dict[str, object]:
+    resultado: dict[str, object] = {}
+    for clave, valor in pares:
+        if clave in resultado:
+            raise ValueError("metadatos.json contiene claves duplicadas")
+        resultado[clave] = valor
+    return resultado
+
+
+def _entrada_invalida(ruta: Path, error: str) -> EntradaBitacora:
+    return EntradaBitacora(
+        id_paquete=ruta.name,
+        ruta=ruta,
+        estado=ValorEstadoBitacora.INVALIDA,
+        id_tarea=None,
+        resultado=None,
+        agente=None,
+        modelo=None,
+        cerrado_utc=None,
+        error=error,
+    )
+
+
+def leer_bitacora(raiz: Path) -> list[EntradaBitacora]:
+    """Read formal v1 packages without inferring state from legacy Markdown.
+
+    Args:
+        raiz: Project root whose immutable evidence packages will be inspected.
+
+    Returns:
+        Valid and explicitly invalid entries, ordered by package ID descending.
+    """
+    try:
+        raiz_resuelta = raiz.resolve(strict=False)
+        base = raiz_resuelta / ".tramalia" / "evidencia"
+        if not base.is_dir() or base.is_symlink() or base.resolve(strict=True) != base:
+            return []
+        rutas = sorted(
+            (
+                ruta
+                for ruta in base.iterdir()
+                if not ruta.name.startswith(".tmp-") and (ruta.is_dir() or ruta.is_symlink())
+            ),
+            key=lambda ruta: ruta.name,
+            reverse=True,
+        )
+    except (OSError, RuntimeError, ValueError):
+        return []
+
+    entradas: list[EntradaBitacora] = []
+    for ruta in rutas:
+        try:
+            ruta_fuera_de_base = ruta.resolve(strict=True).parent != base
+        except (OSError, RuntimeError, ValueError):
+            ruta_fuera_de_base = True
+        if ruta.is_symlink() or ruta_fuera_de_base:
+            entradas.append(_entrada_invalida(ruta, "el directorio del paquete es un symlink"))
+            continue
+        try:
+            ruta_metadatos = ruta / "metadatos.json"
+            if ruta_metadatos.is_symlink():
+                raise ValueError("metadatos.json no puede ser un symlink")
+            texto = ruta_metadatos.read_text(encoding="utf-8")
+            datos_crudos = json.loads(texto, object_pairs_hook=_objeto_sin_claves_duplicadas)
+            datos = _validar_metadatos_bitacora(datos_crudos, ruta.name)
+            _validar_archivos_paquete(ruta, datos)
+            agente = datos["agente"] if isinstance(datos["agente"], str) else None
+            modelo = datos["modelo"] if isinstance(datos["modelo"], str) else None
+            entradas.append(
+                EntradaBitacora(
+                    id_paquete=ruta.name,
+                    ruta=ruta,
+                    estado=ValorEstadoBitacora.VALIDA,
+                    id_tarea=str(datos["id_tarea"]),
+                    resultado=ValorEstadoCierre(str(datos["estado_cierre"])),
+                    agente=agente,
+                    modelo=modelo,
+                    cerrado_utc=_instante_desde_json(datos["fin_utc"], "fin_utc"),
+                    error=None,
+                )
+            )
+        except json.JSONDecodeError:
+            entradas.append(_entrada_invalida(ruta, "metadatos.json no es JSON valido"))
+        except ValueError as error:
+            entradas.append(_entrada_invalida(ruta, str(error)))
+        except (OSError, UnicodeError) as error:
+            entradas.append(_entrada_invalida(ruta, f"lectura fallida: {type(error).__name__}"))
+        except Exception as error:
+            entradas.append(_entrada_invalida(ruta, f"validacion fallida: {type(error).__name__}"))
+    return entradas

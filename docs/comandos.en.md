@@ -1,119 +1,238 @@
 # Command reference
 
-The **governance core** (`init`, `doctor`, `close`, `log`, `evidence`, `handoff`) is own logic and works **standalone, with Python only**. The rest does a transparent *shell-out* to external tools (optional interop) and shows their output without hiding errors.
+Public command names such as `close`, `evidence`, and `handoff` remain available
+for compatibility. Documentation, domain models, and the v1 schema use the
+Spanish concepts **cierre**, **evidencia**, and **traspaso**, the filename
+`metadatos.json`, and stable Spanish ASCII state values.
 
-| Command | What it does | Type |
+The governance core runs with Python. Integrations transparently invoke external
+tools and return explicit states; they never hide errors or turn an unavailable
+capability into approval.
+
+## Summary
+
+| Command | Purpose | Type |
 |---|---|---|
-| `tramalia menu` | **looping** interactive menu with guided prompts | core |
-| `tramalia ui` | **TUI dashboard** (Overview · Audit · Close) | core (+ `[tui]` extra) |
-| `tramalia init [--with-headroom --with-ponytail]` | generate the full convention (idempotent) | core |
-| `tramalia doctor [--fix]` | diagnose tools and how to install them | core |
-| `tramalia detect` | detect the stack and applicable gates | core |
-| **`tramalia close [TASK]`** | **closing ritual: gates → evidence → handoff (enforcement)** | **core ★** |
-| **`tramalia log`** | **audit trail of closes** | **core ★** |
-| `tramalia evidence [TASK]` | create the closing evidence pack | core |
-| `tramalia handoff [TASK]` | multi-agent handoff | core |
-| `tramalia gates` | run the quality gates | interop (mise) |
-| `tramalia context [build\|list\|set <backend>]` | generate derived memory; view or set the active navigation backend | interop (repomix + stdlib) |
-| `tramalia agents [list\|cap <level>]` | view or set the subagents' model cap | core |
-| `tramalia sync [--to --features]` | propagate AGENTS.md **and subagents** to other agents | interop (rulesync) |
-| `tramalia skills [sync [<n>]\|list\|outdated\|enable\|disable\|add]` | manage skills: catalog with states and version, update one or all, see which are outdated | interop (git) |
-| `tramalia update` | update everything | interop (mise + copier + skills) |
-| `tramalia mcp` | start the MCP façade | core (+ mcp SDK) |
+| `tramalia menu` | looping interactive menu | core |
+| `tramalia ui` | overview, skills, audit, and close TUI | core + `[tui]` extra |
+| `tramalia init` | generate the convention idempotently | core |
+| `tramalia upgrade` | add new convention files without overwriting | core |
+| `tramalia doctor [--fix]` | diagnose or install selected tools | core |
+| `tramalia detect` | detect the stack and applicable quality gates | core |
+| **`tramalia close [TASK]`** | **evaluate gates and publish a formal close** | **core** |
+| **`tramalia log`** | **read the structured v1 audit log** | **core** |
+| `tramalia evidence [TASK]` | create an evidence package | core |
+| `tramalia handoff [TASK]` | record a transfer; compatible public alias | core |
+| `tramalia gates` | run quality gates directly | `mise` integration |
+| `tramalia context [build\|list\|set <backend>]` | build context and select its backend | integration |
+| `tramalia agents [list\|cap <level>]` | inspect or cap subagent models | core |
+| `tramalia sync [--to --features]` | propagate compatible rules and subagents | `rulesync` integration |
+| `tramalia skills [sync [<n>]\|list\|outdated\|enable\|disable\|add]` | manage the skill catalog | Git integration |
+| `tramalia update` | update orchestrated tools and skills | integration |
+| `tramalia mcp` | start the MCP façade | core + MCP SDK |
 
-## close — the governance ritual
+## close — governed close
 
-The flagship command. In one step: it runs each gate (`mise run <gate>`), **writes their output into the evidence pack**, generates the handoff, and **blocks the close if a gate fails** (unless you pass `--allow-fail` with the exception noted in `risks.md`).
-
-**Simple form — the everyday close is two words:**
+A **quality gate** is an automated command that verifies a required condition:
+build, tests, lint, security, database, UX, or another domain check. `close`
+discovers gates declared in `mise.toml`, executes their exact commands, and
+records results and outputs.
 
 ```bash
-tramalia close              # task from .tramalia/current-task.md; agents from config.json
-tramalia close TASK-001     # explicit task (positional)
+tramalia close              # current task; agent/reviewer from config.json
+tramalia close TASK-001     # explicit safe ID
 ```
 
-**Resolution chain** (each value is looked up in order):
+Resolution chain:
 
-| Value | 1st | 2nd | 3rd | 4th |
+| Value | 1st | 2nd | 3rd | Final fallback |
 |---|---|---|---|---|
-| task | positional | `--task` | ID in `.tramalia/current-task.md` | prompt if interactive; `TASK-000` in scripts |
-| agent | `--agent` | `config.json → agents.primary` | — | — |
-| reviewer | `--reviewer` | `config.json → agents.reviewer` | — | — |
+| task | positional argument | `--task` | `.tramalia/current-task.md` | interactive prompt or `TASK-000` in scripts |
+| agent | `--agent` | `config.json → agents.primary` | — | empty value |
+| reviewer | `--reviewer` | `config.json → agents.reviewer` | — | empty value |
+| model | `--model` | — | — | `null` in formal data |
 
-Advanced flags (overrides): `--task · --agent · --reviewer · --model · --allow-fail · --engram`.
+Declared identity is audit information, not a signature. `close` does not invoke
+the named agent: it runs gates, evaluates policy, and persists the same result
+consumed by the CLI, TUI, and MCP surfaces.
 
-It works **standalone**: if `mise` is missing, it does not invent a result — it records in the pack that the gates did not run as a **documented exception**, and still leaves evidence + handoff.
+### Formal states
 
-Each close writes **`metadata.json`** (task, agent, reviewer, timestamps, exit codes and an honest `status`: `passed` / `blocked` / `passed_with_exceptions` / `no_gates`). The raw `*-output.txt` files are the official evidence; no derived artifact (e.g. Headroom compression) may replace them.
+Aggregate gate states are:
 
-**Domain metrics (ML/analytics):** if `.tramalia/metrics.json` exists, `close` copies it raw into the pack and embeds it in `metadata.json`; if `.tramalia/thresholds.json` is also present, a violated threshold **blocks the close** like a failed gate. See [Analytics](analitica.md#metrics-and-thresholds-in-the-evidence-mlanalytics).
+- `aprobado`
+- `fallido`
+- `ejecutor_no_disponible`
+- `sin_configurar`
+- `configuracion_invalida`
+- `error_ejecucion`
 
-## log — the audit trail
+The close is limited to `aprobado`, `aprobado_con_excepciones`, or `bloqueado`.
+In particular, missing `mise` produces `ejecutor_no_disponible` and blocks the
+close; skipping gate execution never implies approval.
 
-Reads each close's `metadata.json` and lists the closes (newest first) with their `status` and agent. It's the verifiable history of agentic work on the repo.
+### Exceptions
+
+A complete exception declares a reason, accepted risk, affected control,
+reference, reviewer, and either expiry or remediation condition. Each exception
+covers only its named control; any uncovered failure keeps the close `bloqueado`.
+
+`--allow-fail` remains a compatibility alias, but it cannot accept an empty
+exception or automatically turn failure into success. When every failure is
+covered by a complete and current exception, the result is
+`aprobado_con_excepciones`.
+
+### Persisted result
+
+The package is atomically published under a unique identity:
+
+```text
+.tramalia/evidencia/20260713T183012.123456Z-a1b2c3d4/
+├── metadatos.json
+├── traspaso.md
+├── build-salida.txt
+└── test-salida.txt
+```
+
+The v1 `metadatos.json` contract includes these stable keys:
+
+```json
+{
+  "version_esquema": 1,
+  "id_paquete": "20260713T183012.123456Z-a1b2c3d4",
+  "id_tarea": "TASK-001",
+  "operacion": "cierre",
+  "inicio_utc": "2026-07-13T18:30:12.123456Z",
+  "fin_utc": "2026-07-13T18:30:18.123456Z",
+  "entorno": {"tramalia": "0.34.0b1", "python": "3.13.5", "sistema_operativo": "Windows-11", "cadena_herramientas": {}},
+  "git": {"commit": null, "rama": null, "limpio": null, "base_comparacion": null, "rastreados": [], "preparados": [], "no_rastreados": [], "renombrados": [], "eliminados": []},
+  "comandos": [],
+  "puertas": {"estado": "sin_configurar", "descubiertas": [], "ejecutadas": [], "omitidas": [], "fallidas": [], "errores_validacion": []},
+  "estado_cierre": "bloqueado",
+  "agente": "codex",
+  "modelo": null,
+  "metricas": {},
+  "umbrales": {},
+  "errores_validacion": [],
+  "excepciones": [],
+  "vinculo_traspaso": "traspaso.md"
+}
+```
+
+Raw outputs stay outside JSON and are bound from each command with
+`archivo_salida` and `hash_salida`. Timestamps are UTC; unsafe paths, invalid
+hashes, and non-finite numbers are rejected before publication.
+
+### Metrics and thresholds
+
+When `.tramalia/metrics.json` exists, its values are included under `metricas`.
+When `.tramalia/thresholds.json` also exists, limits are recorded under
+`umbrales`. A missing or out-of-range metric blocks like a failed gate. Invalid
+JSON or an invalid schema is a configuration error and never publishes false
+approval.
+
+## log — structured audit log
+
+```bash
+tramalia log
+```
+
+It reads only `.tramalia/evidencia/*/metadatos.json`, ignores staging
+directories, and sorts packages by descending ID. It validates the full schema,
+directory identity, timestamps, enums, commands, hashes, output files,
+exceptions, and `vinculo_traspaso`.
+
+A correct package is `valida`. A corrupt package is `invalida` with a safe
+error, and does not prevent other entries from being listed. `log` never infers
+an outcome from historical Markdown.
+
+## evidence and handoff — evidence and transfer
+
+The command names remain available so existing automation does not break:
+
+```bash
+tramalia evidence TASK-001
+tramalia handoff TASK-001
+```
+
+- `evidence` creates a formal package under
+  `.tramalia/evidencia/<id_paquete>/`.
+- `handoff` records the concept named **traspaso**. Its canonical source is the
+  package's `traspaso.md`.
+- `docs/ai/07-traspaso-agentes.md` is only a projection of the latest transfer,
+  linked with a relative path. Projection failure never changes or invalidates
+  the package.
 
 ## doctor
 
-Classifies requirements and the table comes out **grouped by domain** — base (bootstrap) · stack · **context · memory · security · database · UX/UI · analytics** · convention · agent CLIs — bothering you only with what applies to your project. The status clearly says **installed or not** (`✓ installed` / `○ not installed (optional)` / `✗ not installed (required)`). Install hints are **per operating system** (winget/brew/choco…) and per available manager; it also warns if the uv PATH needs `uv tool update-shell`.
+`tramalia doctor` groups requirements into base, stack, context, memory,
+security, database, UX/UI, analytics, convention, and agent CLI domains. It
+distinguishes installed, missing optional, and missing required tools and gives
+operating-system-specific instructions.
 
-`--fix` builds the automated install plan (best route per tool: winget/brew, `mise use`, `uv tool`, `npm` only with Node), lets you **select one or more** before running, and configures the uv PATH if needed. In the TUI (`i` key), the selector shows **all** missing tools — the automatable ones selectable and the manual ones listed separately. Detail: [Installation](instalacion.md#automated-installation-per-system).
+`tramalia doctor --fix` builds an install plan and lets you select automatable
+tools. Manual steps remain visible separately.
 
-## init
+## init and upgrade
 
-Generates idempotently (never overwrites existing files): a single `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), the **full `docs/ai/` 00–13** (incl. deploy & analytics), **`specs/`** (constitution/specification/plan/tasks/checklist, integrated with `close`), **16 numbered skills** in `.tramalia/skills/` (see [Skills](skills-guia.md)), **5 subagents with model routing** in `.claude/agents/` (see [Integrations → agents](interop-agentes.md)), a stack-tailored `mise.toml`, `.mcp.json` with Serena, and `.tramalia/` (config, current-task, skills.toml).
+`tramalia init` idempotently generates `AGENTS.md`, `CLAUDE.md`, `docs/ai/`,
+`specs/`, subagents, skills, `mise.toml`, `.mcp.json`, and `.tramalia/`. With
+`--adopt`, it integrates the governance block through markers and preserves user
+content.
 
-Opt-in flags: `--with-headroom` (compression) and `--with-ponytail` (the minimalism ruleset's MCP; requires `tramalia skills` + Node).
+After updating the package:
 
-**`--adopt`** — for repos that **already have an agent**: it integrates governance into an existing `AGENTS.md`/`.mcp.json`/`CLAUDE.md` with a non-destructive marker-based merge instead of skipping them. Without `--adopt`, a normal `init` that detects an `AGENTS.md` without governance tells you how. Detail: [Adopting an existing repo](adopcion.md).
+```bash
+pip install -U tramalia-cli
+tramalia upgrade
+```
 
-When it finishes, `init` records the version in `.tramalia/version` and — if it detects other agent CLIs installed — suggests `tramalia sync` to propagate your rules to their formats (see [`sync`](#sync) and [why only `.claude/` is generated](interop-agentes.md#why-init-only-generates-claude)).
+`upgrade` adds missing new files, refreshes the managed `.gitignore` block, and
+records the version. It never overwrites an existing customized document.
 
-## upgrade — update an already-initialized repo
+## ui
 
-When you update Tramalia (`pip install -U tramalia-cli`), your already-generated repos **don't change on their own**. `tramalia upgrade` brings them up to date **without overwriting your work**:
-
-- **Adds** the new files that are missing (skills, `docs/ai/` pages, etc. that your version didn't have) and refreshes the `.gitignore` block.
-- **Doesn't touch** any file that already exists — it never overwrites your edits.
-- Records the version in `.tramalia/version` and reports the balance (`N new, M unchanged`), pointing to the CHANGELOG for template changes you may want to adopt by hand.
-
-It's idempotent: run it after each CLI update. For a 3-way merge of edited content (`copier update` style) it'll lean on copier in the future; for now, template changes to files you edited are reviewed by hand with the CHANGELOG as a guide.
-
-## ui — the TUI dashboard
-
-`tramalia ui` opens a terminal panel (Textual; if missing, `tramalia ui` **offers to install it** right there) with four views: **Overview** (live doctor + applicable gates + context backend), **Skills** (manage own and external), **Audit** (the closes from `log`, browsable; Enter shows the `metadata.json`) and **Close** (task/agent/reviewer form + gates output). It only reads and invokes the core — zero new logic. Full interface guide: [The interface (TUI)](interfaz.md).
+`tramalia ui` opens four views: **Overview**, **Skills**, **Audit**, and
+**Close**. Audit shows the formal log and `metadatos.json`; Close invokes the
+same core and presents its final state. The TUI has no parallel policy engine.
 
 ## agents
 
-`tramalia agents list` shows the 5 subagents with their current model (and each role's default) plus the active cap. `tramalia agents cap <fable\|opus\|sonnet\|haiku\|none>` sets a **cap**: no role uses a model above it; anything below is kept (`inherit` untouched). It's saved in `.tramalia/config.json → agents.model_cap`, applied to the Claude Code frontmatters, and it prints the per-level equivalence for Codex/Antigravity (which Tramalia doesn't configure). Default `none`. Detail and per-host matrix: [Models & effort per host](multi-host.md#model-cap-portable-across-providers).
+`tramalia agents list` shows subagents, models, and the current cap.
+`tramalia agents cap <fable|opus|sonnet|haiku|none>` sets a portable maximum;
+lower roles remain unchanged and `inherit` is preserved.
 
 ## context
 
-`tramalia context` (no argument, or `build`) generates `.tramalia/context/` (project-map, tech-stack) — full snapshot if Repomix is present, stdlib tree otherwise. It also manages the project's **active code-navigation backend**:
+- `tramalia context` or `tramalia context build` generates
+  `.tramalia/context/`.
+- `tramalia context list` compares supported backends.
+- `tramalia context set <backend>` stores one active backend in project
+  configuration.
 
-- **`tramalia context list`** — the 4 options competing for that role (Serena, CodeGraph, codebase-memory-mcp, Graphify) with their scope, ideal use case, which is installed and which is active.
-- **`tramalia context set <backend>`** — sets it in `.tramalia/config.json → context.backend` (default `serena`); also lands in `tools.json` so agents can read it.
+Context is derived, regenerable memory. It does not replace formal evidence or
+participate in close policy.
 
-Why it matters: with several installed, an agent alternating between them task to task leaves the indexes inconsistent. See [Context & code intelligence](interop-contexto.md#with-several-installed-which-does-the-agent-use-contextbackend).
+## sync, skills, and update
 
-## evidence and handoff
+- `sync` propagates `AGENTS.md` and compatible formats through `rulesync`.
+- `skills` manages skill sources, versions, activation, and updates.
+- `update` updates orchestrated tools and skills; it neither installs a new PyPI
+  package version nor publishes documentation.
 
-Tramalia's two own pieces for traceability:
+## mcp — level-1 façade
 
-- **`evidence`** creates `.tramalia/evidence/<date>-<task>/` with `summary`, `files-changed` (reads `git diff`), `commands`, each gate's output, `risks`, `rollback` and `next-steps`.
-- **`handoff`** appends a structured entry to `docs/ai/07-handoff-agentes.md`.
-
-## sync
-
-`rulesync convert --from agentsmd --to copilot,cursor,cline --features rules`. It excludes Claude/Codex (they already read `AGENTS.md` natively). Configurable with `--to`.
-
-## mcp — the façade (level 1)
-
-Exposes the convention as native MCP tools: `project_status`, `get_agent_rules`, `get_failed_attempts`, `get_current_task`, `doctor`, `record_handoff`, `build_evidence`, `build_context`. Wire it in `.mcp.json`:
+`tramalia mcp` exposes tools such as `project_status`, `get_agent_rules`,
+`get_failed_attempts`, `get_current_task`, `doctor`, `record_handoff`,
+`build_evidence`, and `build_context`:
 
 ```json
 {
   "mcpServers": {
-    "tramalia": { "command": "tramalia", "args": ["mcp"] }
+    "tramalia": {"command": "tramalia", "args": ["mcp"]}
   }
 }
 ```
+
+`record_handoff` keeps its interoperable name but records a canonical transfer
+and projects `docs/ai/07-traspaso-agentes.md`.
