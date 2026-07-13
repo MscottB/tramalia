@@ -71,3 +71,14 @@ include = ["tramalia", "tests", "README.md", "Tramalia_Diseno_Consolidado_v0_6.m
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config"]
+timeout = 60
+timeout_method = "thread"
+markers = [
+    "unidad: logica pura y rapida",
+    "contrato: formatos, scaffold y superficies publicas",
+    "integracion: filesystem, Git, procesos y cierre",
+    "interfaz: flujos publicos de Textual",
+    "opcional: requiere extras TUI o MCP",
+    "publicacion: wheel, metadata y smoke de release",
+]

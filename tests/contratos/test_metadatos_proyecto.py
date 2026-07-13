@@ -37,3 +37,17 @@ def test_grupo_desarrollo_contiene_herramientas_obligatorias() -> None:
 
 def test_motor_de_construccion_esta_fijado() -> None:
     assert cargar_proyecto()["build-system"]["requires"] == ["hatchling==1.31.0"]
+
+
+def test_marcadores_de_pruebas_estan_registrados() -> None:
+    configuracion_pytest = cargar_proyecto()["tool"]["pytest"]["ini_options"]
+    marcadores = "\n".join(configuracion_pytest["markers"])
+    for marcador in (
+        "unidad",
+        "contrato",
+        "integracion",
+        "interfaz",
+        "opcional",
+        "publicacion",
+    ):
+        assert f"{marcador}:" in marcadores

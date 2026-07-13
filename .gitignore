@@ -1,5 +1,6 @@
 # entornos y artefactos Python
 .venv/
+.artefactos/
 __pycache__/
 *.py[cod]
 *.egg-info/
