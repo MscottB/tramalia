@@ -184,7 +184,7 @@ tu-proyecto/
 │   ├── 00-resumen · 01-arquitectura · 02-reglas-codigo
 │   ├── 03-reglas-base-datos (gate DB) · 04-reglas-seguridad (gate seguridad)
 │   ├── 05-decisiones-adr · 06-intentos-fallidos · 07-handoff-agentes
-│   └── 08-comandos · 09-quality-gates · 10-contexto-operativo · 11-reglas-ux-ui (gate UX/UI)
+│   └── 08-comandos · 09-puertas-calidad · 10-contexto-operativo · 11-reglas-ux-ui (gate UX/UI)
 ├── specs/                    constitution/specification/plan/tasks/checklist
 │                             (integrada con `close --task`; Spec Kit opcional la potencia)
 └── .tramalia/

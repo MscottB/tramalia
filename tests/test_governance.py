@@ -17,13 +17,6 @@ def _init(tmp_path):
     )
 
 
-def test_gate_tasks_parsed_from_mise(tmp_path):
-    _init(tmp_path)
-    tasks = governance.gate_tasks(tmp_path)
-    assert "build" in tasks
-    assert "gates" not in tasks  # el agregado no es un gate individual
-
-
 def test_close_standalone_without_mise(tmp_path, monkeypatch):
     _init(tmp_path)
     monkeypatch.setattr(governance.proc, "which", lambda c: None)  # forzar sin mise

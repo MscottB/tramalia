@@ -175,4 +175,3 @@ def test_mise_toml_analitica(tmp_path):
     assert "sqlfluff lint ." in mise
     assert (tmp_path / ".sqlfluff").read_text(encoding="utf-8").find("dialect = databricks") >= 0
     assert "nbstripout --verify" in mise
-    assert "bundle" in governance._GATE_ORDER

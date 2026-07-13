@@ -624,7 +624,7 @@ Analítica avanzada: métricas/umbrales en la evidencia + gate de notebooks.
 - **`tramalia init --with-notebook-exec`** agrega un gate `notebooks` que
   **ejecuta** los notebooks (`jupyter execute notebooks/*.ipynb`) — el "build"
   de analítica, más allá de la higiene de `nbstripout --verify`. Opt-in porque
-  requiere datos/entorno; `notebooks` se suma a `_GATE_ORDER`.
+  requiere datos/entorno; `notebooks` se suma al catálogo de puertas.
 
 ### Documentación
 - Analítica (ES/EN) ampliada: ejecución de notebooks, métricas y umbrales;
@@ -891,7 +891,7 @@ Convención completa, nuevas integraciones y dashboard TUI.
 
 ### Convención (init)
 - `docs/ai/` completo **00–11** (se agregan 01-arquitectura, 02-reglas-codigo,
-  05-decisiones-adr, 08-comandos-proyecto, 09-quality-gates, 10-contexto-operativo).
+  05-decisiones-adr, 08-comandos-proyecto, 09-puertas-calidad, 10-contexto-operativo).
 - Carpeta `specs/` generada (constitution, specification, plan, tasks, checklist),
   integrada con el flujo: `tasks.md` ↔ `close --task`, `checklist.md` ↔ evidence pack.
 - **13 skills numeradas** en `.tramalia/skills/` (01-spec-governance … 13-documentation-handoff),

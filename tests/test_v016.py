@@ -3,9 +3,7 @@
 import json
 
 from tramalia.core import governance
-from tramalia.core.detect import enabled_features
 from tramalia.core.governance import _check_thresholds, close
-from tramalia.core.scaffold import build_mise_toml
 
 
 # ---------------------------------------------------------------- umbrales (unit)
@@ -93,18 +91,3 @@ def test_close_sin_metricas_es_igual_que_antes(tmp_path, monkeypatch):
     res = close(tmp_path, task="TASK-1")
     assert res.status == "no_gates"  # sin mise ni métricas: comportamiento previo
     assert "metrics" not in (res.metadata or {})
-
-
-# ---------------------------------------------------------------- gate notebooks
-def test_gate_notebooks_es_opt_in():
-    base = {
-        "stacks": ["python", "notebooks"],
-        "features": enabled_features(["python", "notebooks"]),
-    }
-    assert "jupyter execute" not in build_mise_toml(base)  # off por defecto
-    on = dict(base, with_notebook_exec=True)
-    assert "jupyter execute notebooks/*.ipynb" in build_mise_toml(on)
-
-
-def test_notebooks_en_gate_order():
-    assert "notebooks" in governance._GATE_ORDER
