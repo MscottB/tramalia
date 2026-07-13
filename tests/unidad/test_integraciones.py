@@ -1,3 +1,4 @@
+from tramalia.core import integraciones, procesos
 from tramalia.core.integraciones import (
     AdaptadorCapacidad,
     ejecutar_integracion,
@@ -91,4 +92,72 @@ def test_capacidad_opcional_sin_adaptador_es_no_disponible() -> None:
     )
     assert intento.estado.estado == "no_disponible"
     assert intento.estado.motivo == "capacidad_opcional_no_solicitada"
+    assert intento.proceso is None
+
+
+def test_exportacion_engram_exitosa_conserva_el_proceso_tipado(monkeypatch) -> None:
+    comandos: list[tuple[str, ...]] = []
+    monkeypatch.setattr(procesos, "encontrar", lambda _comando: "engram")
+    monkeypatch.setattr(
+        procesos,
+        "ejecutar",
+        lambda comando: comandos.append(tuple(comando)) or _resultado(0),
+    )
+
+    intento = integraciones.exportar_memoria_engram(
+        "evidence TASK-1",
+        "Paquete formal de TASK-1: paquete-1.",
+    )
+
+    assert comandos == [
+        (
+            "engram",
+            "save",
+            "evidence TASK-1",
+            "Paquete formal de TASK-1: paquete-1.",
+        )
+    ]
+    assert intento.estado.estado == "completo"
+    assert intento.estado.utilizado == "engram"
+    assert intento.proceso is not None and intento.proceso.exitoso
+
+
+def test_exportacion_engram_ausente_no_inicia_un_proceso(monkeypatch) -> None:
+    monkeypatch.setattr(procesos, "encontrar", lambda _comando: None)
+
+    def ejecutar_prohibido(_comando: object) -> ResultadoProceso:
+        raise AssertionError("no se debe ejecutar Engram cuando esta ausente")
+
+    monkeypatch.setattr(procesos, "ejecutar", ejecutar_prohibido)
+
+    intento = integraciones.exportar_memoria_engram("close TASK-2", "cierre durable")
+
+    assert intento.estado.estado == "no_disponible"
+    assert intento.estado.motivo == "adaptador_no_instalado"
+    assert intento.proceso is None
+
+
+def test_exportacion_engram_fallida_no_se_convierte_en_exito(monkeypatch) -> None:
+    monkeypatch.setattr(procesos, "encontrar", lambda _comando: "engram")
+    monkeypatch.setattr(procesos, "ejecutar", lambda _comando: _resultado(9))
+
+    intento = integraciones.exportar_memoria_engram("handoff TASK-3", "traspaso durable")
+
+    assert intento.estado.estado == "fallido"
+    assert intento.estado.motivo == "proceso_salida_no_cero"
+    assert intento.proceso is not None and intento.proceso.codigo_salida == 9
+
+
+def test_exportacion_engram_atrapa_excepcion_del_adaptador(monkeypatch) -> None:
+    monkeypatch.setattr(procesos, "encontrar", lambda _comando: "engram")
+
+    def fallar(_comando: object) -> ResultadoProceso:
+        raise OSError("servicio de memoria no disponible")
+
+    monkeypatch.setattr(procesos, "ejecutar", fallar)
+
+    intento = integraciones.exportar_memoria_engram("close TASK-4", "cierre durable")
+
+    assert intento.estado.estado == "fallido"
+    assert intento.estado.motivo == "excepcion_inesperada"
     assert intento.proceso is None

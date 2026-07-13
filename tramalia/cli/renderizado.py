@@ -7,7 +7,9 @@ from pathlib import Path
 from tramalia.core.doctor import Report
 from tramalia.core.errores import ErrorTramalia
 from tramalia.core.modelos import (
+    EstadoIntegracion,
     ResultadoCierre,
+    ValorEstadoIntegracion,
     ValorResultadoPuerta,
 )
 
@@ -283,6 +285,25 @@ def renderizar_error(error_dominio: ErrorTramalia) -> None:
     informar(error_dominio.sugerencia)
     if error_dominio.ruta is not None:
         informar(f"ruta: {error_dominio.ruta}")
+
+
+def renderizar_exportacion_engram(estado: EstadoIntegracion) -> None:
+    """Muestra el resultado opcional de Engram sin alterar la operacion primaria.
+
+    Args:
+        estado: Resultado tipado producido por la capa de integraciones.
+    """
+    if estado.estado in {
+        ValorEstadoIntegracion.COMPLETO,
+        ValorEstadoIntegracion.DEGRADADO,
+    }:
+        exito("exportado a Engram (memoria persistente N2).")
+    elif estado.estado is ValorEstadoIntegracion.NO_DISPONIBLE:
+        advertir("Engram no está instalado; se omite el export a memoria persistente.")
+    elif estado.motivo == "proceso_salida_no_cero":
+        advertir("Engram rechazó el export; el paquete publicado sigue siendo válido.")
+    else:
+        advertir("no se pudo exportar a Engram; el paquete publicado sigue siendo válido.")
 
 
 def resultado_cierre(resultado: ResultadoCierre) -> None:

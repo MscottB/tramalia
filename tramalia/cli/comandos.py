@@ -10,7 +10,7 @@ from pathlib import Path
 
 from tramalia.cli import menu, renderizado
 from tramalia.core import doctor as doctor_nucleo
-from tramalia.core import habilidades, procesos
+from tramalia.core import habilidades, integraciones, procesos
 from tramalia.core.contexto import construir_contexto
 from tramalia.core.detect import detect_stack as detectar_tecnologias
 from tramalia.core.detect import enabled_features as capacidades_habilitadas
@@ -454,11 +454,29 @@ def construir_excepciones(
     )
 
 
+def _exportar_engram_solicitado(argumentos: object, titulo: str, cuerpo: str) -> None:
+    """Adapta el opt-in de CLI a la capacidad compartida de memoria.
+
+    La funcion se llama exclusivamente despues de que la operacion primaria
+    devolvio su paquete durable. La capa de integraciones normaliza todo fallo y
+    esta capa solo presenta su estado, sin modificar el codigo de salida.
+    """
+    if not bool(getattr(argumentos, "engram", False)):
+        return
+    intento = integraciones.exportar_memoria_engram(titulo, cuerpo)
+    renderizado.renderizar_exportacion_engram(intento.estado)
+
+
 def comando_evidencia(argumentos) -> int:
     raiz = Path.cwd()
     id_tarea, agente, revisor = _resolver(argumentos)
     paquete = crear_evidencia(raiz, id_tarea, agente=agente, revisor=revisor)
     renderizado.exito(f"paquete de evidencia creado: {paquete.ruta.relative_to(raiz)}")
+    _exportar_engram_solicitado(
+        argumentos,
+        f"evidence {id_tarea}",
+        f"Paquete formal de {id_tarea}: {paquete.id_paquete}.",
+    )
     return 0
 
 
@@ -467,6 +485,11 @@ def comando_traspaso(argumentos) -> int:
     id_tarea, agente, revisor = _resolver(argumentos)
     paquete = registrar_traspaso(raiz, id_tarea, agente=agente, revisor=revisor)
     renderizado.exito(f"traspaso registrado en paquete: {paquete.id_paquete}")
+    _exportar_engram_solicitado(
+        argumentos,
+        f"handoff {id_tarea}",
+        f"Traspaso de {id_tarea}; ejecutor {agente or '?'}, revisor {revisor or '?'}.",
+    )
     return 0
 
 
@@ -482,6 +505,12 @@ def comando_cerrar(argumentos) -> int:
         excepciones=construir_excepciones(argumentos, revisor),
     )
     renderizado.resultado_cierre(resultado)
+    _exportar_engram_solicitado(
+        argumentos,
+        f"close {id_tarea}",
+        f"Cierre de {id_tarea}; estado {resultado.estado.value}; "
+        f"bloqueos: {', '.join(resultado.bloqueos) or 'ninguno'}.",
+    )
     return 0 if resultado.aprobado else 1
 
 

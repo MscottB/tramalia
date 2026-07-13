@@ -16,6 +16,7 @@ import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
+from tramalia.core import procesos
 from tramalia.core.modelos import EstadoIntegracion, ValorEstadoIntegracion
 from tramalia.core.procesos import ResultadoProceso
 
@@ -119,6 +120,52 @@ def ejecutar_integracion(
         ),
         proceso,
     )
+
+
+def exportar_memoria_engram(titulo: str, cuerpo: str) -> ResultadoIntentoIntegracion:
+    """Exporta una copia opcional a Engram con un resultado tipado y no lanzable.
+
+    Esta capacidad no publica ni modifica el paquete de evidencia. Su consumidor
+    debe invocarla solo despues de recibir el resultado durable de la operacion
+    primaria; asi un fallo externo nunca provoca repetir esa publicacion.
+
+    Args:
+        titulo: Titulo estable con que Engram identifica la memoria.
+        cuerpo: Resumen del paquete durable ya publicado.
+
+    Returns:
+        Estado completo, no disponible o fallido junto al proceso ejecutado. Las
+        excepciones inesperadas del adaptador se convierten en un fallo visible.
+    """
+    adaptador = AdaptadorCapacidad(
+        nombre="engram",
+        capacidades=frozenset({"memoria"}),
+        disponible=lambda: procesos.encontrar("engram") is not None,
+    )
+    try:
+        return ejecutar_integracion(
+            capacidad="memoria",
+            solicitado="engram",
+            adaptadores=(adaptador,),
+            operacion=lambda _nombre: procesos.ejecutar(["engram", "save", titulo, cuerpo]),
+            impacto_degradado="el paquete durable conserva su validez sin la copia de memoria",
+            remediacion="instala o revisa Engram y exporta la memoria manualmente",
+        )
+    except Exception:
+        # Engram es un efecto opcional pospublicacion. Normalizar cualquier defecto
+        # del adaptador evita que un paquete valido parezca fallido y sea repetido.
+        return ResultadoIntentoIntegracion(
+            EstadoIntegracion(
+                estado=ValorEstadoIntegracion.FALLIDO,
+                capacidad="memoria",
+                solicitado="engram",
+                utilizado=None,
+                motivo="excepcion_inesperada",
+                impacto="el paquete durable conserva su validez sin la copia de memoria",
+                remediacion="revisa Engram y exporta la memoria manualmente",
+            ),
+            None,
+        )
 
 
 @dataclass(frozen=True)

@@ -11,12 +11,14 @@ import tramalia.mcp_server as servidor_mcp
 from tramalia.__main__ import construir_parser, main
 from tramalia.cli import comandos
 from tramalia.cli.comandos import construir_excepciones
-from tramalia.core import operaciones
+from tramalia.core import integraciones, operaciones
 from tramalia.core.errores import ErrorExcepcionInvalida, ErrorIdentificadorInseguro
 from tramalia.core.modelos import (
     EjecucionPuertas,
+    EstadoIntegracion,
     ResultadoCierre,
     ValorEstadoCierre,
+    ValorEstadoIntegracion,
     ValorEstadoPuertas,
 )
 from tramalia.core.operaciones import cerrar_proyecto, crear_evidencia, registrar_traspaso
@@ -317,6 +319,190 @@ def test_cli_allow_fail_incompleto_falla_antes_de_operar(
         == 2
     )
     assert llamado is False
+
+
+def _paquete_publicado(raiz: Path, id_paquete: str = "paquete-engram") -> SimpleNamespace:
+    return SimpleNamespace(
+        id_paquete=id_paquete,
+        ruta=raiz / ".tramalia" / "evidencia" / id_paquete,
+    )
+
+
+def _cierre_publicado(raiz: Path) -> ResultadoCierre:
+    return ResultadoCierre(
+        estado=ValorEstadoCierre.BLOQUEADO,
+        id_tarea="TASK-ENGRAM",
+        id_paquete="cierre-engram",
+        ruta_paquete=raiz / ".tramalia" / "evidencia" / "cierre-engram",
+        ruta_traspaso=None,
+        ejecucion=EjecucionPuertas(estado=ValorEstadoPuertas.SIN_CONFIGURAR),
+        bloqueos=("puerta_roja",),
+    )
+
+
+def _intento_engram(
+    estado: ValorEstadoIntegracion,
+    motivo: str,
+) -> integraciones.ResultadoIntentoIntegracion:
+    utilizado = "engram" if estado is not ValorEstadoIntegracion.NO_DISPONIBLE else None
+    return integraciones.ResultadoIntentoIntegracion(
+        EstadoIntegracion(
+            estado=estado,
+            capacidad="memoria",
+            solicitado="engram",
+            utilizado=utilizado,
+            motivo=motivo,
+            impacto="el paquete durable conserva su validez",
+            remediacion="instala o revisa Engram",
+        ),
+        None,
+    )
+
+
+def _preparar_operacion_engram(
+    monkeypatch: pytest.MonkeyPatch,
+    raiz: Path,
+    comando: str,
+    eventos: list[str] | None = None,
+) -> None:
+    def publicar(*_argumentos: object, **_opciones: object) -> object:
+        if eventos is not None:
+            eventos.append("publicacion")
+        if comando == "close":
+            return _cierre_publicado(raiz)
+        return _paquete_publicado(raiz)
+
+    nombre_operacion = {
+        "evidence": "crear_evidencia",
+        "handoff": "registrar_traspaso",
+        "close": "cerrar_proyecto",
+    }[comando]
+    monkeypatch.setattr(comandos, nombre_operacion, publicar)
+
+
+@pytest.mark.parametrize(
+    ("comando", "codigo_esperado"),
+    [("evidence", 0), ("handoff", 0), ("close", 1)],
+)
+def test_cli_engram_se_invoca_solo_despues_de_publicar(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    comando: str,
+    codigo_esperado: int,
+) -> None:
+    eventos: list[str] = []
+    titulos: list[str] = []
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(comandos, "_resolver", lambda _argumentos: ("TASK-9", "codex", "ana"))
+    _preparar_operacion_engram(monkeypatch, tmp_path, comando, eventos)
+
+    def exportar(titulo: str, _cuerpo: str) -> integraciones.ResultadoIntentoIntegracion:
+        eventos.append("engram")
+        titulos.append(titulo)
+        return _intento_engram(ValorEstadoIntegracion.COMPLETO, "adaptador_completado")
+
+    monkeypatch.setattr(integraciones, "exportar_memoria_engram", exportar)
+    argumentos = SimpleNamespace(engram=True, allow_fail=False, model="gpt-5")
+
+    assert comandos.despachar(comando, argumentos) == codigo_esperado
+    assert eventos == ["publicacion", "engram"]
+    assert titulos == [f"{comando} TASK-9"]
+
+
+@pytest.mark.parametrize("comando", ["evidence", "handoff", "close"])
+def test_cli_no_invoca_engram_si_falla_la_operacion_primaria(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    comando: str,
+) -> None:
+    invocado = False
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(comandos, "_resolver", lambda _argumentos: ("TASK-10", "codex", "ana"))
+
+    def fallar(*_argumentos: object, **_opciones: object) -> object:
+        raise ErrorIdentificadorInseguro("ID inseguro", "corrige el ID")
+
+    nombre_operacion = {
+        "evidence": "crear_evidencia",
+        "handoff": "registrar_traspaso",
+        "close": "cerrar_proyecto",
+    }[comando]
+    monkeypatch.setattr(comandos, nombre_operacion, fallar)
+
+    def exportar(*_argumentos: object) -> integraciones.ResultadoIntentoIntegracion:
+        nonlocal invocado
+        invocado = True
+        return _intento_engram(ValorEstadoIntegracion.COMPLETO, "adaptador_completado")
+
+    monkeypatch.setattr(integraciones, "exportar_memoria_engram", exportar)
+    argumentos = SimpleNamespace(engram=True, allow_fail=False, model="gpt-5")
+
+    assert comandos.despachar(comando, argumentos) == 2
+    assert invocado is False
+
+
+@pytest.mark.parametrize(
+    ("estado", "motivo", "texto_advertencia"),
+    [
+        (
+            ValorEstadoIntegracion.NO_DISPONIBLE,
+            "adaptador_no_instalado",
+            "Engram no está instalado",
+        ),
+        (
+            ValorEstadoIntegracion.FALLIDO,
+            "proceso_salida_no_cero",
+            "Engram rechazó el export",
+        ),
+        (
+            ValorEstadoIntegracion.FALLIDO,
+            "excepcion_inesperada",
+            "no se pudo exportar a Engram",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ("comando", "codigo_esperado"),
+    [("evidence", 0), ("handoff", 0), ("close", 1)],
+)
+def test_cli_advierte_fallo_engram_sin_cambiar_resultado_primario(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    comando: str,
+    codigo_esperado: int,
+    estado: ValorEstadoIntegracion,
+    motivo: str,
+    texto_advertencia: str,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(comandos, "_resolver", lambda _argumentos: ("TASK-11", "codex", "ana"))
+    _preparar_operacion_engram(monkeypatch, tmp_path, comando)
+    monkeypatch.setattr(
+        integraciones,
+        "exportar_memoria_engram",
+        lambda *_argumentos: _intento_engram(estado, motivo),
+    )
+
+    codigo = comandos.despachar(
+        comando,
+        SimpleNamespace(engram=True, allow_fail=False, model="gpt-5"),
+    )
+
+    assert codigo == codigo_esperado
+    assert texto_advertencia in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "argumentos",
+    [
+        ["evidence", "TASK-1", "--engram"],
+        ["handoff", "TASK-1", "--engram"],
+        ["close", "TASK-1", "--engram"],
+    ],
+)
+def test_parser_conserva_engram_en_las_tres_operaciones(argumentos: list[str]) -> None:
+    assert construir_parser().parse_args(argumentos).engram is True
 
 
 def test_superficies_importan_las_operaciones_compartidas() -> None:
