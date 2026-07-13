@@ -9,6 +9,9 @@ site/
 tramalia-docs-offline.zip
 .mkdocs.offline.tmp.yml
 
+# espacios de trabajo Git aislados para cambios locales
+.worktrees/
+
 # evidencia generada (se versiona aparte si se decide)
 .tramalia/evidence/
 
