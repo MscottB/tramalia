@@ -11,6 +11,10 @@ from pathlib import Path
 from tramalia.core.errores import ErrorExcepcionInvalida
 
 
+def _tiene_desfase_utc(instante: datetime) -> bool:
+    return instante.tzinfo is not None and instante.utcoffset() is not None
+
+
 class ValorEstadoProyecto(StrEnum):
     """Describe whether a project satisfies the governance contract."""
 
@@ -143,7 +147,7 @@ class ExcepcionFallo:
         ]
         if not self.expira_en and not (self.condicion_remediacion or "").strip():
             faltantes.append("expira_en_o_condicion_remediacion")
-        if self.expira_en and self.expira_en.tzinfo is None:
+        if self.expira_en is not None and not _tiene_desfase_utc(self.expira_en):
             faltantes.append("expira_en_con_zona_horaria")
         if faltantes:
             raise ErrorExcepcionInvalida(
@@ -161,6 +165,12 @@ class ExcepcionFallo:
         Returns:
             True when no expiry exists or the expiry has not passed.
         """
+        if not _tiene_desfase_utc(ahora):
+            raise ErrorExcepcionInvalida(
+                "El instante actual no cumple el contrato.",
+                "Proporciona ahora con zona horaria y desfase UTC definido.",
+                detalles={"campos": ["ahora_con_zona_horaria"]},
+            )
         return self.expira_en is None or ahora <= self.expira_en
 
 
@@ -265,7 +275,7 @@ class EstadoIntegracion:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "estado", ValorEstadoIntegracion(self.estado))
-        if self.estado is ValorEstadoIntegracion.DEGRADADO and not self.utilizado:
+        if self.estado is ValorEstadoIntegracion.DEGRADADO and not (self.utilizado or "").strip():
             raise ValueError("utilizado es obligatorio para un fallback degradado exitoso")
 
     @property

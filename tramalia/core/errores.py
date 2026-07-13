@@ -2,26 +2,126 @@
 
 from __future__ import annotations
 
+import base64
+import json
+import math
 from collections.abc import Mapping
+from datetime import date, datetime, time
+from enum import Enum
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeAlias, TypeVar
 
 _SECRETOS = {"token", "secret", "password", "contrasena", "api_key", "authorization"}
 _TipoClave = TypeVar("_TipoClave")
+_ValorJSON: TypeAlias = (
+    str | int | float | bool | None | list["_ValorJSON"] | dict[str, "_ValorJSON"]
+)
 
 
-def _sanear(valor: object, clave: str = "") -> object:
+def _etiqueta_tipo(valor: object) -> str:
+    tipo = type(valor)
+    return f"<objeto_no_serializable:{tipo.__module__}.{tipo.__qualname__}>"
+
+
+def _texto_bytes(valor: bytes | bytearray) -> str:
+    contenido = base64.b64encode(bytes(valor)).decode("ascii")
+    return f"base64:{contenido}"
+
+
+def _clave_orden_json(valor: _ValorJSON) -> str:
+    return json.dumps(
+        valor,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _normalizar_clave_json(valor: object) -> str:
+    normalizado = _normalizar_json(valor)
+    if isinstance(normalizado, str):
+        return normalizado
+    return _clave_orden_json(normalizado)
+
+
+def _normalizar_json(
+    valor: object,
+    clave: str = "",
+    visitados: set[int] | None = None,
+) -> _ValorJSON:
+    """Return deterministic JSON data without exposing arbitrary object state.
+
+    Secret fields are redacted before their values are inspected. Unsupported leaves are
+    replaced by a stable type-only marker; their ``str`` and ``repr`` methods are never used.
+    Cycles are represented by a stable marker instead of recursing indefinitely.
+    """
     if clave.lower() in _SECRETOS:
         return "[REDACTADO]"
+    if visitados is None:
+        visitados = set()
+    if isinstance(valor, Enum):
+        return _normalizar_json(valor.value, visitados=visitados)
+    if valor is None or isinstance(valor, (str, bool)):
+        return valor
+    if isinstance(valor, int):
+        return int(valor)
+    if isinstance(valor, float):
+        if math.isnan(valor):
+            return "NaN"
+        if math.isinf(valor):
+            return "Infinity" if valor > 0 else "-Infinity"
+        return float(valor)
+    if isinstance(valor, Path):
+        return str(valor)
+    if isinstance(valor, (datetime, date, time)):
+        return valor.isoformat()
+    if isinstance(valor, (bytes, bytearray)):
+        return _texto_bytes(valor)
     if isinstance(valor, Mapping):
-        return _sanear_mapeo(valor)
+        identificador = id(valor)
+        if identificador in visitados:
+            return "<referencia_ciclica>"
+        return _normalizar_mapeo(valor, visitados)
     if isinstance(valor, (list, tuple)):
-        return [_sanear(elemento) for elemento in valor]
-    return valor
+        identificador = id(valor)
+        if identificador in visitados:
+            return "<referencia_ciclica>"
+        visitados.add(identificador)
+        try:
+            return [_normalizar_json(elemento, visitados=visitados) for elemento in valor]
+        finally:
+            visitados.remove(identificador)
+    if isinstance(valor, (set, frozenset)):
+        identificador = id(valor)
+        if identificador in visitados:
+            return "<referencia_ciclica>"
+        visitados.add(identificador)
+        try:
+            elementos = [_normalizar_json(elemento, visitados=visitados) for elemento in valor]
+            return sorted(elementos, key=_clave_orden_json)
+        finally:
+            visitados.remove(identificador)
+    return _etiqueta_tipo(valor)
 
 
-def _sanear_mapeo(valores: Mapping[_TipoClave, object]) -> dict[str, object]:
-    return {str(llave): _sanear(elemento, str(llave)) for llave, elemento in valores.items()}
+def _normalizar_mapeo(
+    valores: Mapping[_TipoClave, object],
+    visitados: set[int] | None = None,
+) -> dict[str, _ValorJSON]:
+    if visitados is None:
+        visitados = set()
+    identificador = id(valores)
+    visitados.add(identificador)
+    try:
+        pares = []
+        for llave, elemento in valores.items():
+            clave = _normalizar_clave_json(llave)
+            pares.append((clave, _normalizar_json(elemento, clave, visitados)))
+        pares.sort(key=lambda par: (par[0], _clave_orden_json(par[1])))
+        return dict(pares)
+    finally:
+        visitados.remove(identificador)
 
 
 class ErrorTramalia(Exception):
@@ -47,17 +147,23 @@ class ErrorTramalia(Exception):
         self.mensaje = mensaje
         self.sugerencia = sugerencia
         self.ruta = ruta
-        self.detalles = _sanear_mapeo(detalles or {})
+        self.detalles: dict[str, _ValorJSON] = _normalizar_mapeo(detalles or {})
 
-    def como_dict(self) -> dict[str, object]:
-        """Return a secret-safe representation for CLI, TUI, and MCP."""
-        return {
-            "codigo": self.codigo,
-            "mensaje": self.mensaje,
-            "sugerencia": self.sugerencia,
-            "ruta": str(self.ruta) if self.ruta else None,
-            "detalles": self.detalles,
-        }
+    def como_dict(self) -> dict[str, _ValorJSON]:
+        """Return deterministic, secret-safe JSON data for CLI, TUI, and MCP.
+
+        Arbitrary unsupported leaves become stable type-only markers so callers can pass the
+        result directly to ``json.dumps`` without a custom ``default`` function.
+        """
+        return _normalizar_mapeo(
+            {
+                "codigo": self.codigo,
+                "mensaje": self.mensaje,
+                "sugerencia": self.sugerencia,
+                "ruta": self.ruta,
+                "detalles": self.detalles,
+            }
+        )
 
 
 class ErrorProyectoNoGobernado(ErrorTramalia):
