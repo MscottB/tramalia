@@ -56,7 +56,9 @@ Para una tarea de datos/ML, "pasó los gates" no basta: importa *con qué datos*
 }
 ```
 
-Al cerrar, `close` lo **copia crudo al evidence pack** (`metrics.json`, inmutable como toda la evidencia) y lo **incrusta en `metadata.json`** bajo `metrics`. Así el cierre registra qué dataset y qué números produjo, no solo verde/rojo.
+Al cerrar, `close` conserva sus valores en el paquete formal como
+`metricas.json` y los registra en `metadatos.json` bajo `metricas`. Así el
+cierre registra qué dataset y qué números produjo, no solo verde/rojo.
 
 **2 · (Opcional) `.tramalia/thresholds.json` convierte un umbral en gate:**
 
@@ -64,7 +66,12 @@ Al cerrar, `close` lo **copia crudo al evidence pack** (`metrics.json`, inmutabl
 { "accuracy": { "min": 0.90 }, "drift": { "max": 0.05 } }
 ```
 
-Si una métrica **incumple** su umbral (o falta, porque no se puede pasar un umbral que no se midió), el cierre se **bloquea** igual que un gate fallido — `status: blocked`, exit 1 — salvo `--allow-fail` (que lo registra como `passed_with_exceptions`, nunca `passed`). El detalle queda en `metrics-thresholds.txt` y en `metadata.json → metric_thresholds`.
+Si una métrica **incumple** su umbral (o falta, porque no se puede pasar un
+umbral que no se midió), el cierre queda con `estado_cierre: bloqueado` y exit 1,
+igual que ante una puerta fallida. `--allow-fail` sólo permite continuar cuando
+recibe una excepción completa para el control exacto; entonces registra
+`aprobado_con_excepciones`, nunca `aprobado`. El detalle queda en
+`umbrales-metricas.txt` y los límites en `metadatos.json → umbrales`.
 
 !!! tip "Por qué esto importa"
     Una regresión de accuracy que **impide cerrar la tarea**, con el hash del dataset y la métrica como evidencia — eso no lo da ningún `git log`. Es gobierno de ML, no solo de código.

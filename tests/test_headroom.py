@@ -2,7 +2,6 @@
 
 import json
 
-from tramalia.core import governance
 from tramalia.core.detect import enabled_features
 from tramalia.core.doctor import diagnose
 from tramalia.core.scaffold import build_mcp_json, scaffold
@@ -46,16 +45,3 @@ def test_init_no_agrega_headroom_por_defecto(tmp_path):
 def test_init_con_headroom_agrega_mcp(tmp_path):
     data = json.loads(build_mcp_json({"stacks": [], "features": (), "with_headroom": True}))
     assert "headroom" in data["mcpServers"]
-
-
-def test_close_conserva_salidas_crudas(tmp_path, monkeypatch):
-    """El moat: close guarda el output CRUDO de los gates, sin reemplazarlo por comprimido."""
-    _init(tmp_path)
-    monkeypatch.setattr(
-        governance, "run_gates", lambda root: ([("build", 0, "LOG CRUDO DEL BUILD")], True)
-    )
-    res = governance.close(tmp_path, "TASK-1")
-    crudo = (res.evidence_dir / "build-output.txt").read_text(encoding="utf-8")
-    assert "LOG CRUDO DEL BUILD" in crudo
-    # nunca debe existir una versión comprimida que reemplace el crudo
-    assert not (res.evidence_dir / "build-output.compressed.md").exists()

@@ -9,12 +9,6 @@ El núcleo de gobierno funciona con Python. Las integraciones hacen llamadas
 transparentes a herramientas externas y devuelven estados explícitos; no
 ocultan errores ni convierten una ausencia en aprobación.
 
-> **Transición previa a la BETA:** este documento describe el contrato formal
-> que ya ofrecen los módulos nuevos de núcleo. Los adaptadores públicos de CLI,
-> TUI y MCP todavía se están migrando en esta rama y pueden producir el formato
-> heredado. No uses su salida como evidencia v1 hasta que termine esa
-> unificación; esta advertencia se retirará antes de publicar la BETA.
-
 ## Resumen
 
 | Comando | Función | Tipo |
@@ -133,10 +127,11 @@ hashes inválidos y números no finitos se rechazan antes de publicar.
 ### Métricas y umbrales
 
 Si existe `.tramalia/metrics.json`, el cierre incorpora sus valores en
-`metricas`. Si también existe `.tramalia/thresholds.json`, los límites se
-registran en `umbrales`. Una métrica ausente o fuera de rango bloquea igual que
-una puerta fallida. Un JSON malformado o un esquema incorrecto es un error de
-configuración; no publica una falsa aprobación.
+`metricas` y publica el artefacto legible `metricas.json`. Si también existe
+`.tramalia/thresholds.json`, los límites se registran en `umbrales` y el
+diagnóstico queda en `umbrales-metricas.txt`. Una métrica ausente o fuera de
+rango bloquea igual que una puerta fallida. Un JSON malformado o un esquema
+incorrecto es un error de configuración; no publica una falsa aprobación.
 
 ## log — bitácora estructurada
 

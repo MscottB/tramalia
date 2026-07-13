@@ -129,10 +129,35 @@ def build_parser() -> argparse.ArgumentParser:
     cl.add_argument(
         "--allow-fail",
         action="store_true",
-        help="cierra aunque fallen gates (requiere excepción documentada)",
+        help="alias deprecado: exige una excepción razonada completa",
+    )
+    cl.add_argument("--razon-excepcion", default="", help="motivo concreto de la excepción")
+    cl.add_argument("--riesgo-aceptado", default="", help="riesgo aceptado por el revisor")
+    cl.add_argument("--control-afectado", default="", help="puerta o control cubierto")
+    cl.add_argument(
+        "--referencia-excepcion",
+        default="",
+        help="issue, decisión o documento que respalda la excepción",
     )
     cl.add_argument(
-        "--model", default=None, help="modelo usado por el agente ejecutor (queda en metadata.json)"
+        "--revisor-excepcion",
+        default="",
+        help="responsable que acepta explícitamente el riesgo",
+    )
+    cl.add_argument(
+        "--expira-en",
+        default="",
+        help="fecha ISO 8601 de expiración, con zona horaria",
+    )
+    cl.add_argument(
+        "--condicion-remediacion",
+        default="",
+        help="condición verificable que cierra la excepción",
+    )
+    cl.add_argument(
+        "--model",
+        default=None,
+        help="modelo usado por el agente ejecutor (queda en metadatos.json)",
     )
     cl.add_argument("--engram", action="store_true", help="exporta el cierre a Engram (N2)")
     sub.add_parser("log", help="pista de auditoría: cierres registrados (evidence packs)")

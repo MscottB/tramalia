@@ -7,13 +7,28 @@ from __future__ import annotations
 
 import shutil
 import sys
+from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
 from tramalia.cli import menu, render
 from tramalia.core import doctor as doctor_core
 from tramalia.core import proc
 from tramalia.core.detect import detect_stack, enabled_features
-from tramalia.core.errores import ErrorProyectoNoGobernado
+from tramalia.core.errores import (
+    ErrorExcepcionInvalida,
+    ErrorProyectoNoGobernado,
+    ErrorTramalia,
+)
+from tramalia.core.evidencia import leer_bitacora
+from tramalia.core.modelos import (
+    EntradaBitacora,
+    ExcepcionFallo,
+    ValorEstadoBitacora,
+    ValorEstadoCierre,
+    ValorResultadoPuerta,
+)
+from tramalia.core.operaciones import cerrar_proyecto, crear_evidencia, registrar_traspaso
 from tramalia.core.proyecto import (
     exigir_proyecto_actualizable,
     exigir_proyecto_gobernado,
@@ -29,6 +44,33 @@ def _run(cmd: list[str]) -> int:
     except FileNotFoundError:
         render.err(f"no se encontró '{cmd[0]}'. Corre `tramalia doctor` para instalarlo.")
         return 127
+
+
+_CODIGOS_ERROR = {
+    "proyecto_no_gobernado": 2,
+    "configuracion_puertas_invalida": 2,
+    "configuracion_metricas_invalida": 2,
+    "id_tarea_inseguro": 2,
+    "excepcion_invalida": 2,
+    "persistencia_evidencia_fallida": 1,
+}
+
+
+def _mostrar_error(error: ErrorTramalia) -> int:
+    """Renderiza un error de dominio estable sin exponer un traceback."""
+    render.err(f"[{error.codigo}] {error.mensaje}")
+    render.info(error.sugerencia)
+    if error.ruta is not None:
+        render.info(f"ruta: {error.ruta}")
+    return _CODIGOS_ERROR.get(error.codigo, 1)
+
+
+def _capturar_error(operacion: Callable[[], int]) -> int:
+    """Convierte fallos esperados del núcleo en códigos de salida de la CLI."""
+    try:
+        return operacion()
+    except ErrorTramalia as error:
+        return _mostrar_error(error)
 
 
 # --------------------------------------------------------------------------- #
@@ -367,117 +409,186 @@ def _resolver(args):
     )
 
 
-def cmd_evidence(args) -> int:
-    from tramalia.core import evidence
-    from tramalia.i18n import t
+def _construir_excepciones(
+    argumentos: object,
+    revisor_predeterminado: str,
+) -> tuple[ExcepcionFallo, ...]:
+    """Convierte ``--allow-fail`` en una excepción razonada y completa.
 
-    root = Path.cwd()
+    El alias se conserva por compatibilidad, pero nunca vuelve a ser un bypass
+    booleano: sin los campos requeridos y una vigencia o remediación, la
+    operación no llega al núcleo.
+    """
+    if not getattr(argumentos, "allow_fail", False):
+        return ()
+
+    expiracion_texto = (getattr(argumentos, "expira_en", "") or "").strip()
     try:
-        exigir_proyecto_gobernado(root)
-    except ErrorProyectoNoGobernado:
-        render.err(t("close.uninit"))
-        return 1
-    task, _, _ = _resolver(args)
-    target = evidence.build_evidence(root, task)
-    render.ok(f"evidence pack creado: {target.relative_to(root)}")
-    render.info("completa summary.md, risks.md y next-steps.md antes de cerrar.")
-    if getattr(args, "engram", False):
-        _engram_save(f"evidence {task}", f"Evidence pack de {task} en {target}.")
-    return 0
+        expiracion = datetime.fromisoformat(expiracion_texto) if expiracion_texto else None
+    except ValueError as error_fecha:
+        raise ErrorExcepcionInvalida(
+            "La expiración de la excepción no es ISO 8601.",
+            "Usa --expira-en 2026-08-01T00:00:00+00:00.",
+            detalles={"campo": "expira_en"},
+        ) from error_fecha
+
+    datos = {
+        "razon": (getattr(argumentos, "razon_excepcion", "") or "").strip(),
+        "riesgo_aceptado": (getattr(argumentos, "riesgo_aceptado", "") or "").strip(),
+        "control_afectado": (getattr(argumentos, "control_afectado", "") or "").strip(),
+        "referencia": (getattr(argumentos, "referencia_excepcion", "") or "").strip(),
+        "revisor": (
+            (getattr(argumentos, "revisor_excepcion", "") or "").strip()
+            or revisor_predeterminado.strip()
+        ),
+    }
+    condicion = (getattr(argumentos, "condicion_remediacion", "") or "").strip() or None
+    faltantes = tuple(nombre for nombre, valor in datos.items() if not valor)
+    if faltantes or (expiracion is None and condicion is None):
+        raise ErrorExcepcionInvalida(
+            "--allow-fail requiere una excepción completa.",
+            "Completa razón, riesgo, control, referencia, revisor y expiración o remediación.",
+            detalles={
+                "faltantes": faltantes,
+                "requiere_vigencia": expiracion is None and condicion is None,
+            },
+        )
+
+    return (
+        ExcepcionFallo(
+            razon=datos["razon"],
+            riesgo_aceptado=datos["riesgo_aceptado"],
+            control_afectado=datos["control_afectado"],
+            referencia=datos["referencia"],
+            revisor=datos["revisor"],
+            expira_en=expiracion,
+            condicion_remediacion=condicion,
+        ),
+    )
+
+
+def cmd_evidence(args) -> int:
+    def ejecutar() -> int:
+        raiz = Path.cwd()
+        id_tarea, agente, revisor = _resolver(args)
+        paquete = crear_evidencia(
+            raiz,
+            id_tarea,
+            agente=agente,
+            revisor=revisor,
+        )
+        render.ok(f"paquete de evidencia creado: {paquete.ruta.relative_to(raiz)}")
+        if getattr(args, "engram", False):
+            _engram_save(
+                f"evidence {id_tarea}",
+                f"Paquete formal de {id_tarea}: {paquete.id_paquete}.",
+            )
+        return 0
+
+    return _capturar_error(ejecutar)
 
 
 def cmd_handoff(args) -> int:
-    from tramalia.core import handoff
-    from tramalia.i18n import t
-
-    root = Path.cwd()
-    try:
-        exigir_proyecto_gobernado(root)
-    except ErrorProyectoNoGobernado:
-        render.err(t("close.uninit"))
-        return 1
-    task, agent, reviewer = _resolver(args)
-    path = handoff.new_handoff(root, task, agent, reviewer)
-    render.ok(f"handoff agregado a {path.relative_to(root)}")
-    if getattr(args, "engram", False):
-        _engram_save(
-            f"handoff {task}",
-            f"Handoff de {task}; ejecutor {agent or '?'}, revisor {reviewer or '?'}.",
+    def ejecutar() -> int:
+        raiz = Path.cwd()
+        id_tarea, agente, revisor = _resolver(args)
+        paquete = registrar_traspaso(
+            raiz,
+            id_tarea,
+            agente=agente,
+            revisor=revisor,
         )
-    return 0
+        render.ok(f"traspaso registrado en paquete: {paquete.id_paquete}")
+        if getattr(args, "engram", False):
+            _engram_save(
+                f"handoff {id_tarea}",
+                f"Traspaso de {id_tarea}; ejecutor {agente or '?'}, revisor {revisor or '?'}.",
+            )
+        return 0
+
+    return _capturar_error(ejecutar)
 
 
 def cmd_close(args) -> int:
-    from tramalia.core import governance
-    from tramalia.i18n import t
-
-    root = Path.cwd()
-    try:
-        exigir_proyecto_gobernado(root)
-    except ErrorProyectoNoGobernado:
-        render.err(t("close.uninit"))
-        return 1
-    task, agent, reviewer = _resolver(args)
-    res = governance.close(
-        root,
-        task,
-        agent,
-        reviewer,
-        allow_fail=getattr(args, "allow_fail", False),
-        model=getattr(args, "model", None) or "",
-    )
-    if not res.gates_ran:
-        render.warn("gates no ejecutados (mise ausente); registrado como excepción en el pack.")
-    else:
-        for name, code, _ in res.gates:
-            (render.ok if code == 0 else render.err)(
-                f"gate {name}: {'ok' if code == 0 else 'FALLA'}"
-            )
-    render.ok(f"evidence: {res.evidence_dir.relative_to(root)}  (estado: {res.status})")
-    render.ok(f"handoff: {res.handoff_path.relative_to(root)}")
-    render.info(f"metadata: {(res.evidence_dir / 'metadata.json').relative_to(root)}")
-    if getattr(args, "engram", False):
-        _engram_save(
-            f"close {task}",
-            f"Cierre de {task}; estado {res.status}; fallidos: {', '.join(res.failed) or 'ninguno'}.",
+    def ejecutar() -> int:
+        raiz = Path.cwd()
+        id_tarea, agente, revisor = _resolver(args)
+        resultado = cerrar_proyecto(
+            raiz,
+            id_tarea,
+            agente=agente,
+            revisor=revisor,
+            modelo=getattr(args, "model", None) or "",
+            excepciones=_construir_excepciones(args, revisor),
         )
-    if res.blocked:
-        render.err(f"cierre BLOQUEADO por gates fallidos: {', '.join(res.failed)}.")
-        render.info("usa --allow-fail solo con una excepción documentada en risks.md.")
-        return 1
-    if res.status == "no_gates":
-        render.warn(t("close.done.nogates", task=task))
-    else:
-        render.ok(t("close.done", task=task))
-    return 0
+
+        if resultado.ejecucion.resultados:
+            for puerta in resultado.ejecucion.resultados:
+                if puerta.estado is ValorResultadoPuerta.APROBADO:
+                    mostrar = render.ok
+                elif puerta.estado is ValorResultadoPuerta.OMITIDO:
+                    mostrar = render.warn
+                else:
+                    mostrar = render.err
+                mostrar(f"puerta {puerta.nombre}: {puerta.estado.value}")
+        else:
+            render.warn(f"puertas: {resultado.ejecucion.estado.value}")
+
+        if resultado.ruta_paquete is not None:
+            ruta_paquete = resultado.ruta_paquete.relative_to(raiz)
+            render.ok(f"evidencia: {ruta_paquete}  (estado: {resultado.estado.value})")
+            render.info(f"metadatos: {ruta_paquete / 'metadatos.json'}")
+        if resultado.ruta_traspaso is not None:
+            render.ok(f"traspaso: {resultado.ruta_traspaso.relative_to(raiz)}")
+
+        if getattr(args, "engram", False):
+            _engram_save(
+                f"close {id_tarea}",
+                f"Cierre de {id_tarea}; estado {resultado.estado.value}; "
+                f"bloqueos: {', '.join(resultado.bloqueos) or 'ninguno'}.",
+            )
+
+        if resultado.aprobado:
+            render.ok(f"cierre completado: {id_tarea} ({resultado.estado.value})")
+        else:
+            render.err(
+                f"cierre bloqueado: {', '.join(resultado.bloqueos) or 'sin causa declarada'}"
+            )
+        return 0 if resultado.aprobado else 1
+
+    return _capturar_error(ejecutar)
 
 
-def _log_marks() -> dict:
+def _log_marks() -> dict[ValorEstadoCierre | None, str]:
     from tramalia.i18n import t
 
     return {
-        "passed": t("log.passed"),
-        "passed_with_exceptions": t("log.exceptions"),
-        "blocked": t("log.blocked"),
-        "no_gates": t("log.nogates"),
+        ValorEstadoCierre.APROBADO: t("log.passed"),
+        ValorEstadoCierre.APROBADO_CON_EXCEPCIONES: t("log.exceptions"),
+        ValorEstadoCierre.BLOQUEADO: t("log.blocked"),
         None: "○ —",
     }
 
 
-def cmd_log(args) -> int:
-    from tramalia.core import governance
+def _linea_bitacora(entrada: EntradaBitacora) -> str:
+    if entrada.estado is ValorEstadoBitacora.INVALIDA:
+        return f"{entrada.id_paquete}  ·  inválida  ·  {entrada.error or 'error no declarado'}"
+    marca = _log_marks().get(entrada.resultado, "○ —")
+    extra = f"  ·  {entrada.agente}" if entrada.agente else ""
+    if entrada.modelo:
+        extra += f" ({entrada.modelo})"
+    return f"{entrada.id_paquete}  ·  {marca}{extra}"
 
-    entries = governance.read_log(Path.cwd())
-    if not entries:
+
+def cmd_log(args) -> int:
+    entradas = leer_bitacora(Path.cwd())
+    if not entradas:
         render.info("sin cierres registrados todavía. Usa `tramalia close`.")
         return 0
-    render.info(f"pista de auditoría — {len(entries)} cierres (más reciente primero):")
-    for e in entries:
-        mark = _log_marks().get(e.get("status"), "○ —")
-        extra = f"  ·  {e['agent']}" if e.get("agent") else ""
-        if e.get("model"):
-            extra += f" ({e['model']})"
-        render.ok(f"{e['id']}  ·  {mark}{extra}")
+    render.info(f"pista de auditoría — {len(entradas)} paquetes (más reciente primero):")
+    for entrada in entradas:
+        mostrar = render.warn if entrada.estado is ValorEstadoBitacora.INVALIDA else render.ok
+        mostrar(_linea_bitacora(entrada))
     return 0
 
 
@@ -749,13 +860,11 @@ def _guided_args(command: str):
 
 
 def _show_last_close(root: Path) -> None:
-    from tramalia.core import governance
-
-    entries = governance.read_log(root)
-    if entries:
-        last = entries[0]
-        mark = _log_marks().get(last.get("status"), "○ —")
-        render.info(f"último cierre: {last['id']}  ·  {mark}")
+    entradas = leer_bitacora(root)
+    if entradas:
+        ultima = entradas[0]
+        mostrar = render.warn if ultima.estado is ValorEstadoBitacora.INVALIDA else render.info
+        mostrar(f"último paquete: {_linea_bitacora(ultima)}")
 
 
 def cmd_menu(args) -> int:

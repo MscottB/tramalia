@@ -14,6 +14,7 @@ from tramalia.i18n import t
 
 
 def build_app():
+    from rich.text import Text
     from textual.app import App, ComposeResult
     from textual.containers import Horizontal, Vertical
     from textual.screen import ModalScreen
@@ -34,12 +35,21 @@ def build_app():
     from textual.widgets.selection_list import Selection
 
     from tramalia.core import doctor as doctor_core
-    from tramalia.core import governance, installer, project
+    from tramalia.core import installer, project
     from tramalia.core import skills as skills_core
     from tramalia.core.context_backend import BACKENDS, backend_installed
     from tramalia.core.detect import detect_stack, enabled_features
-    from tramalia.core.errores import ErrorProyectoNoGobernado
+    from tramalia.core.errores import ErrorProyectoNoGobernado, ErrorTramalia
+    from tramalia.core.evidencia import leer_bitacora
+    from tramalia.core.modelos import (
+        EntradaBitacora,
+        ResultadoCierre,
+        ValorEstadoBitacora,
+        ValorResultadoPuerta,
+    )
+    from tramalia.core.operaciones import cerrar_proyecto
     from tramalia.core.proyecto import exigir_proyecto_gobernado, inspeccionar_estado_proyecto
+    from tramalia.core.puertas_calidad import cargar_puertas
     from tramalia.core.scaffold import scaffold
 
     class InstallScreen(ModalScreen):
@@ -148,12 +158,16 @@ def build_app():
             self.dismiss(None)
 
     _LOG_MARKS = {
-        "passed": t("log.passed"),
-        "passed_with_exceptions": t("log.exceptions"),
-        "blocked": t("log.blocked"),
-        "no_gates": t("log.nogates"),
-        None: "○ —",
+        "aprobado": "✓ aprobado",
+        "aprobado_con_excepciones": "⚠ aprobado_con_excepciones",
+        "bloqueado": "✗ bloqueado",
+        "invalida": "✗ invalida",
     }
+
+    def _estado_entrada(entrada: EntradaBitacora) -> str:
+        if entrada.estado is ValorEstadoBitacora.INVALIDA:
+            return entrada.estado.value
+        return entrada.resultado.value if entrada.resultado is not None else entrada.estado.value
 
     from tramalia import __version__ as _tramalia_version
 
@@ -231,7 +245,8 @@ def build_app():
             yield Footer()
 
         def on_mount(self) -> None:
-            self._skill_updates = {}  # name → hay actualización (lo llena la tecla u)
+            self._skill_updates: dict[str, bool] = {}
+            self._entradas_bitacora: dict[str, EntradaBitacora] = {}
             self.action_refresh()
 
         # ------------------------------------------------------------ refresh
@@ -248,17 +263,26 @@ def build_app():
             # el botón de init vive aquí (Resumen): visible solo si falta inicializar
             self.query_one("#btn-init-resumen", Button).display = not inicializado
 
-            # gates REALES del proyecto (mise.toml), no features internas
-            gates = governance.gate_tasks(root)
-            self.query_one("#gates-linea", Static).update(
-                t("tui.gates.line", gates=" · ".join(gates)) if gates else t("tui.gates.none")
-            )
+            # Las puertas visibles son exactamente las que acepta el cargador formal.
+            try:
+                gates = tuple(puerta.nombre for puerta in cargar_puertas(root))
+                texto_puertas = (
+                    t("tui.gates.line", gates=" · ".join(gates)) if gates else t("tui.gates.none")
+                )
+            except ErrorTramalia as error:
+                texto_puertas = f"[red]{error.mensaje}[/red]"
+            self.query_one("#gates-linea", Static).update(texto_puertas)
 
-            entries = governance.read_log(root)
+            entries = leer_bitacora(root)
             last = ""
             if entries:
                 e = entries[0]
-                last = t("tui.lastclose", id=e["id"], mark=_LOG_MARKS.get(e.get("status"), "○ —"))
+                estado_entrada = _estado_entrada(e)
+                last = t(
+                    "tui.lastclose",
+                    id=e.id_paquete,
+                    mark=_LOG_MARKS.get(estado_entrada, f"○ {estado_entrada}"),
+                )
             self.query_one("#lastclose", Static).update(last)
 
             # aviso de PATH de uv (si sus binarios no están en el PATH)
@@ -351,6 +375,7 @@ def build_app():
             aviso = self.query_one("#aviso-audit", Static)
             tabla = self.query_one("#tabla-log", DataTable)
             tabla.clear(columns=True)
+            self._entradas_bitacora = {entrada.id_paquete: entrada for entrada in entries}
             if not initialized:
                 aviso.update(t("tui.audit.uninit"))
                 return
@@ -360,9 +385,11 @@ def build_app():
             aviso.update("")
             tabla.add_columns(t("tui.col.close"), t("tui.col.status"), t("tui.col.agent"))
             for e in entries:
-                modelo = f" ({e['model']})" if e.get("model") else ""
+                modelo = f" ({e.modelo})" if e.modelo else ""
                 tabla.add_row(
-                    e["id"], str(e.get("status") or "—"), (e.get("agent") or "—") + modelo
+                    e.id_paquete,
+                    _estado_entrada(e),
+                    (e.agente or "—") + modelo,
                 )
 
         def _refresh_close(self, root, initialized) -> None:
@@ -427,13 +454,22 @@ def build_app():
             if event.data_table.id != "tabla-log":
                 return
             row = event.data_table.get_row(event.row_key)
-            meta = Path.cwd() / ".tramalia" / "evidence" / str(row[0]) / "metadata.json"
+            id_paquete = str(row[0])
+            entrada = self._entradas_bitacora.get(id_paquete)
             detalle = self.query_one("#detalle-log", Static)
-            if meta.exists():
-                data = json.loads(meta.read_text(encoding="utf-8"))
-                detalle.update(json.dumps(data, indent=2, ensure_ascii=False))
-            else:
+            if entrada is None:
                 detalle.update(t("tui.audit.nometa"))
+                return
+            if entrada.estado is ValorEstadoBitacora.INVALIDA:
+                detalle.update(entrada.error or entrada.estado.value)
+                return
+            meta = entrada.ruta / "metadatos.json"
+            try:
+                data = json.loads(meta.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                detalle.update(t("tui.audit.nometa"))
+                return
+            detalle.update(json.dumps(data, indent=2, ensure_ascii=False))
 
         # ------------------------------------------------------------ skills
         def _skills_log(self) -> RichLog:
@@ -572,7 +608,9 @@ def build_app():
             faltantes = [s.tool for s in report.statuses if not s.present]
             auto, manual, runtime_offers = installer.plan_for(faltantes)
             # plans: 3-tuplas (label, opción, [cmds que desbloquea al instalarse])
-            plans = [(cmd, opt, []) for cmd, opt in auto]
+            plans: list[tuple[str, installer.InstallOption, list[str]]] = [
+                (cmd, opt, []) for cmd, opt in auto
+            ]
             # ofrecer instalar el runtime (Node/Go) que desbloquea otras herramientas;
             # `enables` deja que el worker las instale encadenadas en la misma corrida
             for name, opt, enables in runtime_offers:
@@ -785,12 +823,22 @@ def build_app():
                 exclusive=True,
             )
 
-        def _run_close(self, raiz: Path, task, agent, reviewer, model) -> None:
-            from tramalia.core import governance as gov
-
+        def _run_close(
+            self,
+            raiz: Path,
+            task: str,
+            agent: str,
+            reviewer: str,
+            model: str,
+        ) -> None:
             try:
-                exigir_proyecto_gobernado(raiz)
-                result = gov.close(raiz, task, agent, reviewer, model=model)
+                result = cerrar_proyecto(
+                    raiz,
+                    task,
+                    agente=agent,
+                    revisor=reviewer,
+                    modelo=model,
+                )
             except Exception as exc:
                 self.call_from_thread(self._show_close_error, str(exc))
                 return
@@ -800,22 +848,21 @@ def build_app():
             self.query_one("#salida", RichLog).write(t("tui.close.error", msg=message))
             self.query_one("#btn-close", Button).disabled = False
 
-        def _show_close_result(self, result) -> None:
+        def _show_close_result(self, result: ResultadoCierre) -> None:
             salida = self.query_one("#salida", RichLog)
-            if not result.gates_ran:
-                salida.write(t("tui.close.nogates"))
-            for name, code, _ in result.gates:
+            for puerta in result.ejecucion.resultados:
                 salida.write(
-                    t("tui.close.gate.ok", name=name)
-                    if code == 0
-                    else t("tui.close.gate.fail", name=name)
+                    t("tui.close.gate.ok", name=puerta.nombre)
+                    if puerta.estado is ValorResultadoPuerta.APROBADO
+                    else t("tui.close.gate.fail", name=puerta.nombre)
                 )
-            salida.write(t("tui.close.status", status=result.status))
-            salida.write(t("tui.close.evidence", dir=str(result.evidence_dir)))
-            if result.blocked:
+            salida.write(t("tui.close.status", status=result.estado.value))
+            if result.ruta_paquete is not None:
+                salida.write(t("tui.close.evidence", dir=str(result.ruta_paquete)))
+            for bloqueo in result.bloqueos:
+                salida.write(Text(f"- {bloqueo}", style="red"))
+            if not result.aprobado:
                 salida.write(t("tui.close.blocked"))
-            elif result.status == "no_gates":
-                salida.write(t("tui.close.done.nogates"))
             else:
                 salida.write(t("tui.close.done"))
             self.query_one("#btn-close", Button).disabled = False

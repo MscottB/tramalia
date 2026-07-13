@@ -127,19 +127,11 @@ def test_tui_trata_proyecto_parcial_como_no_inicializado(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     from textual.widgets import Button, Input
 
-    from tramalia.core import governance
-    from tramalia.tui import build_app
-
-    llamadas = []
-
-    def cierre_prohibido(*args, **kwargs):
-        llamadas.append((*args, kwargs))
-        raise AssertionError("el cierre no debe ejecutarse")
+    import tramalia.tui as tui
 
     (tmp_path / ".tramalia").mkdir()
-    monkeypatch.setattr(governance, "close", cierre_prohibido)
     monkeypatch.chdir(tmp_path)
-    aplicacion = build_app()()
+    aplicacion = tui.build_app()()
 
     async def verificar():
         async with aplicacion.run_test() as piloto:
@@ -148,7 +140,7 @@ def test_tui_trata_proyecto_parcial_como_no_inicializado(tmp_path, monkeypatch):
             aplicacion.query_one("#in-task", Input).value = "TASK-1"
             aplicacion._start_close(aplicacion.query_one("#btn-close", Button))
             await piloto.pause()
-            assert llamadas == []
+            assert list((tmp_path / ".tramalia").iterdir()) == []
 
     asyncio.run(verificar())
 
@@ -157,8 +149,7 @@ def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     from textual.widgets import Button, Input
 
-    from tramalia.core import governance
-    from tramalia.tui import build_app
+    import tramalia.tui as tui
 
     raiz_original = tmp_path / "original"
     raiz_alterna = tmp_path / "alterna"
@@ -169,20 +160,14 @@ def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
     project.set_scaffolded_version(raiz_original, __version__)
     project.set_scaffolded_version(raiz_alterna, __version__)
 
-    cierres = []
     trabajos = []
-
-    def cierre_prohibido(raiz, *args, **kwargs):
-        cierres.append(raiz)
-        raise AssertionError("el cierre no debe ejecutarse")
 
     def capturar_worker(trabajo, **kwargs):
         trabajos.append(trabajo)
         return None
 
-    monkeypatch.setattr(governance, "close", cierre_prohibido)
     monkeypatch.chdir(raiz_original)
-    aplicacion = build_app()()
+    aplicacion = tui.build_app()()
 
     async def verificar():
         async with aplicacion.run_test() as piloto:
@@ -197,6 +182,7 @@ def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
             await asyncio.to_thread(trabajos[0])
             await piloto.pause()
 
-            assert cierres == []
+            assert not (raiz_original / ".tramalia" / "evidencia").exists()
+            assert not (raiz_alterna / ".tramalia" / "evidencia").exists()
 
     asyncio.run(verificar())

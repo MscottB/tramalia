@@ -6,8 +6,7 @@ pytest.importorskip("mcp")
 
 from mcp.server.fastmcp.exceptions import ToolError
 
-from tramalia.core import context, evidence, handoff
-from tramalia.core.errores import ErrorProyectoNoGobernado
+from tramalia.core.errores import ErrorExcepcionInvalida, ErrorProyectoNoGobernado
 from tramalia.mcp_server import build_server
 
 _EXPECTED = {
@@ -18,6 +17,7 @@ _EXPECTED = {
     "doctor",
     "record_handoff",
     "build_evidence",
+    "cerrar_proyecto",
     "build_context",
 }
 
@@ -39,11 +39,12 @@ def test_estado_mcp_usa_inspeccion_tipificada(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("nombre", "argumentos", "modulo", "atributo"),
+    ("nombre", "argumentos"),
     [
-        ("record_handoff", {"task": "TASK-1"}, "handoff", "new_handoff"),
-        ("build_evidence", {"task": "TASK-1"}, "evidence", "build_evidence"),
-        ("build_context", {}, "context", "build_context"),
+        ("record_handoff", {"task": "TASK-1"}),
+        ("build_evidence", {"task": "TASK-1"}),
+        ("cerrar_proyecto", {"task": "TASK-1"}),
+        ("build_context", {}),
     ],
 )
 def test_mutaciones_mcp_exigen_proyecto_gobernado(
@@ -51,21 +52,24 @@ def test_mutaciones_mcp_exigen_proyecto_gobernado(
     monkeypatch,
     nombre,
     argumentos,
-    modulo,
-    atributo,
 ):
-    modulos = {"context": context, "evidence": evidence, "handoff": handoff}
-    llamadas = []
-
-    def mutacion_prohibida(*args, **kwargs):
-        llamadas.append((*args, kwargs))
-        return tmp_path / "mutado"
-
-    monkeypatch.setattr(modulos[modulo], atributo, mutacion_prohibida)
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(ToolError) as capturada:
         asyncio.run(build_server().call_tool(nombre, argumentos))
 
     assert isinstance(capturada.value.__cause__, ErrorProyectoNoGobernado)
-    assert llamadas == []
+
+
+def test_excepcion_mcp_parcial_no_se_ignora(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(ToolError) as capturada:
+        asyncio.run(
+            build_server().call_tool(
+                "cerrar_proyecto",
+                {"task": "TASK-1", "razon_excepcion": "falso positivo"},
+            )
+        )
+
+    assert isinstance(capturada.value.__cause__, ErrorExcepcionInvalida)

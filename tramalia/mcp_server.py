@@ -9,7 +9,69 @@ Se levanta con `tramalia mcp` (stdio). Requiere el extra: pip install "tramalia-
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
+
+from tramalia.core.errores import ErrorExcepcionInvalida
+from tramalia.core.modelos import ExcepcionFallo
+from tramalia.core.operaciones import (
+    cerrar_proyecto as ejecutar_cierre,
+)
+from tramalia.core.operaciones import (
+    crear_evidencia,
+    registrar_traspaso,
+)
+
+
+def _construir_excepciones_mcp(
+    *,
+    permitir_fallo: bool,
+    razon: str,
+    riesgo_aceptado: str,
+    control_afectado: str,
+    referencia: str,
+    revisor_excepcion: str,
+    revisor_predeterminado: str,
+    expira_en: str,
+    condicion_remediacion: str,
+) -> tuple[ExcepcionFallo, ...]:
+    """Convierte los argumentos MCP en una excepcion completa y auditable."""
+    campos = (
+        razon,
+        riesgo_aceptado,
+        control_afectado,
+        referencia,
+        revisor_excepcion,
+        expira_en,
+        condicion_remediacion,
+    )
+    if not permitir_fallo and not any(campo.strip() for campo in campos):
+        return ()
+
+    expiracion = None
+    if expira_en.strip():
+        try:
+            expiracion = datetime.fromisoformat(expira_en.strip())
+        except ValueError as error:
+            raise ErrorExcepcionInvalida(
+                "La expiracion de la excepcion no usa un formato ISO 8601 valido.",
+                "Usa una fecha con zona horaria, por ejemplo 2026-08-01T00:00:00+00:00.",
+                detalles={"campos": ["expira_en"]},
+            ) from error
+
+    # El modelo valida que todos los campos obligatorios esten presentes, que la
+    # fecha incluya zona horaria y que exista expiracion o condicion de remediacion.
+    return (
+        ExcepcionFallo(
+            razon=razon,
+            riesgo_aceptado=riesgo_aceptado,
+            control_afectado=control_afectado,
+            referencia=referencia,
+            revisor=revisor_excepcion.strip() or revisor_predeterminado,
+            expira_en=expiracion,
+            condicion_remediacion=condicion_remediacion or None,
+        ),
+    )
 
 
 def build_server():
@@ -18,8 +80,6 @@ def build_server():
     from tramalia.core import context as context_core
     from tramalia.core import detect
     from tramalia.core import doctor as doctor_core
-    from tramalia.core import evidence as evidence_core
-    from tramalia.core import handoff as handoff_core
     from tramalia.core.proyecto import exigir_proyecto_gobernado, inspeccionar_estado_proyecto
 
     server = FastMCP("tramalia")
@@ -69,20 +129,80 @@ def build_server():
         return "\n".join(lines)
 
     @server.tool()
-    def record_handoff(task: str, agent: str = "", reviewer: str = "") -> str:
-        """Registra temporalmente un handoff mediante el adaptador heredado."""
+    def record_handoff(task: str, agent: str = "", reviewer: str = "") -> dict[str, object]:
+        """Publica un traspaso canonico dentro de un paquete de evidencia v1."""
         root = Path.cwd()
-        exigir_proyecto_gobernado(root)
-        path = handoff_core.new_handoff(root, task, agent, reviewer)
-        return f"handoff agregado a {path}"
+        paquete = registrar_traspaso(root, task, agente=agent, revisor=reviewer)
+        return {
+            "operacion": "traspaso",
+            "id_paquete": paquete.id_paquete,
+            "ruta_paquete": paquete.ruta.relative_to(root).as_posix(),
+        }
 
     @server.tool()
-    def build_evidence(task: str = "TASK-000") -> str:
-        """Crea el evidence pack de cierre de una tarea."""
+    def build_evidence(
+        task: str = "TASK-000",
+        agent: str = "",
+        reviewer: str = "",
+        model: str = "",
+    ) -> dict[str, object]:
+        """Publica evidencia standalone sin afirmar que el cierre fue aprobado."""
         root = Path.cwd()
-        exigir_proyecto_gobernado(root)
-        target = evidence_core.build_evidence(root, task)
-        return f"evidence pack creado en {target}"
+        paquete = crear_evidencia(
+            root,
+            task,
+            agente=agent,
+            revisor=reviewer,
+            modelo=model,
+        )
+        return {
+            "operacion": "evidencia",
+            "id_paquete": paquete.id_paquete,
+            "ruta_paquete": paquete.ruta.relative_to(root).as_posix(),
+        }
+
+    @server.tool()
+    def cerrar_proyecto(
+        task: str,
+        agent: str = "",
+        reviewer: str = "",
+        model: str = "",
+        allow_fail: bool = False,
+        razon_excepcion: str = "",
+        riesgo_aceptado: str = "",
+        control_afectado: str = "",
+        referencia_excepcion: str = "",
+        revisor_excepcion: str = "",
+        expira_en: str = "",
+        condicion_remediacion: str = "",
+    ) -> dict[str, object]:
+        """Cierra una tarea con puertas y excepciones completas, si corresponden."""
+        root = Path.cwd()
+        excepciones = _construir_excepciones_mcp(
+            permitir_fallo=allow_fail,
+            razon=razon_excepcion,
+            riesgo_aceptado=riesgo_aceptado,
+            control_afectado=control_afectado,
+            referencia=referencia_excepcion,
+            revisor_excepcion=revisor_excepcion,
+            revisor_predeterminado=reviewer,
+            expira_en=expira_en,
+            condicion_remediacion=condicion_remediacion,
+        )
+        resultado = ejecutar_cierre(
+            root,
+            task,
+            agente=agent,
+            revisor=reviewer,
+            modelo=model,
+            excepciones=excepciones,
+        )
+        return {
+            "estado": resultado.estado.value,
+            "id_paquete": resultado.id_paquete,
+            "bloqueos": list(resultado.bloqueos),
+            "aprobado": resultado.aprobado,
+        }
 
     @server.tool()
     def build_context() -> str:

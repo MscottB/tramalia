@@ -9,12 +9,6 @@ The governance core runs with Python. Integrations transparently invoke external
 tools and return explicit states; they never hide errors or turn an unavailable
 capability into approval.
 
-> **Pre-BETA transition:** this page describes the formal contract already
-> provided by the new core modules. Public CLI, TUI, and MCP adapters are still
-> being migrated on this branch and may emit the legacy format. Do not treat
-> their output as v1 evidence until that unification is complete; this warning
-> will be removed before the BETA is published.
-
 ## Summary
 
 | Command | Purpose | Type |
@@ -131,11 +125,12 @@ hashes, and non-finite numbers are rejected before publication.
 
 ### Metrics and thresholds
 
-When `.tramalia/metrics.json` exists, its values are included under `metricas`.
-When `.tramalia/thresholds.json` also exists, limits are recorded under
-`umbrales`. A missing or out-of-range metric blocks like a failed gate. Invalid
-JSON or an invalid schema is a configuration error and never publishes false
-approval.
+When `.tramalia/metrics.json` exists, its values are included under `metricas`
+and the readable `metricas.json` artifact is published. When
+`.tramalia/thresholds.json` also exists, limits are recorded under `umbrales`
+and the diagnostic is written to `umbrales-metricas.txt`. A missing or
+out-of-range metric blocks like a failed gate. Invalid JSON or an invalid schema
+is a configuration error and never publishes false approval.
 
 ## log — structured audit log
 

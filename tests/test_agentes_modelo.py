@@ -3,7 +3,6 @@
 import re
 
 from tramalia.__main__ import build_parser
-from tramalia.core import governance
 from tramalia.core.detect import enabled_features
 from tramalia.core.scaffold import scaffold
 
@@ -48,19 +47,6 @@ def test_subagentes_anclados_a_tramalia(tmp_path):
     base = tmp_path / ".claude" / "agents"
     assert "tramalia close" in (base / "ejecutor.md").read_text(encoding="utf-8")
     assert "evidence pack" in (base / "revisor.md").read_text(encoding="utf-8")
-
-
-def test_close_registra_modelo_en_metadata(tmp_path, monkeypatch):
-    monkeypatch.setattr(governance.proc, "which", lambda c: None)
-    res = governance.close(tmp_path, "TASK-1", agent="codex", model="opus")
-    assert res.metadata["model"] == "opus"
-
-
-def test_log_incluye_modelo(tmp_path, monkeypatch):
-    monkeypatch.setattr(governance, "run_gates", lambda root: ([("build", 0, "ok")], True))
-    governance.close(tmp_path, "TASK-2", agent="codex", model="haiku")
-    entries = governance.read_log(tmp_path)
-    assert entries[0]["model"] == "haiku"
 
 
 def test_parser_acepta_model_y_features():

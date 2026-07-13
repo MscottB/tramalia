@@ -56,7 +56,9 @@ For a data/ML task, "passed the gates" isn't enough: *which data* and *which met
 }
 ```
 
-On close, `close` **copies it raw into the evidence pack** (`metrics.json`, immutable like all evidence) and **embeds it in `metadata.json`** under `metrics`. So the close records which dataset and which numbers it produced, not just pass/fail.
+On close, `close` preserves its values in the formal pack as `metricas.json`
+and records them in `metadatos.json` under `metricas`. The close therefore
+records which dataset and numbers produced the result, not just pass/fail.
 
 **2 · (Optional) `.tramalia/thresholds.json` turns a threshold into a gate:**
 
@@ -64,7 +66,12 @@ On close, `close` **copies it raw into the evidence pack** (`metrics.json`, immu
 { "accuracy": { "min": 0.90 }, "drift": { "max": 0.05 } }
 ```
 
-If a metric **violates** its threshold (or is missing, since you can't pass a threshold you didn't measure), the close is **blocked** like a failed gate — `status: blocked`, exit 1 — unless `--allow-fail` (recorded as `passed_with_exceptions`, never `passed`). The detail lands in `metrics-thresholds.txt` and in `metadata.json → metric_thresholds`.
+If a metric **violates** its threshold (or is missing, since an unmeasured
+threshold cannot pass), the close records `estado_cierre: bloqueado` and exits 1,
+just like a failed quality gate. `--allow-fail` only proceeds with a complete
+exception for the exact control; it records `aprobado_con_excepciones`, never
+`aprobado`. Details are written to `umbrales-metricas.txt`, while limits remain
+under `metadatos.json → umbrales`.
 
 !!! tip "Why this matters"
     An accuracy regression that **prevents closing the task**, with the dataset hash and the metric as evidence — no `git log` gives you that. It's ML governance, not just code governance.

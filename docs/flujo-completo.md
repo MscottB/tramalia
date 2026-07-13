@@ -5,11 +5,6 @@ el repositorio, trabajar una tarea, verificarla y publicar un cierre auditable.
 La CLI y `tramalia ui` consumen el mismo núcleo; la interfaz no redefine las
 reglas ni recalcula el resultado.
 
-> **Transición previa a la BETA:** el flujo inferior documenta el núcleo formal
-> ya implementado. Los adaptadores públicos aún se están conectando a estas APIs
-> en esta rama y pueden emitir el formato heredado hasta completar esa migración.
-> La advertencia se retirará antes de publicar la BETA.
-
 ## Vista general
 
 ```mermaid
