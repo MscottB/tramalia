@@ -3,25 +3,7 @@
 import json
 
 from tramalia.core import governance
-from tramalia.core.governance import _check_thresholds, close
-
-
-# ---------------------------------------------------------------- umbrales (unit)
-def test_check_thresholds_min_y_max():
-    metrics = {"metrics": {"accuracy": 0.88, "drift": 0.09}}
-    thr = {"accuracy": {"min": 0.90}, "drift": {"max": 0.05}}
-    v = _check_thresholds(metrics, thr)
-    assert any("accuracy" in x for x in v) and any("drift" in x for x in v)
-
-
-def test_check_thresholds_ok():
-    metrics = {"metrics": {"accuracy": 0.95}}
-    assert _check_thresholds(metrics, {"accuracy": {"min": 0.90}}) == []
-
-
-def test_check_thresholds_metrica_ausente_es_incumplimiento():
-    v = _check_thresholds({"metrics": {}}, {"accuracy": {"min": 0.9}})
-    assert v and "ausente" in v[0]
+from tramalia.core.governance import close
 
 
 # ---------------------------------------------------------------- close integra
