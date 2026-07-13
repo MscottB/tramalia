@@ -1,5 +1,6 @@
 """v0.31: identidad instalada y actualización disponible de habilidades externas."""
 
+import json
 import shutil
 import subprocess
 import types
@@ -191,6 +192,123 @@ def test_tui_habilidades_muestra_fallo_remoto_sin_informar_cero_actualizaciones(
 
     assert any("mihabilidad" in mensaje and "git_salida_no_cero" in mensaje for mensaje in mensajes)
     assert t("skills.update.found", n=0) not in mensajes
+
+
+def test_cli_habilidades_desactualizadas_renderiza_git_ausente_y_devuelve_uno(
+    tmp_path, monkeypatch
+):
+    remoto = _crear_remoto(tmp_path)
+    proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    (proyecto / ".tramalia" / "habilidades" / "mihabilidad").mkdir(parents=True)
+    monkeypatch.chdir(proyecto)
+    monkeypatch.setattr(habilidades, "git_disponible", lambda: False)
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda argumentos, **_opciones: ResultadoProceso(tuple(argumentos), 127, "", "git ausente"),
+    )
+    from tramalia.cli import commands
+
+    errores: list[str] = []
+    monkeypatch.setattr(commands.render, "err", errores.append)
+    argumentos = types.SimpleNamespace(action="outdated", name=None)
+
+    codigo = commands.cmd_skills(argumentos)
+
+    assert codigo == 1
+    assert any(
+        "mihabilidad" in error and "git_no_instalado" in error and "Instala Git" in error
+        for error in errores
+    )
+
+
+def test_tui_habilidades_muestra_git_ausente_con_remediacion(tmp_path, monkeypatch):
+    pytest.importorskip("textual")
+    remoto = _crear_remoto(tmp_path)
+    proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    (proyecto / ".tramalia" / "habilidades" / "mihabilidad").mkdir(parents=True)
+    monkeypatch.chdir(proyecto)
+    monkeypatch.setattr(habilidades, "git_disponible", lambda: False)
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda argumentos, **_opciones: ResultadoProceso(tuple(argumentos), 127, "", "git ausente"),
+    )
+    resolucion = habilidades.consultar_habilidades(proyecto, consultar_remoto=True)[0]
+    from tramalia.i18n import t
+    from tramalia.tui import build_app
+
+    mensajes: list[str] = []
+
+    class RegistroMensajes:
+        def write(self, mensaje: str) -> None:
+            mensajes.append(mensaje)
+
+    aplicacion = build_app()()
+    aplicacion._skill_updates = {}
+    clase_aplicacion = type(aplicacion)
+    monkeypatch.setattr(clase_aplicacion, "_skills_log", lambda _self: RegistroMensajes())
+    monkeypatch.setattr(clase_aplicacion, "_refresh_skills", lambda *_argumentos: None)
+
+    aplicacion._after_check_updates((resolucion,))
+
+    assert any(
+        "mihabilidad" in mensaje and "git_no_instalado" in mensaje and "Instala Git" in mensaje
+        for mensaje in mensajes
+    )
+    assert t("skills.update.found", n=0) not in mensajes
+
+
+def test_tui_enter_habilidad_team_ausente_autoriza_fijar_y_materializar(tmp_path, monkeypatch):
+    pytest.importorskip("textual")
+    remoto = _crear_remoto(tmp_path)
+    proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    (proyecto / ".tramalia" / "config.json").write_text(
+        json.dumps({"mode": "team"}), encoding="utf-8"
+    )
+    (proyecto / ".tramalia" / "habilidades.lock.json").write_text(
+        json.dumps(
+            {
+                "version_esquema": 1,
+                "habilidades": {
+                    "existente": {
+                        "fuente": "git+https://example.com/existente.git",
+                        "referencia": "main",
+                        "sha_resuelto": "a" * 40,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(proyecto)
+    from tramalia.tui import build_app
+
+    class RegistroMensajes:
+        def write(self, _mensaje: str) -> None:
+            return None
+
+    evento = types.SimpleNamespace(
+        data_table=types.SimpleNamespace(get_row=lambda _clave: ["mihabilidad"]),
+        row_key="mihabilidad",
+    )
+    llamadas: list[tuple[str, bool]] = []
+    aplicacion = build_app()()
+    clase_aplicacion = type(aplicacion)
+
+    def sincronizar_una(_self, nombre, actualizar=False):
+        llamadas.append((nombre, actualizar))
+
+    def ejecutar_trabajo(_self, trabajo, **_opciones):
+        trabajo()
+
+    monkeypatch.setattr(clase_aplicacion, "_skills_log", lambda _self: RegistroMensajes())
+    monkeypatch.setattr(clase_aplicacion, "_sync_one_skill", sincronizar_una)
+    monkeypatch.setattr(clase_aplicacion, "run_worker", ejecutar_trabajo)
+
+    aplicacion._toggle_skill(evento)
+
+    assert llamadas == [("mihabilidad", True)]
 
 
 def test_cli_habilidades_sincroniza_una(tmp_path, monkeypatch):

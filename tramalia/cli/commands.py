@@ -676,18 +676,21 @@ def cmd_skills(args) -> int:
     if action == "outdated":
         render.info(t("skills.outdated.checking"))
         estados = habilidades.consultar_habilidades(root, consultar_remoto=True)
-        fallidas = [estado for estado in estados if estado.accion == "fallida"]
+        fallidas = [
+            estado
+            for estado in estados
+            if not estado.estado.exitoso and estado.estado.motivo != "habilidad_no_instalada"
+        ]
         for estado in fallidas:
             render.err(
                 t(
                     "skills.outdated.fail",
                     name=estado.nombre,
                     reason=estado.estado.motivo,
+                    remediation=estado.estado.remediacion,
                 )
             )
-        instaladas = [
-            estado for estado in estados if estado.sha_resuelto and estado.accion != "fallida"
-        ]
+        instaladas = [estado for estado in estados if estado.sha_resuelto and estado.estado.exitoso]
         if not instaladas and not fallidas:
             render.info(t("skills.outdated.none_installed"))
             return 0

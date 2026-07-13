@@ -490,9 +490,8 @@ def build_app():
 
         def _toggle_skill(self, event) -> None:
             """Enter sobre una skill externa, en UN paso:
-            - no instalada  → la declara y la clona (instalar).
-            - instalada     → la desactiva (los archivos quedan, pero el .gitignore
-                              los excluye del repo; el manifiesto la puede re-traer)."""
+            - no instalada  → la declara, fija su SHA y la materializa.
+            - instalada     → actualiza explícitamente esa sola habilidad."""
             root = Path.cwd()
             name = str(event.data_table.get_row(event.row_key)[0]).strip()
             externa = next(
@@ -518,7 +517,11 @@ def build_app():
             if not externa.habilitada:
                 habilidades.fijar_habilitada(root, name, True)
             log.write(t("skills.install.one", name=name))  # y clonar en el acto
-            self.run_worker(lambda: self._sync_one_skill(name), thread=True, exclusive=True)
+            self.run_worker(
+                lambda: self._sync_one_skill(name, actualizar=True),
+                thread=True,
+                exclusive=True,
+            )
 
         def _sync_one_skill(self, name, actualizar=False) -> None:
             resultado = habilidades.sincronizar_habilidades(
@@ -558,11 +561,15 @@ def build_app():
             self.call_from_thread(self._after_check_updates, estados)
 
         def _after_check_updates(self, estados) -> None:
-            fallidas = [estado for estado in estados if estado.accion == "fallida"]
+            fallidas = [
+                estado
+                for estado in estados
+                if not estado.estado.exitoso and estado.estado.motivo != "habilidad_no_instalada"
+            ]
             self._skill_updates = {
                 estado.nombre: estado.estado.motivo == "actualizacion_disponible"
                 for estado in estados
-                if estado.sha_resuelto and estado.accion != "fallida"
+                if estado.sha_resuelto and estado.estado.exitoso
             }
             log = self._skills_log()
             for estado in fallidas:
@@ -571,6 +578,7 @@ def build_app():
                         "skills.outdated.fail",
                         name=estado.nombre,
                         reason=estado.estado.motivo,
+                        remediation=estado.estado.remediacion,
                     )
                 )
             n = sum(1 for v in self._skill_updates.values() if v)

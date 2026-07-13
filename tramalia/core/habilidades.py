@@ -633,6 +633,30 @@ def _resolucion_fallida(
     )
 
 
+def _resolucion_no_disponible(
+    habilidad: HabilidadDeclarada,
+    *,
+    motivo: str,
+    impacto: str,
+    remediacion: str,
+) -> ResolucionHabilidad:
+    return ResolucionHabilidad(
+        habilidad.nombre,
+        habilidad.fuente,
+        habilidad.referencia,
+        None,
+        "sin_cambios",
+        _estado_habilidad(
+            ValorEstadoIntegracion.NO_DISPONIBLE,
+            solicitado="git",
+            utilizado=None,
+            motivo=motivo,
+            impacto=impacto,
+            remediacion=remediacion,
+        ),
+    )
+
+
 def _bloqueo_alineado(habilidad: HabilidadDeclarada, bloqueo: BloqueoHabilidad | None) -> bool:
     return (
         bloqueo is not None
@@ -980,31 +1004,32 @@ def consultar_habilidades(
         the verified local SHA while exposing a failed integration state.
     """
     resoluciones: list[ResolucionHabilidad] = []
-    for habilidad in catalogo_habilidades(raiz):
-        sha_local, resultado_local = _sha_instalado_completo(raiz, habilidad.nombre)
-        if sha_local is None:
-            motivo = (
-                _motivo_fallo_git(resultado_local, resolviendo=False)
-                if habilidad.instalada
-                else "habilidad_no_instalada"
-            )
+    catalogo = catalogo_habilidades(raiz)
+    hay_git = git_disponible()
+    for habilidad in catalogo:
+        if not habilidad.instalada:
             resoluciones.append(
-                ResolucionHabilidad(
-                    habilidad.nombre,
-                    habilidad.fuente,
-                    habilidad.referencia,
-                    None,
-                    "sin_cambios",
-                    _estado_habilidad(
-                        ValorEstadoIntegracion.NO_DISPONIBLE,
-                        solicitado="git",
-                        utilizado=None,
-                        motivo=motivo,
-                        impacto="La habilidad no tiene un SHA local verificable.",
-                        remediacion="Sincroniza la habilidad antes de usarla.",
-                    ),
+                _resolucion_no_disponible(
+                    habilidad,
+                    motivo="habilidad_no_instalada",
+                    impacto="La habilidad no tiene un SHA local verificable.",
+                    remediacion="Sincroniza la habilidad antes de usarla.",
                 )
             )
+            continue
+        if not hay_git:
+            resoluciones.append(
+                _resolucion_no_disponible(
+                    habilidad,
+                    motivo="git_no_instalado",
+                    impacto="No se puede verificar el SHA local sin Git.",
+                    remediacion="Instala Git y vuelve a comprobar las habilidades.",
+                )
+            )
+            continue
+        sha_local, resultado_local = _sha_instalado_completo(raiz, habilidad.nombre)
+        if sha_local is None:
+            resoluciones.append(_resolucion_fallida(habilidad, resultado_local))
             continue
         motivo = "sha_instalado_verificado"
         impacto = "sin impacto"

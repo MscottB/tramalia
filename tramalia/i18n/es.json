@@ -88,7 +88,7 @@
   "skills.outdated.available": "⬆ {name}: {old} → {new} (actualizable)",
   "skills.outdated.checking": "comprobando actualizaciones en los remotos (git ls-remote)…",
   "skills.outdated.current": "✓ {name}: {ref} (al día)",
-  "skills.outdated.fail": "✗ {name}: falló la consulta remota ({reason})",
+  "skills.outdated.fail": "✗ {name}: falló la comprobación ({reason}). {remediation}",
   "skills.outdated.hint": "versión instalada tras @; `tramalia skills outdated` compara con el remoto.",
   "skills.outdated.none_installed": "no hay skills externas instaladas que comprobar.",
   "skills.outdated.update_all": "mueve los locks con `tramalia skills update` (todas) o `tramalia skills update <nombre>` (una).",

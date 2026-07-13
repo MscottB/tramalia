@@ -440,6 +440,49 @@ def test_consulta_remota_fallida_conserva_sha_local(tmp_path: Path, monkeypatch)
     assert resolucion.estado.motivo == "git_salida_no_cero"
 
 
+def test_consulta_local_sin_git_es_no_disponible_y_no_invoca_proceso(
+    tmp_path: Path, monkeypatch
+) -> None:
+    raiz = _proyecto(tmp_path, tmp_path / "remoto")
+    (raiz / ".tramalia" / "habilidades" / "demo").mkdir(parents=True)
+    llamadas: list[tuple[str, ...]] = []
+
+    def ejecutar(argumentos, **_opciones):
+        llamadas.append(tuple(argumentos))
+        return ResultadoProceso(tuple(argumentos), 127, "", "git ausente")
+
+    monkeypatch.setattr(habilidades, "git_disponible", lambda: False)
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+
+    resolucion = habilidades.consultar_habilidades(raiz, consultar_remoto=True)[0]
+
+    assert resolucion.accion == "sin_cambios"
+    assert resolucion.estado.estado == "no_disponible"
+    assert resolucion.estado.motivo == "git_no_instalado"
+    assert "Instala Git" in resolucion.estado.remediacion
+    assert llamadas == []
+
+
+def test_consulta_local_checkout_corrupto_es_fallida(tmp_path: Path, monkeypatch) -> None:
+    raiz = _proyecto(tmp_path, tmp_path / "remoto")
+    (raiz / ".tramalia" / "habilidades" / "demo" / ".git").mkdir(parents=True)
+    monkeypatch.setattr(habilidades, "git_disponible", lambda: True)
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda argumentos, **_opciones: ResultadoProceso(
+            tuple(argumentos), 128, "", "checkout corrupto"
+        ),
+    )
+
+    resolucion = habilidades.consultar_habilidades(raiz)[0]
+
+    assert resolucion.sha_resuelto is None
+    assert resolucion.accion == "fallida"
+    assert resolucion.estado.estado == "fallido"
+    assert resolucion.estado.motivo == "git_salida_no_cero"
+
+
 @pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
 def test_modo_equipo_no_usa_pull_ni_resuelve_referencia_con_lock(
     tmp_path: Path, monkeypatch
