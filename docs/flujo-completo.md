@@ -96,7 +96,7 @@ mise.toml                        # herramientas y puertas del stack
 ├── config.json
 ├── current-task.md
 ├── context/
-├── skills/
+├── habilidades/
 └── evidencia/                   # paquetes formales, ignorados por Git
 ```
 

@@ -3,7 +3,11 @@
 import json
 
 from tramalia.__main__ import build_parser
-from tramalia.core.project import current_task_id, default_agents, resolve_close_args
+from tramalia.core.configuracion import (
+    agentes_predeterminados,
+    id_tarea_actual,
+    resolver_argumentos_cierre,
+)
 
 
 def _proyecto(tmp_path, task_id=None):
@@ -17,15 +21,15 @@ def _proyecto(tmp_path, task_id=None):
 
 
 def test_parser_acepta_task_posicional():
-    args = build_parser().parse_args(["close", "TASK-9"])
-    assert args.task_pos == "TASK-9"
-    args = build_parser().parse_args(["handoff", "TASK-9"])
-    assert args.task_pos == "TASK-9"
+    argumentos = build_parser().parse_args(["close", "TASK-9"])
+    assert argumentos.task_pos == "TASK-9"
+    argumentos = build_parser().parse_args(["handoff", "TASK-9"])
+    assert argumentos.task_pos == "TASK-9"
 
 
 def test_flag_task_sigue_funcionando():
-    args = build_parser().parse_args(["close", "--task", "TASK-9"])
-    assert args.task == "TASK-9" and args.task_pos is None
+    argumentos = build_parser().parse_args(["close", "--task", "TASK-9"])
+    assert argumentos.task == "TASK-9" and argumentos.task_pos is None
 
 
 def test_current_task_placeholder_no_cuenta(tmp_path):
@@ -33,31 +37,39 @@ def test_current_task_placeholder_no_cuenta(tmp_path):
     (tmp_path / ".tramalia" / "current-task.md").write_text(
         "- ID: [TASK-XXX — debe existir en specs/tasks.md]\n", encoding="utf-8"
     )
-    assert current_task_id(tmp_path) is None
+    assert id_tarea_actual(tmp_path) is None
 
 
 def test_current_task_con_id_real(tmp_path):
     _proyecto(tmp_path, "TASK-042")
-    assert current_task_id(tmp_path) == "TASK-042"
+    assert id_tarea_actual(tmp_path) == "TASK-042"
 
 
 def test_defaults_de_config(tmp_path):
     _proyecto(tmp_path)
-    assert default_agents(tmp_path) == ("codex", "claude")
+    assert agentes_predeterminados(tmp_path) == ("codex", "claude")
 
 
 def test_resolucion_completa_sin_flags(tmp_path):
     _proyecto(tmp_path, "TASK-042")
     # `tramalia close` a secas: tarea de current-task, agentes de config
-    assert resolve_close_args(tmp_path, None, None, None, None) == ("TASK-042", "codex", "claude")
+    assert resolver_argumentos_cierre(tmp_path, None, None, None, None) == (
+        "TASK-042",
+        "codex",
+        "claude",
+    )
 
 
 def test_posicional_gana_y_flags_hacen_override(tmp_path):
     _proyecto(tmp_path, "TASK-042")
-    task, agent, _ = resolve_close_args(tmp_path, "TASK-7", "TASK-8", "gemini", None)
-    assert task == "TASK-7" and agent == "gemini"
+    tarea, agente, _ = resolver_argumentos_cierre(tmp_path, "TASK-7", "TASK-8", "gemini", None)
+    assert tarea == "TASK-7" and agente == "gemini"
 
 
 def test_sin_nada_cae_a_task_000_sin_colgarse(tmp_path):
     # sin config, sin current-task, sin prompt (ask=None): scripts nunca se cuelgan
-    assert resolve_close_args(tmp_path, None, None, None, None) == ("TASK-000", "", "")
+    assert resolver_argumentos_cierre(tmp_path, None, None, None, None) == (
+        "TASK-000",
+        "",
+        "",
+    )

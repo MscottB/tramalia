@@ -3,7 +3,7 @@
 import json
 import re
 
-from tramalia.core import model_cap, project
+from tramalia.core import configuracion, model_cap
 from tramalia.core.detect import enabled_features
 from tramalia.core.scaffold import scaffold
 
@@ -76,19 +76,19 @@ def test_cap_none_restaura_defaults(tmp_path):
 
 def test_project_cap_persiste_en_config(tmp_path):
     _init(tmp_path)
-    assert project.agents_model_cap(tmp_path) == "none"
-    assert project.set_agents_model_cap(tmp_path, "opus")
-    assert project.agents_model_cap(tmp_path) == "opus"
+    assert configuracion.tope_modelos_agentes(tmp_path) == "none"
+    assert configuracion.fijar_tope_modelos_agentes(tmp_path, "opus")
+    assert configuracion.tope_modelos_agentes(tmp_path) == "opus"
     data = json.loads((tmp_path / ".tramalia" / "config.json").read_text(encoding="utf-8"))
     assert data["agents"]["model_cap"] == "opus"
 
 
 def test_set_cap_rechaza_invalido_y_sin_config(tmp_path):
     _init(tmp_path)
-    assert project.set_agents_model_cap(tmp_path, "gpt5") is False
-    assert project.set_agents_model_cap(tmp_path, "opus")  # válido
+    assert configuracion.fijar_tope_modelos_agentes(tmp_path, "gpt5") is False
+    assert configuracion.fijar_tope_modelos_agentes(tmp_path, "opus")  # válido
     # sin config.json:
-    assert project.set_agents_model_cap(tmp_path / "otro", "opus") is False
+    assert configuracion.fijar_tope_modelos_agentes(tmp_path / "otro", "opus") is False
 
 
 # ---------------------------------------------------------------- equivalencias
@@ -105,7 +105,7 @@ def test_tools_json_incluye_model_cap(tmp_path):
     from tramalia.core.doctor import diagnose, write_snapshot
 
     _init(tmp_path)
-    project.set_agents_model_cap(tmp_path, "sonnet")
+    configuracion.fijar_tope_modelos_agentes(tmp_path, "sonnet")
     out = write_snapshot(diagnose(tmp_path), tmp_path)
     assert json.loads(out.read_text(encoding="utf-8"))["model_cap"] == "sonnet"
 
@@ -127,7 +127,7 @@ def test_init_con_model_cap_aplica(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["tramalia", "--plain", "init", "--model-cap", "sonnet"])
     assert main() in (0, None)
     assert _model_of(tmp_path, "revisor") == "sonnet"
-    assert project.agents_model_cap(tmp_path) == "sonnet"
+    assert configuracion.tope_modelos_agentes(tmp_path) == "sonnet"
 
 
 # ---------------------------------------------------------------- CLI

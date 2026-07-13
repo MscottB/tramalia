@@ -18,7 +18,7 @@ tramalia init
 | `CLAUDE.md` (`@AGENTS.md`) | Claude Code aligned without duplicating rules |
 | `docs/ai/00–13` | The project's memory: architecture, rules **with stack-aware seed content** (code/DB/security/UX), deploy, analytics, ADR, **failed attempts**, handoff |
 | `specs/` | Every feature is born as a task with an ID in `tasks.md`, with `Estado` and `Horizonte` (now·next·later) — that ID is what `close` audits |
-| `.tramalia/skills/01…16` | 16 workflows telling the agent *how work is done here* — incl. deploy, analytics and threat modeling ([guide](skills-guia.md)) |
+| `.tramalia/habilidades/01…16` | 16 workflows telling the agent *how work is done here* — incl. deploy, analytics and threat modeling ([guide](skills-guia.md)) |
 | `.claude/agents/` | **5 subagents with model routing**: planner→opus, executor→inherit, reviewer→opus, documenter→haiku, deep-solver→fable |
 | `mise.toml` | The detected stack's gates: `ng build`, `dotnet test`, `sqlfluff`, `semgrep`, `lhci`… |
 | `.mcp.json` | Serena wired (semantic navigation); Engram if installed |
@@ -118,7 +118,7 @@ Or in the **dashboard**: `tramalia ui` → Audit tab; Enter on the close shows i
 |---|---|---|
 | `close --engram` | **Engram** | the close persists in cross-session memory (N2) |
 | `init --with-headroom` | **Headroom** | compresses context/outputs for agents — **never** the raw evidence |
-| `tramalia skills` + `init --with-ponytail` | **Ponytail** | clones its ruleset to `.tramalia/skills/ponytail/` and wires its MCP (`ponytail_instructions`) |
+| `tramalia skills` + `init --with-ponytail` | **Ponytail** | clones its ruleset to `.tramalia/habilidades/ponytail/` and wires its MCP (`ponytail_instructions`) |
 | `/speckit.specify` | **Spec Kit** | supercharges the `specs/` folder Tramalia already generated (doctor detects it) |
 | query MCP server | **codebase-memory-mcp** / **CodeGraph** | structural code graph as context backend (install with `--skip-config`) — [criterion for which one](interop-contexto.md#the-criterion-which-to-mount-and-which-to-use) |
 | `markitdown requirements.docx -o docs/ai/09-*.md` | **markitdown** | ingests the PRD or manual in `.docx`/`.pdf` into Markdown context |

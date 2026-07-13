@@ -170,19 +170,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sk = sub.add_parser(
         "skills",
-        help="administra skills (.tramalia/skills.toml): sync/list/outdated/enable/disable/add",
+        help=(
+            "administra skills (.tramalia/habilidades.toml): "
+            "sync/update/list/outdated/enable/disable/add"
+        ),
     )
     sk.add_argument(
         "action",
         nargs="?",
-        choices=["sync", "list", "outdated", "enable", "disable", "add"],
+        choices=["sync", "update", "list", "outdated", "enable", "disable", "add"],
         default="sync",
     )
     sk.add_argument(
         "name",
         nargs="?",
         default=None,
-        help="nombre (sync/enable/disable) o URL git (add). En `sync`, actualiza solo esa skill",
+        help=(
+            "nombre (sync/update/enable/disable) o URL git (add). "
+            "En sync/update, limita la operación a esa skill"
+        ),
     )
     sk.add_argument(
         "alias", nargs="?", default=None, help="nombre opcional para `add` (default: del URL)"

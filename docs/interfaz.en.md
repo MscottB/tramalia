@@ -99,7 +99,7 @@ backend role.
 
 Manage skills without editing files by hand (the visual counterpart of [the skills guide](skills-guia.md)):
 
-- **Grouped table**: the **16 own** skills (repo workflows, with their description) and the **external** ones from the `skills.toml` catalog — including the **commented** ones, shown as `○ available`.
+- **Grouped table**: the **16 own** skills (repo workflows, with their description) and the **external** ones from the `habilidades.toml` catalog — including the **commented** ones, shown as `○ available`.
 - **Enter on an external one**: if it's not there, it **installs** it in one step (declares and clones); if it's already installed, it **updates** it (`git pull` of that one). The legend above recalls the 3 states and what each key does.
 - **`s` key** updates **all** declared ones from their repos (`git`), with live results (`clonada` / `actualizada` / `error`) and a `✓ n/total` summary.
 - **`u` key** checks the remotes for which skills have a **newer version** (`git ls-remote`) and marks the outdated ones with `⬆ update available`.
@@ -109,7 +109,7 @@ Manage skills without editing files by hand (the visual counterpart of [the skil
 
 There's also a **URL input**: paste any skill's git URL and Enter adds it to the manifest (then Enter on it, or `s`, clones it).
 
-> External skills are **not committed to the repo** (the `.gitignore` that `init` drops excludes them) but they **aren't lost**: the `skills.toml` manifest re-hydrates them with `tramalia skills` after a `git clone`. Details in [the skills guide](skills-guia.md).
+> External skills are **not committed to the repo** (the `.gitignore` that `init` drops excludes them) but they **aren't lost**: the `habilidades.toml` manifest re-hydrates them with `tramalia skills` after a `git clone`. Details in [the skills guide](skills-guia.md).
 
 CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` · `add <url>` · `sync [<name>]` · `outdated`.
 

@@ -6,7 +6,7 @@ Tramalia is a **thin layer** with a golden rule: *it doesn't implement capabilit
 
 Tramalia's philosophy is **minimalism**: do the minimum correct thing and don't rebuild what already exists. This follows the [Ponytail](https://github.com/DietrichGebert/ponytail) principle (and YAGNI). It's not a tool you install: it's a **rule that is read and followed**.
 
-That's why `tramalia init` writes it into your project's `AGENTS.md` (*General rules — Ponytail / YAGNI* section), so that **any agent** working the repo prioritizes the minimal solution, doesn't over-abstract and doesn't duplicate logic. If you prefer it as a versioned skill, it's included as an example in `.tramalia/skills.toml`.
+That's why `tramalia init` writes it into your project's `AGENTS.md` (*General rules — Ponytail / YAGNI* section), so that **any agent** working the repo prioritizes the minimal solution, doesn't over-abstract and doesn't duplicate logic. If you prefer it as a versioned skill, it's included as an example in `.tramalia/habilidades.toml`.
 
 ## The three layers
 

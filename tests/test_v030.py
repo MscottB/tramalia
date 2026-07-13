@@ -12,7 +12,7 @@ import pytest
 
 from tramalia import __version__
 from tramalia.cli import commands
-from tramalia.core import project
+from tramalia.core import configuracion
 from tramalia.core.detect import enabled_features
 from tramalia.core.proyecto import inspeccionar_estado_proyecto
 from tramalia.core.scaffold import scaffold
@@ -34,9 +34,9 @@ def _init(tmp_path):
 
 # ---------------------------------------------------------------- marcador de versión
 def test_version_marker_round_trip(tmp_path):
-    assert project.scaffolded_version(tmp_path) is None
-    project.set_scaffolded_version(tmp_path, "0.30.0")
-    assert project.scaffolded_version(tmp_path) == "0.30.0"
+    assert configuracion.version_andamiaje(tmp_path) is None
+    configuracion.fijar_version_andamiaje(tmp_path, "0.30.0")
+    assert configuracion.version_andamiaje(tmp_path) == "0.30.0"
 
 
 # ---------------------------------------------------------------- upgrade
@@ -62,7 +62,7 @@ def test_upgrade_recrea_lo_que_falta_y_no_pisa(tmp_path, monkeypatch):
     assert borrado.exists()  # lo que faltaba: recreado
     assert agentes.read_bytes() == agentes_antes  # faltar versión no adopta AGENTS.md
     assert arq.read_text(encoding="utf-8") == "MI CONTENIDO EDITADO"  # lo editado: intacto
-    assert project.scaffolded_version(tmp_path) == __version__  # versión registrada
+    assert configuracion.version_andamiaje(tmp_path) == __version__  # versión registrada
 
 
 def test_upgrade_registra_gitignore(tmp_path, monkeypatch):
@@ -72,7 +72,7 @@ def test_upgrade_registra_gitignore(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     commands.cmd_upgrade(types.SimpleNamespace())
     txt = (tmp_path / ".gitignore").read_text(encoding="utf-8")
-    assert ".tramalia/skills/*/" in txt  # upgrade dejó el bloque
+    assert ".tramalia/habilidades/*/" in txt  # upgrade dejó el bloque
 
 
 def test_upgrade_cli_migra_heredado_sin_pisar_contenido(tmp_path, monkeypatch):
@@ -117,7 +117,7 @@ def test_boton_init_en_resumen(tmp_path, monkeypatch):
             app._run_init(btn)  # inicializa desde Resumen
             await pilot.pause()
             assert inspeccionar_estado_proyecto(tmp_path).listo
-            assert project.scaffolded_version(tmp_path) == __version__
+            assert configuracion.version_andamiaje(tmp_path) == __version__
             assert app.query_one("#btn-init-resumen", Button).display is False  # se oculta
 
     asyncio.run(run())
@@ -157,8 +157,8 @@ def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
     raiz_alterna.mkdir()
     _init(raiz_original)
     _init(raiz_alterna)
-    project.set_scaffolded_version(raiz_original, __version__)
-    project.set_scaffolded_version(raiz_alterna, __version__)
+    configuracion.fijar_version_andamiaje(raiz_original, __version__)
+    configuracion.fijar_version_andamiaje(raiz_alterna, __version__)
 
     trabajos = []
 
@@ -220,7 +220,7 @@ def test_tui_cierre_positivo_delega_y_renderiza_resultado_tipado(tmp_path, monke
 
     monkeypatch.setattr(operaciones_core, "cerrar_proyecto", cerrar)
     _init(tmp_path)
-    project.set_scaffolded_version(tmp_path, __version__)
+    configuracion.fijar_version_andamiaje(tmp_path, __version__)
     monkeypatch.chdir(tmp_path)
     aplicacion = build_app()()
 

@@ -189,17 +189,17 @@ def cmd_init(args) -> int:
     # tope de modelos opcional: aplica sobre los frontmatter recién generados.
     cap = getattr(args, "model_cap", None)
     if cap and cap != "none":
+        from tramalia.core import configuracion
         from tramalia.core import model_cap as mc
-        from tramalia.core import project as proj
 
-        if proj.set_agents_model_cap(root, cap):
+        if configuracion.fijar_tope_modelos_agentes(root, cap):
             for role, modelo in mc.apply_to_agents(root, cap):
                 render.info(f"tope {cap}: {role} → {modelo}")
     # registra la versión con la que se generó (la usa `tramalia upgrade`).
     from tramalia import __version__
-    from tramalia.core import project as _proj
+    from tramalia.core import configuracion
 
-    _proj.set_scaffolded_version(root, __version__)
+    configuracion.fijar_version_andamiaje(root, __version__)
     # aviso de adopción: hay archivos que el repo ya posee y que sin --adopt se saltan.
     if not adopt:
         agents = root / "AGENTS.md"
@@ -243,7 +243,7 @@ def cmd_upgrade(args) -> int:
     tu trabajo: agrega los archivos nuevos que falten, refresca el bloque de
     .gitignore, y registra la versión. Los archivos existentes NO se tocan."""
     from tramalia import __version__
-    from tramalia.core import project, scaffold
+    from tramalia.core import configuracion, scaffold
 
     root = Path.cwd()
     try:
@@ -251,7 +251,7 @@ def cmd_upgrade(args) -> int:
     except ErrorProyectoNoGobernado:
         render.err("este repo no está inicializado; usa `tramalia init` primero.")
         return 1
-    old = project.scaffolded_version(root)
+    old = configuracion.version_andamiaje(root)
     stack = detect_stack(root)
     from tramalia.core.integraciones import detectar_agentes_predeterminados
 
@@ -269,7 +269,7 @@ def cmd_upgrade(args) -> int:
     nuevos = [rel for rel, s in results if s in ("creado", "adaptado")]
     for rel in nuevos:
         render.ok(f"  + {rel}")
-    project.set_scaffolded_version(root, __version__)
+    configuracion.fijar_version_andamiaje(root, __version__)
     desde = f"desde v{old} " if old else ""
     render.ok(
         f"upgrade {desde}a v{__version__}: {len(nuevos)} nuevos/actualizados, "
@@ -292,26 +292,30 @@ def cmd_gates(args) -> int:
 
 
 def cmd_context(args) -> int:
-    from tramalia.core import project
-    from tramalia.core.context_backend import BACKENDS, UTILITIES
+    from tramalia.core import configuracion
+    from tramalia.core.proveedor_contexto import (
+        PROVEEDORES,
+        UTILIDADES,
+        proveedor_disponible,
+    )
     from tramalia.i18n import t
 
     root = Path.cwd()
     action = getattr(args, "action", None) or "build"
 
     if action == "list":
-        actual = project.context_backend(root)
+        actual = configuracion.proveedor_contexto(root)
         render.info(t("context.backend.current", name=actual))
-        for key, meta in BACKENDS.items():
+        for key, meta in PROVEEDORES.items():
             marca = "→" if key == actual else " "
-            estado = "✓" if shutil.which(meta["tool"]) else "○"
-            render.ok(f"{marca} {estado} {key:<20}{meta['label']}")
-            render.info(f"      {meta['scope']}")
+            estado = "✓" if proveedor_disponible(key) else "○"
+            render.ok(f"{marca} {estado} {key:<20}{meta['etiqueta']}")
+            render.info(f"      {meta['alcance']}")
             render.info(f"      {t('context.ideal')}: {meta['ideal']}")
         render.info(t("context.util.header"))
-        for key, meta in UTILITIES.items():
-            estado = "✓" if shutil.which(meta["tool"]) else "○"
-            render.ok(f"    {estado} {key:<20}{meta['label']} — {meta['ideal']}")
+        for key, meta in UTILIDADES.items():
+            estado = "✓" if shutil.which(meta["herramienta"]) else "○"
+            render.ok(f"    {estado} {key:<20}{meta['etiqueta']} — {meta['ideal']}")
         return 0
 
     if action == "set":
@@ -319,35 +323,37 @@ def cmd_context(args) -> int:
         if not name:
             render.err(t("context.set.needname"))
             return 1
-        if project.set_context_backend(root, name):
+        if configuracion.fijar_proveedor_contexto(root, name):
             render.ok(t("context.set.ok", name=name))
             return 0
-        if name not in BACKENDS:
-            render.err(t("context.set.invalid", name=name, opts=", ".join(BACKENDS)))
+        if name not in PROVEEDORES:
+            render.err(t("context.set.invalid", name=name, opts=", ".join(PROVEEDORES)))
         else:
             render.err(t("context.set.noconfig"))
         return 1
 
-    from tramalia.core import context
+    from tramalia.core import contexto
 
-    results = context.build_context(root)
-    for rel in results:
-        render.ok(f"generado  .tramalia/context/{rel}")
-    if shutil.which("repomix") is None:
+    resultado = contexto.construir_contexto(root)
+    for ruta in resultado.archivos:
+        render.ok(f"generado  .tramalia/context/{ruta.name}")
+    if resultado.integracion.estado == "degradado":
         render.info("repomix ausente: project-map se generó con el árbol stdlib.")
         render.info("para snapshot completo: `mise use npm:repomix`.")
-    return 0
+    elif not resultado.integracion.exitoso:
+        render.err(f"repomix falló: {resultado.integracion.motivo}")
+    return 0 if resultado.integracion.exitoso else 1
 
 
 def cmd_agents(args) -> int:
-    from tramalia.core import model_cap, project
+    from tramalia.core import configuracion, model_cap
     from tramalia.i18n import t
 
     root = Path.cwd()
     action = getattr(args, "action", None) or "list"
 
     if action == "list":
-        limite_actual = project.agents_model_cap(root)
+        limite_actual = configuracion.tope_modelos_agentes(root)
         actuales = model_cap.current_agent_models(root)
         if not actuales:
             render.err(t("agents.none"))
@@ -368,7 +374,7 @@ def cmd_agents(args) -> int:
     if not nombre_limite:
         render.err(t("agents.cap.needvalue", opts=", ".join((*model_cap.CAPS, "none"))))
         return 1
-    if not project.set_agents_model_cap(root, nombre_limite):
+    if not configuracion.fijar_tope_modelos_agentes(root, nombre_limite):
         if nombre_limite not in (*model_cap.CAPS, "none"):
             render.err(
                 t(
@@ -416,15 +422,15 @@ def _interactive_ask_task():
 
 def _resolver(args):
     """Aplica la cadena de defaults: posicional > --task > current-task > prompt."""
-    from tramalia.core import project
+    from tramalia.core import configuracion
 
-    return project.resolve_close_args(
+    return configuracion.resolver_argumentos_cierre(
         Path.cwd(),
         getattr(args, "task_pos", None),
         getattr(args, "task", None),
         getattr(args, "agent", None),
         getattr(args, "reviewer", None),
-        ask=_interactive_ask_task(),
+        preguntar=_interactive_ask_task(),
     )
 
 
@@ -621,65 +627,79 @@ def cmd_sync(args) -> int:
     return code
 
 
-def _skill_state(s: dict) -> str:
+def _estado_habilidad_catalogo(habilidad) -> str:
     from tramalia.i18n import t
 
-    if s["installed"]:
+    if habilidad.instalada:
         return t("skills.state.installed")
-    if s["enabled"]:
+    if habilidad.habilitada:
         return t("skills.state.declared")
     return t("skills.state.available")
 
 
 def cmd_skills(args) -> int:
-    from tramalia.core import skills
+    from tramalia.core import habilidades
     from tramalia.i18n import t
 
     root = Path.cwd()
     action = getattr(args, "action", None) or "sync"
 
     if action == "list":
-        propias = skills.own_skills(root)
+        propias = habilidades.habilidades_propias(root)
         if propias:
             render.info(t("skills.group.own"))
-            for s in propias:
-                render.ok(f"{s['name']}  —  {s['description']}")
-        externas = skills.external_status(root)
+            for habilidad in propias:
+                render.ok(f"{habilidad['nombre']}  —  {habilidad['descripcion']}")
+        externas = habilidades.catalogo_habilidades(root)
         if externas:
             render.info(t("skills.group.external"))
-            for s in externas:
-                ref = f"  @{s['installed_ref']}" if s["installed_ref"] else ""
-                render.ok(f"{s['name']:<22}{_skill_state(s)}{ref}  ←  {s['source']}")
-            pendientes = [s["name"] for s in externas if s["enabled"] and not s["installed"]]
+            for habilidad in externas:
+                referencia = habilidades.referencia_instalada(root, habilidad.nombre)
+                sufijo = f"  @{referencia}" if referencia else ""
+                render.ok(
+                    f"{habilidad.nombre:<22}"
+                    f"{_estado_habilidad_catalogo(habilidad)}{sufijo}  ←  {habilidad.fuente}"
+                )
+            pendientes = [
+                habilidad.nombre
+                for habilidad in externas
+                if habilidad.habilitada and not habilidad.instalada
+            ]
             if pendientes:
                 render.info(t("skills.rehydrate", names=", ".join(pendientes)))
             render.info(t("skills.outdated.hint"))
         if not propias and not externas:
             render.info("no hay skills (¿corriste `tramalia init`?)")
-        _warn_tracked_external(skills, root)
+        _avisar_habilidades_externas_rastreadas(habilidades, root)
         return 0
 
     if action == "outdated":
         render.info(t("skills.outdated.checking"))
-        estados = skills.external_status(root, check_remote=True)
-        instaladas = [s for s in estados if s["installed"]]
+        estados = habilidades.consultar_habilidades(root, consultar_remoto=True)
+        instaladas = [estado for estado in estados if estado.sha_resuelto]
         if not instaladas:
             render.info(t("skills.outdated.none_installed"))
             return 0
         hay = False
-        for s in instaladas:
-            if s["update"]:
+        for estado in instaladas:
+            if estado.estado.motivo == "actualizacion_disponible":
                 hay = True
                 render.warn(
                     t(
                         "skills.outdated.available",
-                        name=s["name"],
-                        old=s["installed_ref"],
-                        new=s["available_ref"],
+                        name=estado.nombre,
+                        old=(estado.sha_resuelto or "")[:7],
+                        new=estado.estado.impacto,
                     )
                 )
             else:
-                render.ok(t("skills.outdated.current", name=s["name"], ref=s["installed_ref"]))
+                render.ok(
+                    t(
+                        "skills.outdated.current",
+                        name=estado.nombre,
+                        ref=(estado.sha_resuelto or "")[:7],
+                    )
+                )
         render.info(t("skills.outdated.update_all") if hay else t("skills.outdated.uptodate"))
         return 0
 
@@ -688,7 +708,7 @@ def cmd_skills(args) -> int:
         if not url:
             render.err(t("skills.add.needurl"))
             return 1
-        ok, resultado = skills.add_skill(root, url, getattr(args, "alias", None))
+        ok, resultado = habilidades.agregar_habilidad(root, url, getattr(args, "alias", None))
         if ok:
             render.ok(t("skills.add.ok", name=resultado))
             return 0
@@ -700,7 +720,7 @@ def cmd_skills(args) -> int:
         if not name:
             render.err(t("skills.toggle.needname"))
             return 1
-        if skills.set_enabled(root, name, action == "enable"):
+        if habilidades.fijar_habilitada(root, name, action == "enable"):
             render.ok(
                 t("skills.toggle.on" if action == "enable" else "skills.toggle.off", name=name)
             )
@@ -708,36 +728,38 @@ def cmd_skills(args) -> int:
         render.err(t("skills.toggle.fail", name=name))
         return 1
 
-    # `sync` (default) actualiza todas; `sync <nombre>` solo esa.
-    only = getattr(args, "name", None)
-    results = skills.sync_skills(root, only=only)
-    if not results:
-        if only:
-            render.info(t("skills.sync.notdeclared", name=only))
+    # `sync` rehidrata lo fijado; sólo `skills update` mueve el bloqueo Team.
+    solo = getattr(args, "name", None)
+    resultado = habilidades.sincronizar_habilidades(root, solo=solo, actualizar=action == "update")
+    if not resultado.resoluciones:
+        if solo:
+            render.info(t("skills.sync.notdeclared", name=solo))
         else:
-            render.info("no hay skills declaradas en .tramalia/skills.toml (todas comentadas).")
-        _warn_tracked_external(skills, root)
+            render.info(
+                "no hay skills declaradas en .tramalia/habilidades.toml (todas comentadas)."
+            )
+        _avisar_habilidades_externas_rastreadas(habilidades, root)
         return 0
-    for name, act in results:
-        ok = act in ("clonada", "actualizada")
-        (render.ok if ok else render.warn)(f"{act:>12}  {name}")
-    _warn_tracked_external(skills, root)
-    return 0
+    for resolucion in resultado.resoluciones:
+        mostrar = render.ok if resolucion.estado.exitoso else render.warn
+        mostrar(f"{resolucion.accion:>12}  {resolucion.nombre}")
+    _avisar_habilidades_externas_rastreadas(habilidades, root)
+    return 0 if resultado.estado.exitoso else 1
 
 
-def _warn_tracked_external(skills, root) -> None:
+def _avisar_habilidades_externas_rastreadas(habilidades, raiz) -> None:
     """Avisa si hay skills externas commiteadas en git: el .gitignore no las
     destrackea, hay que sacarlas del índice a mano (git rm -r --cached)."""
     from tramalia.i18n import t
 
-    tracked = skills.tracked_external_skills(root)
-    if tracked:
-        render.warn(t("skills.tracked.warn", names=", ".join(tracked)))
+    rastreadas = habilidades.habilidades_externas_rastreadas(raiz)
+    if rastreadas:
+        render.warn(t("skills.tracked.warn", names=", ".join(rastreadas)))
         render.info(t("skills.tracked.fix"))
 
 
 def cmd_update(args) -> int:
-    from tramalia.core import skills
+    from tramalia.core import habilidades
 
     render.info("update = mise upgrade + skills sync (+ copier update, futuro)")
     code = 0
@@ -745,14 +767,16 @@ def cmd_update(args) -> int:
         code |= _run(["mise", "upgrade"])
     else:
         render.warn("mise ausente; omitiendo `mise upgrade`.")
-    results = skills.sync_skills(Path.cwd())
-    if results:
-        for name, act in results:
-            ok = act in ("clonada", "actualizada")
-            (render.ok if ok else render.warn)(f"skill {act}: {name}")
+    resultado = habilidades.sincronizar_habilidades(Path.cwd())
+    if resultado.resoluciones:
+        for resolucion in resultado.resoluciones:
+            mostrar = render.ok if resolucion.estado.exitoso else render.warn
+            mostrar(f"skill {resolucion.accion}: {resolucion.nombre}")
+        if not resultado.estado.exitoso:
+            code |= 1
     else:
         render.info("sin skills externas declaradas que sincronizar.")
-    _warn_tracked_external(skills, Path.cwd())
+    _avisar_habilidades_externas_rastreadas(habilidades, Path.cwd())
     return code
 
 
@@ -827,13 +851,13 @@ def _guided_args(command: str):
     """
     import argparse
 
-    from tramalia.core import project
+    from tramalia.core import configuracion
 
     root = Path.cwd()
-    primary, rev = project.default_agents(root)
+    primary, rev = configuracion.agentes_predeterminados(root)
     from tramalia.i18n import t as _t
 
-    task = menu.ask_text(_t("guided.task"), project.current_task_id(root) or "TASK-001")
+    task = menu.ask_text(_t("guided.task"), configuracion.id_tarea_actual(root) or "TASK-001")
     agent = reviewer = ""
     if command in ("close", "handoff"):
         agent = menu.ask_text(_t("guided.agent"), primary or "codex")

@@ -34,10 +34,8 @@ def build_app():
     from textual.widgets.option_list import Option
     from textual.widgets.selection_list import Selection
 
+    from tramalia.core import configuracion, habilidades, installer
     from tramalia.core import doctor as doctor_core
-    from tramalia.core import installer, project
-    from tramalia.core import skills as skills_core
-    from tramalia.core.context_backend import BACKENDS, backend_installed
     from tramalia.core.detect import detect_stack, enabled_features
     from tramalia.core.errores import ErrorProyectoNoGobernado, ErrorTramalia
     from tramalia.core.evidencia import leer_bitacora
@@ -48,6 +46,7 @@ def build_app():
         ValorResultadoPuerta,
     )
     from tramalia.core.operaciones import cerrar_proyecto
+    from tramalia.core.proveedor_contexto import PROVEEDORES, proveedor_disponible
     from tramalia.core.proyecto import exigir_proyecto_gobernado, inspeccionar_estado_proyecto
     from tramalia.core.puertas_calidad import cargar_puertas
     from tramalia.core.scaffold import scaffold
@@ -129,8 +128,8 @@ def build_app():
                 yield Static(f"[b]{t('tui.ctxbackend.title')}[/b]")
                 yield Static(t("tui.ctxbackend.currentline", name=self._current))
                 opciones = OptionList()
-                for key, meta in BACKENDS.items():
-                    inst = backend_installed(key)
+                for key, meta in PROVEEDORES.items():
+                    inst = proveedor_disponible(key)
                     estado = "✓" if inst else "○"
                     estado_txt = (
                         t("tui.ctxbackend.installed") if inst else t("tui.ctxbackend.notinstalled")
@@ -141,8 +140,8 @@ def build_app():
                         else ""
                     )
                     texto = (
-                        f"{estado} [b]{meta['label']}[/b]{actual}\n"
-                        f"   {meta['scope']}\n"
+                        f"{estado} [b]{meta['etiqueta']}[/b]{actual}\n"
+                        f"   {meta['alcance']}\n"
                         f"   {t('tui.ctxbackend.ideal')}: {meta['ideal']}\n"
                         f"   [dim]{estado_txt}[/dim]"
                     )
@@ -293,7 +292,7 @@ def build_app():
             # backend de contexto activo (config.json → context.backend)
             if inicializado:
                 self.query_one("#ctxbackend", Static).update(
-                    t("tui.ctxbackend.line", name=project.context_backend(root))
+                    t("tui.ctxbackend.line", name=configuracion.proveedor_contexto(root))
                 )
             else:
                 self.query_one("#ctxbackend", Static).update("")
@@ -349,32 +348,39 @@ def build_app():
                 self.query_one("#skills-hint", Static).update(t("tui.skills.uninit"))
                 return
             hint = t("tui.skills.hint")
-            tracked = skills_core.tracked_external_skills(root)
-            if tracked:
+            rastreadas = habilidades.habilidades_externas_rastreadas(root)
+            if rastreadas:
                 hint += (
-                    "\n[yellow]" + t("skills.tracked.warn", names=", ".join(tracked)) + "[/yellow]"
+                    "\n[yellow]"
+                    + t("skills.tracked.warn", names=", ".join(rastreadas))
+                    + "[/yellow]"
                 )
             self.query_one("#skills-hint", Static).update(hint)
             tabla.add_row(f"[bold cyan]· {t('skills.group.own')}[/]", "", "")
-            for s in skills_core.own_skills(root):
-                tabla.add_row(f"  {s['name']}", t("skills.state.installed"), s["description"])
+            for habilidad in habilidades.habilidades_propias(root):
+                tabla.add_row(
+                    f"  {habilidad['nombre']}",
+                    t("skills.state.installed"),
+                    habilidad["descripcion"],
+                )
             tabla.add_row(f"[bold cyan]· {t('skills.group.external')}[/]", "", "")
             updates = getattr(self, "_skill_updates", {})
-            for s in skills_core.external_status(root):
+            for habilidad in habilidades.catalogo_habilidades(root):
                 estado = (
                     t("skills.state.installed")
-                    if s["installed"]
+                    if habilidad.instalada
                     else t("skills.state.declared")
-                    if s["enabled"]
+                    if habilidad.habilitada
                     else t("skills.state.available")
                 )
-                if s["installed_ref"]:
-                    info = f"@{s['installed_ref']}"
-                    if updates.get(s["name"]):
+                referencia = habilidades.referencia_instalada(root, habilidad.nombre)
+                if referencia:
+                    info = f"@{referencia}"
+                    if updates.get(habilidad.nombre):
                         info += f"  [yellow]⬆ {t('skills.update.available')}[/yellow]"
                 else:
-                    info = s["source"]
-                tabla.add_row(f"  {s['name']}", estado, info)
+                    info = habilidad.fuente
+                tabla.add_row(f"  {habilidad.nombre}", estado, info)
 
         def _refresh_audit(self, root, initialized, entries) -> None:
             aviso = self.query_one("#aviso-audit", Static)
@@ -410,10 +416,10 @@ def build_app():
             btn_init.display = False
             form.display = True
             # prellenado con los defaults REALES del proyecto (no ejemplos)
-            primary, reviewer = project.default_agents(root)
+            primary, reviewer = configuracion.agentes_predeterminados(root)
             in_task = self.query_one("#in-task", Input)
             if not in_task.value:
-                in_task.value = project.current_task_id(root) or ""
+                in_task.value = configuracion.id_tarea_actual(root) or ""
             in_agent = self.query_one("#in-agent", Input)
             if not in_agent.value:
                 in_agent.value = primary
@@ -427,7 +433,7 @@ def build_app():
             if not task_id.strip():
                 info.update("")
                 return
-            desc = project.task_description(root, task_id.strip())
+            desc = configuracion.descripcion_tarea(root, task_id.strip())
             if desc:
                 info.update(f"[dim]{t('tui.close.taskinfo.header')}[/dim]\n{desc}")
             else:
@@ -443,7 +449,7 @@ def build_app():
             if event.input.id != "skill-url" or not event.value.strip():
                 return
             root = Path.cwd()
-            ok, resultado = skills_core.add_skill(root, event.value)
+            ok, resultado = habilidades.agregar_habilidad(root, event.value)
             log = self._skills_log()
             if ok:
                 log.write(t("skills.add.ok", name=resultado))
@@ -489,32 +495,46 @@ def build_app():
                               los excluye del repo; el manifiesto la puede re-traer)."""
             root = Path.cwd()
             name = str(event.data_table.get_row(event.row_key)[0]).strip()
-            externa = next((s for s in skills_core.catalog(root) if s["name"] == name), None)
+            externa = next(
+                (
+                    habilidad
+                    for habilidad in habilidades.catalogo_habilidades(root)
+                    if habilidad.nombre == name
+                ),
+                None,
+            )
             if externa is None:  # encabezado o skill propia: nada que hacer
                 return
             log = self._skills_log()
-            if externa["installed"]:
-                # ya instalada → actualizarla (pull de esa sola)
+            if externa.instalada:
+                # ya instalada → actualización explícita de esa sola habilidad.
                 log.write(t("skills.update.one", name=name))
-                self.run_worker(lambda: self._sync_one_skill(name), thread=True, exclusive=True)
+                self.run_worker(
+                    lambda: self._sync_one_skill(name, actualizar=True),
+                    thread=True,
+                    exclusive=True,
+                )
                 return
-            if not externa["enabled"]:
-                skills_core.set_enabled(root, name, True)  # declarar
+            if not externa.habilitada:
+                habilidades.fijar_habilitada(root, name, True)
             log.write(t("skills.install.one", name=name))  # y clonar en el acto
             self.run_worker(lambda: self._sync_one_skill(name), thread=True, exclusive=True)
 
-        def _sync_one_skill(self, name) -> None:
-            results = skills_core.sync_skills(Path.cwd(), only=name)
-            self.call_from_thread(self._after_one_skill, name, results)
+        def _sync_one_skill(self, name, actualizar=False) -> None:
+            resultado = habilidades.sincronizar_habilidades(
+                Path.cwd(), solo=name, actualizar=actualizar
+            )
+            self.call_from_thread(self._after_one_skill, name, resultado)
 
-        def _after_one_skill(self, name, results) -> None:
+        def _after_one_skill(self, name, resultado) -> None:
             log = self._skills_log()
-            act = next((a for n, a in results if n == name), None)
-            if act == "clonada":
+            resolucion = next((r for r in resultado.resoluciones if r.nombre == name), None)
+            accion = resolucion.accion if resolucion else None
+            if accion == "clonada":
                 log.write(t("skills.install.ok", name=name))
-            elif act == "actualizada":
+            elif accion in ("actualizada", "rehidratada", "sin_cambios"):
                 log.write(t("skills.update.ok", name=name))
-            elif act == "git-ausente":
+            elif resultado.estado.motivo == "git_no_instalado":
                 log.write(t("skills.install.nogit"))
             else:
                 log.write(t("skills.install.fail", name=name))
@@ -534,11 +554,15 @@ def build_app():
             self.run_worker(self._check_updates_worker, thread=True, exclusive=True)
 
         def _check_updates_worker(self) -> None:
-            estados = skills_core.external_status(Path.cwd(), check_remote=True)
+            estados = habilidades.consultar_habilidades(Path.cwd(), consultar_remoto=True)
             self.call_from_thread(self._after_check_updates, estados)
 
         def _after_check_updates(self, estados) -> None:
-            self._skill_updates = {s["name"]: s["update"] for s in estados if s["installed"]}
+            self._skill_updates = {
+                estado.nombre: estado.estado.motivo == "actualizacion_disponible"
+                for estado in estados
+                if estado.sha_resuelto
+            }
             n = sum(1 for v in self._skill_updates.values() if v)
             self._skills_log().write(t("skills.update.found", n=n))
             root = Path.cwd()
@@ -551,20 +575,18 @@ def build_app():
             self.run_worker(self._skills_sync_worker, thread=True, exclusive=True)
 
         def _skills_sync_worker(self) -> None:
-            results = skills_core.sync_skills(Path.cwd())
-            self.call_from_thread(self._after_skills_sync, results)
+            resultado = habilidades.sincronizar_habilidades(Path.cwd())
+            self.call_from_thread(self._after_skills_sync, resultado)
 
-        def _after_skills_sync(self, results) -> None:
+        def _after_skills_sync(self, resultado) -> None:
             log = self._skills_log()
-            if not results:
+            if not resultado.resoluciones:
                 log.write(t("tui.skills.sync.none"))
-            total = len(results)
-            for n, (name, act) in enumerate(results, 1):
-                log.write(f"[{n}/{total}] {act:>12}  {name}")
-            if results:
-                ok = sum(
-                    1 for _, a in results if a in ("clonada", "actualizada", "cloned", "updated")
-                )
+            total = len(resultado.resoluciones)
+            for numero, resolucion in enumerate(resultado.resoluciones, 1):
+                log.write(f"[{numero}/{total}] {resolucion.accion:>12}  {resolucion.nombre}")
+            if resultado.resoluciones:
+                ok = sum(1 for r in resultado.resoluciones if r.estado.exitoso)
                 log.write(t("tui.skills.sync.summary", ok=ok, total=total))
             root = Path.cwd()
             self._refresh_skills(root, inspeccionar_estado_proyecto(root).listo)
@@ -593,7 +615,7 @@ def build_app():
                     "reviewer_agent": reviewer,
                 },
             )
-            project.set_scaffolded_version(root, _tramalia_version)
+            configuracion.fijar_version_andamiaje(root, _tramalia_version)
             button.disabled = False
             self.notify(t("tui.init.done"), markup=False)
             self.action_refresh()
@@ -749,9 +771,16 @@ def build_app():
             except Exception:
                 return ""
             name = str(fila[0]).strip()
-            ext = next((s for s in skills_core.catalog(root) if s["name"] == name), None)
-            if ext and ext.get("source"):
-                return ext["source"].removeprefix("git+").removesuffix(".git")
+            externa = next(
+                (
+                    habilidad
+                    for habilidad in habilidades.catalogo_habilidades(root)
+                    if habilidad.nombre == name
+                ),
+                None,
+            )
+            if externa and externa.fuente:
+                return externa.fuente.removeprefix("git+").removesuffix(".git")
             if len(name) >= 2 and name[:2].isdigit():
                 return "https://mscottb.github.io/tramalia/skills-guia/"
             return ""
@@ -773,7 +802,7 @@ def build_app():
             except ErrorProyectoNoGobernado:
                 self.notify(t("tui.close.uninit"), severity="warning", markup=False)
                 return
-            actual = project.context_backend(root)
+            actual = configuracion.proveedor_contexto(root)
             self.push_screen(ContextBackendScreen(actual), self._on_backend_chosen)
 
         def _on_backend_chosen(self, chosen: str | None) -> None:
@@ -785,10 +814,10 @@ def build_app():
             except ErrorProyectoNoGobernado:
                 self.notify(t("tui.close.uninit"), severity="warning", markup=False)
                 return
-            if project.set_context_backend(root, chosen):
+            if configuracion.fijar_proveedor_contexto(root, chosen):
                 # el backend es una PREFERENCIA de proyecto: se fija aunque no esté
                 # instalado, pero se avisa y se dice cómo obtenerlo (tecla i / doctor).
-                if backend_installed(chosen):
+                if proveedor_disponible(chosen):
                     self.notify(t("tui.ctxbackend.ok", name=chosen), markup=False)
                 else:
                     self.notify(

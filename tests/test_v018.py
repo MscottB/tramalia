@@ -63,7 +63,7 @@ def test_analitica_datos_referencia_metricas(tmp_path):
 # ---------------------------------------------------------------- skills 14-16
 def test_skills_nuevas_ancladas_a_gobierno(tmp_path):
     _init(tmp_path, ["python"])
-    base = tmp_path / ".tramalia" / "skills"
+    base = tmp_path / ".tramalia" / "habilidades"
     for skill, ancla in [
         ("14-deploy-gate", "12-deploy-release"),
         ("15-analytics-governance", "metrics.json"),
@@ -77,6 +77,6 @@ def test_skills_nuevas_ancladas_a_gobierno(tmp_path):
 # ---------------------------------------------------------------- catálogo
 def test_catalogo_externo_ampliado(tmp_path):
     _init(tmp_path, ["python"])
-    texto = (tmp_path / ".tramalia" / "skills.toml").read_text(encoding="utf-8")
+    texto = (tmp_path / ".tramalia" / "habilidades.toml").read_text(encoding="utf-8")
     for fuente in ("gstack", "impeccable", "anthropic-skills", "vercel-agent-skills"):
         assert fuente in texto, fuente

@@ -38,9 +38,9 @@ def detect_lang(root: Path | None = None) -> str:
     if env in AVAILABLE:
         return env
     try:
-        from tramalia.core.project import read_config
+        from tramalia.core.configuracion import leer_configuracion
 
-        cfg = read_config(root or Path.cwd()).get("language", "")
+        cfg = leer_configuracion(root or Path.cwd()).get("language", "")
         if str(cfg).lower() in AVAILABLE:
             return str(cfg).lower()
     except Exception:

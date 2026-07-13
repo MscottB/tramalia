@@ -98,7 +98,7 @@ Repomix y markitdown no aparecen en este selector: son utilidades puntuales
 
 Administra las skills sin editar archivos a mano (la contraparte visual de [la guía de skills](skills-guia.md)):
 
-- **Tabla agrupada**: las **16 propias** (workflows del repo, con su descripción) y las **externas** del catálogo `skills.toml` — incluidas las **comentadas**, que aparecen como `○ disponible`.
+- **Tabla agrupada**: las **16 propias** (workflows del repo, con su descripción) y las **externas** del catálogo `habilidades.toml` — incluidas las **comentadas**, que aparecen como `○ disponible`.
 - **Enter sobre una externa**: si no está, la **instala** en un paso (la declara y la clona); si ya está instalada, la **actualiza** (`git pull` de esa sola). La leyenda arriba recuerda los 3 estados y qué hace cada tecla.
 - **Tecla `s`** actualiza **todas** las declaradas desde sus repos (`git`), con el resultado en vivo (`clonada` / `actualizada` / `error`) y un resumen `✓ n/total`.
 - **Tecla `u`** comprueba en los remotos qué skills tienen una **versión más nueva** (`git ls-remote`) y marca las atrasadas con `⬆ actualizable`.
@@ -108,7 +108,7 @@ Administra las skills sin editar archivos a mano (la contraparte visual de [la g
 
 Hay además un **input de URL**: pega la URL git de cualquier skill y Enter la agrega al manifiesto (luego Enter sobre ella, o `s`, la clona).
 
-> Las skills externas **no se suben al repo** (el `.gitignore` que deja `init` las excluye) pero **no se pierden**: el manifiesto `skills.toml` las re-hidrata con `tramalia skills` tras un `git clone`. Detalle en [la guía de skills](skills-guia.md).
+> Las skills externas **no se suben al repo** (el `.gitignore` que deja `init` las excluye) pero **no se pierden**: el manifiesto `habilidades.toml` las re-hidrata con `tramalia skills` tras un `git clone`. Detalle en [la guía de skills](skills-guia.md).
 
 Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `add <url>` · `sync [<nombre>]` · `outdated`.
 

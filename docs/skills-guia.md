@@ -8,7 +8,7 @@ flowchart TB
     classDef u fill:#b3e448,stroke:#7fa32e,color:#05031c;
     A["Capa 1 · docs/ai/ (00–13)<br/><small>las reglas de TU proyecto — editables</small>"]:::u
     B["Capa 2 · 16 skills propias (01–16)<br/><small>workflows anclados al gobierno (close/gates/evidencia)</small>"]:::s
-    C["Capa 3 · skills externas (skills.toml)<br/><small>conocimiento profundo, desde sus repos vivos</small>"]:::s
+    C["Capa 3 · skills externas (habilidades.toml)<br/><small>conocimiento profundo, desde sus repos vivos</small>"]:::s
     A -->|las skills los aplican| B
     C -->|profundizan| B
 ```
@@ -20,7 +20,7 @@ flowchart TB
 **Tramalia no las toca, ni las lee, ni las analiza.** Son sistemas completamente separados:
 
 - **Skills/plugins nativos del CLI** (p. ej. el marketplace de plugins de Claude Code, o skills que instalaste con `/plugin`) viven en la configuración de *esa herramienta* (`~/.claude/`, etc.) y las administra ella — Tramalia jamás escanea esas carpetas ni sabe qué tienes instalado ahí.
-- **Las skills de Tramalia** son un concepto propio: archivos `SKILL.md` versionados **dentro de tu repo**, en `.tramalia/skills/`, que cualquier agente lee porque `AGENTS.md` se lo indica — no dependen de qué CLI uses ni de su marketplace.
+- **Las skills de Tramalia** son un concepto propio: archivos `SKILL.md` versionados **dentro de tu repo**, en `.tramalia/habilidades/`, que cualquier agente lee porque `AGENTS.md` se lo indica — no dependen de qué CLI uses ni de su marketplace.
 
 ¿Por qué separados y no integrados? Porque **el gobierno vive en el repo, no en tu máquina** (el principio repo-first de toda la herramienta): si mañana cambias de CLI o de PC, las skills de Tramalia viajan con el `git clone`; una skill instalada solo en el marketplace de tu CLI, no. Ambos sistemas **conviven sin conflicto** — puedes tener plugins nativos de Claude Code *y* las 16 skills de Tramalia a la vez; simplemente no se mezclan ni se sincronizan entre sí.
 
@@ -52,13 +52,13 @@ flowchart TB
 | **Abrir docs de una** | — | tecla **`d`** (abre su repo) |
 | **Agregar por URL** | `tramalia skills add <url> [n]` | pega la URL en el input de arriba |
 
-Los agentes las **descubren solos**: `AGENTS.md` les indica consultar `.tramalia/skills/`; con `tramalia sync --features rules,subagents` se propagan las reglas a Cursor/Copilot/Cline. **Agregar una tuya**: crea `.tramalia/skills/17-mi-skill/SKILL.md` con frontmatter `name`/`description` + secciones Propósito · Cuándo usar · Workflow · Guardrails · Evidencia esperada.
+Los agentes las **descubren solos**: `AGENTS.md` les indica consultar `.tramalia/habilidades/`; con `tramalia sync --features rules,subagents` se propagan las reglas a Cursor/Copilot/Cline. **Agregar una tuya**: crea `.tramalia/habilidades/17-mi-skill/SKILL.md` con frontmatter `name`/`description` + secciones Propósito · Cuándo usar · Workflow · Guardrails · Evidencia esperada.
 
 ### Los 3 estados (y qué es una skill "declarada")
 
-- **`✓ instalada @a71792a`** — clonada en `.tramalia/skills/<nombre>/`. El `@sha` es la **versión** exacta que tienes (el commit corto).
-- **`◍ declarada`** — está **anotada en el manifiesto** `.tramalia/skills.toml` (su bloque `[[skill]]` está activo) **pero todavía no se ha clonado a disco**. Es el paso intermedio: la *quieres*, pero falta traerla con `tramalia skills`. Tras un `git clone` del repo, las externas siempre arrancan aquí (el manifiesto viaja, las carpetas no) — un `tramalia skills` las re-hidrata.
-- **`○ disponible`** — está en el **catálogo comentado** de `skills.toml` (una sugerencia curada), ni siquiera declarada. Actívala y se vuelve declarada.
+- **`✓ instalada @a71792a`** — clonada en `.tramalia/habilidades/<nombre>/`. El `@sha` es la **versión** exacta que tienes (el commit corto).
+- **`◍ declarada`** — está **anotada en el manifiesto** `.tramalia/habilidades.toml` (su bloque `[[skill]]` está activo) **pero todavía no se ha clonado a disco**. Es el paso intermedio: la *quieres*, pero falta traerla con `tramalia skills`. Tras un `git clone` del repo, las externas siempre arrancan aquí (el manifiesto viaja, las carpetas no) — un `tramalia skills` las re-hidrata.
+- **`○ disponible`** — está en el **catálogo comentado** de `habilidades.toml` (una sugerencia curada), ni siquiera declarada. Actívala y se vuelve declarada.
 
 ### Actualizar: instalada vs. disponible
 
@@ -66,13 +66,13 @@ Cada skill externa instalada muestra su **versión instalada** (`@sha`). Para ve
 
 ### Las skills externas NO se suben al repo (pero no se pierden)
 
-Las skills externas pueden pesar cientos de MB. `tramalia init` deja en `.gitignore` un bloque que **excluye del repo** las carpetas externas de `.tramalia/skills/` pero **conserva las propias** (numeradas `NN-*`). La fuente de verdad es el **manifiesto** `.tramalia/skills.toml` (ese sí se versiona): quien clone o descargue el repo solo corre **`tramalia skills`** y se le **re-hidratan** localmente. Así el repo queda liviano y nadie pierde nada.
+Las skills externas pueden pesar cientos de MB. `tramalia init` deja en `.gitignore` un bloque que **excluye del repo** las carpetas externas de `.tramalia/habilidades/` pero **conserva las propias** (numeradas `NN-*`). La fuente de verdad es el **manifiesto** `.tramalia/habilidades.toml` (ese sí se versiona): quien clone o descargue el repo solo corre **`tramalia skills`** y se le **re-hidratan** localmente. Así el repo queda liviano y nadie pierde nada.
 
-> **¿Ya las habías commiteado antes de esto?** `.gitignore` no destrackea lo que ya está en git. `tramalia skills` (y `list`/`update`) te **avisa** si detecta skills externas commiteadas y te da el remedio exacto: `git rm -r --cached .tramalia/skills/<nombre>` (borra del índice, no del disco; el `.gitignore` evita que se re-agreguen).
+> **¿Ya las habías commiteado antes de esto?** `.gitignore` no destrackea lo que ya está en git. `tramalia skills` (y `list`/`update`) te **avisa** si detecta skills externas commiteadas y te da el remedio exacto: `git rm -r --cached .tramalia/habilidades/<nombre>` (borra del índice, no del disco; el `.gitignore` evita que se re-agreguen).
 
 ## ¿Cuál instalar? (decisión por necesidad)
 
-| Necesitas… | Fuente externa (en `skills.toml`) | Complementa |
+| Necesitas… | Fuente externa (en `habilidades.toml`) | Complementa |
 |---|---|---|
 | Guías UX/a11y exhaustivas (100+ reglas) | **vercel-agent-skills** | gate `ux`, `docs/ai/11` |
 | TDD y debugging sistemático | **superpowers** | skills 05/08 |

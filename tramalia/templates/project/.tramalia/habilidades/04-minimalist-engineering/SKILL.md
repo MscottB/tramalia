@@ -12,7 +12,7 @@ Aplicar minimalismo (Ponytail/YAGNI).
 en todo diseño e implementación.
 
 ## Workflow
-1. Seguir el ruleset de Ponytail (clonado en .tramalia/skills/ponytail si está sincronizado).
+1. Seguir el ruleset de Ponytail (clonado en .tramalia/habilidades/ponytail si está sincronizado).
 2. Priorizar la solución mínima correcta; no abstraer de más ni duplicar lógica.
 3. No agregar dependencias sin justificación.
 

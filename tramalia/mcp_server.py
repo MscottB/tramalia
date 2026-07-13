@@ -24,8 +24,7 @@ from tramalia.core.operaciones import (
 def build_server():
     from mcp.server.fastmcp import FastMCP
 
-    from tramalia.core import context as context_core
-    from tramalia.core import detect
+    from tramalia.core import contexto, detect
     from tramalia.core import doctor as doctor_core
     from tramalia.core.proyecto import exigir_proyecto_gobernado, inspeccionar_estado_proyecto
 
@@ -168,8 +167,8 @@ def build_server():
         """Regenera la memoria derivada (tech-stack, project-map) para ahorrar tokens."""
         root = Path.cwd()
         exigir_proyecto_gobernado(root)
-        results = context_core.build_context(root)
-        return "generado: " + ", ".join(results)
+        resultado = contexto.construir_contexto(root)
+        return "generado: " + ", ".join(ruta.name for ruta in resultado.archivos)
 
     return server
 

@@ -87,7 +87,7 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
     import datetime
     import json
 
-    from tramalia.core import project as project_core
+    from tramalia.core import configuracion
 
     if not (root / ".tramalia").is_dir():
         return None
@@ -102,8 +102,8 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
         "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "stack": report.stack,
         "uv_bin_on_path": report.uv_bin_on_path,
-        "context_backend": project_core.context_backend(root),
-        "model_cap": project_core.agents_model_cap(root),
+        "context_backend": configuracion.proveedor_contexto(root),
+        "model_cap": configuracion.tope_modelos_agentes(root),
         "tools": [
             {
                 "key": estado.herramienta.clave,

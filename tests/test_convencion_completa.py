@@ -43,7 +43,7 @@ def test_current_task_existe(tmp_path):
 
 def test_dieciseis_skills_numeradas(tmp_path):
     _init(tmp_path)
-    base = tmp_path / ".tramalia" / "skills"
+    base = tmp_path / ".tramalia" / "habilidades"
     skills = sorted(d.name for d in base.iterdir() if d.is_dir())
     assert len(skills) == 16
     assert skills[0].startswith("01-") and skills[-1].startswith("16-")
@@ -62,10 +62,10 @@ def test_agents_md_referencia_skills_y_02(tmp_path):
     assert "tramalia close" in texto[texto.index(inicio) : texto.index(fin)]
 
 
-def test_ponytail_declarado_en_skills_toml(tmp_path):
+def test_ponytail_declarado_en_habilidades_toml(tmp_path):
     _init(tmp_path)
-    texto = (tmp_path / ".tramalia" / "skills.toml").read_text(encoding="utf-8")
-    assert "[[skill]]" in texto and 'name   = "ponytail"' in texto
+    texto = (tmp_path / ".tramalia" / "habilidades.toml").read_text(encoding="utf-8")
+    assert "[[habilidad]]" in texto and 'nombre = "ponytail"' in texto
 
 
 def test_init_con_ponytail_agrega_mcp(tmp_path):

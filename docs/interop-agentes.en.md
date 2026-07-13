@@ -29,8 +29,8 @@ How Tramalia propagates rules to multiple agents, scaffolding and spec-driven, a
 - **What it is / scope:** the Ponytail principle (minimum necessary code) packaged as a skill/ruleset, **with its own MCP server** (`ponytail-mcp`): it exposes the `ponytail_instructions` tool and the `ponytail` prompt (lite/full/ultra modes).
 - **Requires:** git (to clone it) and **Node** (for its MCP). Not on npm: used from its repo.
 - **Install / wire (3 steps):**
-  1. `tramalia skills` — clones it into `.tramalia/skills/ponytail/` (already declared in `skills.toml`).
-  2. `npm install` inside `.tramalia/skills/ponytail/ponytail-mcp/`.
+  1. `tramalia skills` — clones it into `.tramalia/habilidades/ponytail/` (already declared in `habilidades.toml`).
+  2. `npm install` inside `.tramalia/habilidades/ponytail/ponytail-mcp/`.
   3. `tramalia init --with-ponytail` — adds its server to `.mcp.json` (`node …/ponytail-mcp/index.js`).
 - **Tramalia uses it in:** the principle already ships as a rule in `AGENTS.md` and as the `04-minimalist-engineering` skill; the full cloned ruleset stays readable for agents, and the MCP is the optional native path.
 - **Interacts with:** all agents (same ruleset on any host); reinforces the quality gate.
@@ -64,7 +64,7 @@ How Tramalia propagates rules to multiple agents, scaffolding and spec-driven, a
 
 ## External skills catalog (vetted)
 
-Besides the 13 own skills, `skills.toml` ships a **commented catalog** of external sources in the standard SKILL.md format — uncomment the ones you want and `tramalia skills` clones them:
+Besides the 13 own skills, `habilidades.toml` ships a **commented catalog** of external sources in the standard SKILL.md format — uncomment the ones you want and `tramalia skills` clones them:
 
 | Source | What it brings | Fits with |
 |---|---|---|

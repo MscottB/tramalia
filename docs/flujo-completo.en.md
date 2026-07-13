@@ -96,7 +96,7 @@ mise.toml                        # stack tools and quality gates
 ├── config.json
 ├── current-task.md
 ├── context/
-├── skills/
+├── habilidades/
 └── evidencia/                   # formal packages, ignored by Git
 ```
 

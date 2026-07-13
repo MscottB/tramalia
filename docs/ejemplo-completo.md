@@ -18,7 +18,7 @@ tramalia init
 | `CLAUDE.md` (`@AGENTS.md`) | Claude Code queda alineado sin duplicar reglas |
 | `docs/ai/00–13` | La memoria del proyecto: arquitectura, reglas **con contenido semilla según el stack** (código/BD/seguridad/UX), deploy, analítica, ADR, **intentos fallidos**, handoff |
 | `specs/` | Toda feature nace como tarea con ID en `tasks.md`, con `Estado` y `Horizonte` (ahora·próximo·después) — ese ID es el que audita `close` |
-| `.tramalia/skills/01…16` | 16 workflows que le dicen al agente *cómo se trabaja aquí* — incl. deploy, analítica y threat modeling ([guía](skills-guia.md)) |
+| `.tramalia/habilidades/01…16` | 16 workflows que le dicen al agente *cómo se trabaja aquí* — incl. deploy, analítica y threat modeling ([guía](skills-guia.md)) |
 | `.claude/agents/` | **5 subagentes con ruteo de modelo**: planificador→opus, ejecutor→inherit, revisor→opus, documentador→haiku, resolutor-profundo→fable |
 | `mise.toml` | Los gates del stack detectado: `ng build`, `dotnet test`, `sqlfluff`, `semgrep`, `lhci`… |
 | `.mcp.json` | Serena cableada (navegación semántica); Engram si está instalado |
@@ -118,7 +118,7 @@ O en el **dashboard**: `tramalia ui` → pestaña Auditoría, Enter sobre el cie
 |---|---|---|
 | `close --engram` | **Engram** | el cierre queda en memoria persistente entre sesiones (N2) |
 | `init --with-headroom` | **Headroom** | comprime contexto/outputs para los agentes — **nunca** la evidencia cruda |
-| `tramalia skills` + `init --with-ponytail` | **Ponytail** | clona su ruleset a `.tramalia/skills/ponytail/` y cablea su MCP (`ponytail_instructions`) |
+| `tramalia skills` + `init --with-ponytail` | **Ponytail** | clona su ruleset a `.tramalia/habilidades/ponytail/` y cablea su MCP (`ponytail_instructions`) |
 | `/speckit.specify` | **Spec Kit** | potencia la carpeta `specs/` que Tramalia ya generó (doctor lo detecta) |
 | servidor MCP de consulta | **codebase-memory-mcp** / **CodeGraph** | grafo estructural del código como backend de contexto (instalar con `--skip-config`) — [criterio de cuál usar](interop-contexto.md#el-criterio-cual-montar-y-cual-usar) |
 | `markitdown requisitos.docx -o docs/ai/09-*.md` | **markitdown** | ingiere el PRD o el manual en `.docx`/`.pdf` al contexto en Markdown |

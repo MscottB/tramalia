@@ -6,10 +6,10 @@ import json
 import pytest
 
 from tramalia import i18n
+from tramalia.core.configuracion import descripcion_tarea
 from tramalia.core.detect import detect_stack, enabled_features
 from tramalia.core.doctor import diagnose
 from tramalia.core.integraciones import REGISTRO, herramientas_relevantes
-from tramalia.core.project import task_description
 from tramalia.core.scaffold import scaffold
 
 
@@ -131,9 +131,9 @@ def test_task_description_extrae_seccion(tmp_path):
         "# Tasks\n\n## TASK-001 — Login\n- Alcance: pantalla\n\n## TASK-002 — Otro\n- x\n",
         encoding="utf-8",
     )
-    desc = task_description(tmp_path, "TASK-001")
+    desc = descripcion_tarea(tmp_path, "TASK-001")
     assert desc and "Login" in desc and "TASK-002" not in desc
-    assert task_description(tmp_path, "TASK-999") is None
+    assert descripcion_tarea(tmp_path, "TASK-999") is None
 
 
 # ---------------------------------------------------------------- agentes CLI

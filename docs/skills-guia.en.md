@@ -8,7 +8,7 @@ flowchart TB
     classDef u fill:#b3e448,stroke:#7fa32e,color:#05031c;
     A["Layer 1 · docs/ai/ (00–13)<br/><small>YOUR project's rules — editable</small>"]:::u
     B["Layer 2 · 16 own skills (01–16)<br/><small>workflows anchored to governance (close/gates/evidence)</small>"]:::s
-    C["Layer 3 · external skills (skills.toml)<br/><small>deep knowledge, from their living repos</small>"]:::s
+    C["Layer 3 · external skills (habilidades.toml)<br/><small>deep knowledge, from their living repos</small>"]:::s
     A -->|skills apply them| B
     C -->|deepen| B
 ```
@@ -20,7 +20,7 @@ flowchart TB
 **Tramalia doesn't touch them, read them, or analyze them.** They're completely separate systems:
 
 - **Native CLI skills/plugins** (e.g. Claude Code's plugin marketplace, or skills you installed with `/plugin`) live in *that tool's* own configuration (`~/.claude/`, etc.) and are managed by it — Tramalia never scans those folders or knows what you have installed there.
-- **Tramalia's skills** are its own concept: versioned `SKILL.md` files **inside your repo**, in `.tramalia/skills/`, that any agent reads because `AGENTS.md` tells it to — independent of which CLI you use or its marketplace.
+- **Tramalia's skills** are its own concept: versioned `SKILL.md` files **inside your repo**, in `.tramalia/habilidades/`, that any agent reads because `AGENTS.md` tells it to — independent of which CLI you use or its marketplace.
 
 Why separate instead of integrated? Because **governance lives in the repo, not on your machine** (the repo-first principle behind the whole tool): if you switch CLIs or PCs tomorrow, Tramalia's skills travel with `git clone`; a skill installed only in your CLI's marketplace doesn't. Both systems **coexist without conflict** — you can have native Claude Code plugins *and* Tramalia's 16 skills at once; they simply don't mix or sync with each other.
 
@@ -52,13 +52,13 @@ Why separate instead of integrated? Because **governance lives in the repo, not 
 | **Open one's docs** | — | the **`d`** key (opens its repo) |
 | **Add by URL** | `tramalia skills add <url> [n]` | paste the URL in the input above |
 
-Agents **discover them on their own**: `AGENTS.md` points them to `.tramalia/skills/`; `tramalia sync --features rules,subagents` propagates rules to Cursor/Copilot/Cline. **Add your own**: create `.tramalia/skills/17-my-skill/SKILL.md` with `name`/`description` frontmatter + Purpose · When to use · Workflow · Guardrails · Expected evidence sections.
+Agents **discover them on their own**: `AGENTS.md` points them to `.tramalia/habilidades/`; `tramalia sync --features rules,subagents` propagates rules to Cursor/Copilot/Cline. **Add your own**: create `.tramalia/habilidades/17-my-skill/SKILL.md` with `name`/`description` frontmatter + Purpose · When to use · Workflow · Guardrails · Expected evidence sections.
 
 ### The 3 states (and what a "declared" skill is)
 
-- **`✓ installed @a71792a`** — cloned into `.tramalia/skills/<name>/`. The `@sha` is the exact **version** you have (the short commit).
-- **`◍ declared`** — it's **noted in the manifest** `.tramalia/skills.toml` (its `[[skill]]` block is active) **but hasn't been cloned to disk yet**. It's the in-between step: you *want* it, but it still needs fetching with `tramalia skills`. After a `git clone` of the repo, external skills always start here (the manifest travels, the folders don't) — a `tramalia skills` re-hydrates them.
-- **`○ available`** — it's in the **commented catalog** of `skills.toml` (a curated suggestion), not even declared. Enable it and it becomes declared.
+- **`✓ installed @a71792a`** — cloned into `.tramalia/habilidades/<name>/`. The `@sha` is the exact **version** you have (the short commit).
+- **`◍ declared`** — it's **noted in the manifest** `.tramalia/habilidades.toml` (its `[[skill]]` block is active) **but hasn't been cloned to disk yet**. It's the in-between step: you *want* it, but it still needs fetching with `tramalia skills`. After a `git clone` of the repo, external skills always start here (the manifest travels, the folders don't) — a `tramalia skills` re-hydrates them.
+- **`○ available`** — it's in the **commented catalog** of `habilidades.toml` (a curated suggestion), not even declared. Enable it and it becomes declared.
 
 ### Updating: installed vs. available
 
@@ -66,13 +66,13 @@ Each installed external skill shows its **installed version** (`@sha`). To see w
 
 ### External skills are NOT committed to the repo (but aren't lost)
 
-External skills can weigh hundreds of MB. `tramalia init` drops a block in `.gitignore` that **excludes** the external folders under `.tramalia/skills/` from the repo but **keeps the own ones** (numbered `NN-*`). The source of truth is the **manifest** `.tramalia/skills.toml` (that one IS versioned): whoever clones or downloads the repo just runs **`tramalia skills`** and they're **re-hydrated** locally. So the repo stays light and nobody loses anything.
+External skills can weigh hundreds of MB. `tramalia init` drops a block in `.gitignore` that **excludes** the external folders under `.tramalia/habilidades/` from the repo but **keeps the own ones** (numbered `NN-*`). The source of truth is the **manifest** `.tramalia/habilidades.toml` (that one IS versioned): whoever clones or downloads the repo just runs **`tramalia skills`** and they're **re-hydrated** locally. So the repo stays light and nobody loses anything.
 
-> **Already committed them before this?** `.gitignore` doesn't untrack what's already in git. `tramalia skills` (and `list`/`update`) **warns** you if it detects committed external skills and gives the exact remedy: `git rm -r --cached .tramalia/skills/<name>` (removes from the index, not disk; `.gitignore` prevents re-adding).
+> **Already committed them before this?** `.gitignore` doesn't untrack what's already in git. `tramalia skills` (and `list`/`update`) **warns** you if it detects committed external skills and gives the exact remedy: `git rm -r --cached .tramalia/habilidades/<name>` (removes from the index, not disk; `.gitignore` prevents re-adding).
 
 ## Which one to install? (decision by need)
 
-| You need… | External source (in `skills.toml`) | Complements |
+| You need… | External source (in `habilidades.toml`) | Complements |
 |---|---|---|
 | Exhaustive UX/a11y guides (100+ rules) | **vercel-agent-skills** | `ux` gate, `docs/ai/11` |
 | TDD & systematic debugging | **superpowers** | skills 05/08 |

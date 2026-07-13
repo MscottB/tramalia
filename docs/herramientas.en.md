@@ -15,7 +15,7 @@ Tramalia's own code (Python, Apache-2.0). Works **standalone, with the stdlib on
 | **`log` (`core/governance.py`)** | **audit trail: reads each close's `metadata.json`** | core ★ |
 | `evidence` (`core/evidence.py`) | creates the closing evidence pack | core |
 | `handoff` (`core/handoff.py`) | appends a structured handover to `docs/ai/07` | core |
-| `skills` (`core/skills.py`) | clones/updates skills from their repos | core (uses git) |
+| `skills` (`core/habilidades.py`) | clones/updates skills from their repos | core (uses git) |
 | `mcp` (`mcp_server.py`) | MCP façade: exposes the convention as native tools | core (+ mcp SDK) |
 | `ui` (`tui.py`) | TUI dashboard: Overview · Audit · Close | core (+ `[tui]` extra) |
 | `tools` (`core/tools.py`) | tool registry and presence probing | internal |

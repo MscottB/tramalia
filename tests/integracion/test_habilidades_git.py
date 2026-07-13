@@ -1,0 +1,423 @@
+import json
+import os
+import shutil
+import stat
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from tramalia.core import habilidades
+from tramalia.core.procesos import ResultadoProceso
+
+
+def _ejecutar_git(raiz: Path, *argumentos: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(raiz), *argumentos],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _remoto(tmp_path: Path) -> Path:
+    remoto = tmp_path / "remoto"
+    remoto.mkdir()
+    if _ejecutar_git(remoto, "init", "-b", "main").returncode != 0:
+        assert _ejecutar_git(remoto, "init").returncode == 0
+        assert _ejecutar_git(remoto, "checkout", "-b", "main").returncode == 0
+    (remoto / "SKILL.md").write_text("v1\n", encoding="utf-8")
+    assert _ejecutar_git(remoto, "add", "SKILL.md").returncode == 0
+    assert (
+        _ejecutar_git(
+            remoto,
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=Test",
+            "commit",
+            "-m",
+            "v1",
+        ).returncode
+        == 0
+    )
+    return remoto
+
+
+def _proyecto(tmp_path: Path, remoto: Path, *, modo: str = "team") -> Path:
+    raiz = tmp_path / "proyecto"
+    (raiz / ".tramalia").mkdir(parents=True)
+    (raiz / ".tramalia" / "config.json").write_text(json.dumps({"mode": modo}), encoding="utf-8")
+    (raiz / ".tramalia" / "habilidades.toml").write_text(
+        f'[[habilidad]]\nnombre = "demo"\nfuente = "{remoto.as_uri()}"\nreferencia = "main"\n',
+        encoding="utf-8",
+    )
+    return raiz
+
+
+def _eliminar_checkout(ruta: Path) -> None:
+    def habilitar_escritura(funcion, objetivo, _informacion) -> None:
+        os.chmod(objetivo, stat.S_IWRITE)
+        funcion(objetivo)
+
+    shutil.rmtree(ruta, onerror=habilitar_escritura)
+
+
+def test_resolver_sha_normaliza_prefijo_git_sin_cambiar_fuente_canonica(
+    tmp_path: Path, monkeypatch
+) -> None:
+    llamadas: list[tuple[str, ...]] = []
+
+    def ejecutar(argumentos, **_opciones):
+        llamadas.append(tuple(argumentos))
+        return ResultadoProceso(
+            tuple(argumentos),
+            0,
+            f"{'a' * 40}\trefs/heads/main\n",
+            "",
+            False,
+            False,
+        )
+
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+    sha, resultado = habilidades._resolver_sha(
+        "git+https://example.com/equipo/habilidad.git", "main", tmp_path
+    )
+
+    assert resultado.exitoso
+    assert sha == "a" * 40
+    assert llamadas == [
+        (
+            "git",
+            "ls-remote",
+            "--exit-code",
+            "https://example.com/equipo/habilidad.git",
+            "main",
+        )
+    ]
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_modo_equipo_rehidrata_sha_fijado_sin_seguir_main(tmp_path: Path) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+
+    inicial = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    sha_fijado = inicial.resoluciones[0].sha_resuelto
+    assert inicial.estado.estado == "completo"
+    assert sha_fijado is not None and len(sha_fijado) == 40
+
+    (remoto / "SKILL.md").write_text("v2\n", encoding="utf-8")
+    assert _ejecutar_git(remoto, "add", "SKILL.md").returncode == 0
+    assert (
+        _ejecutar_git(
+            remoto,
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=Test",
+            "commit",
+            "-m",
+            "v2",
+        ).returncode
+        == 0
+    )
+    destino = raiz / ".tramalia" / "habilidades" / "demo"
+    sha_nuevo = _ejecutar_git(remoto, "rev-parse", "HEAD").stdout.strip()
+    assert sha_nuevo != sha_fijado
+    assert _ejecutar_git(destino, "fetch", "origin", sha_nuevo).returncode == 0
+    assert _ejecutar_git(destino, "checkout", "--detach", sha_nuevo).returncode == 0
+    assert _ejecutar_git(destino, "rev-parse", "HEAD").stdout.strip() == sha_nuevo
+
+    rehidratado = habilidades.sincronizar_habilidades(raiz)
+    assert rehidratado.resoluciones[0].sha_resuelto == sha_fijado
+    assert _ejecutar_git(destino, "rev-parse", "HEAD").stdout.strip() == sha_fijado
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_modo_equipo_recrea_checkout_ausente_desde_sha_fijado(tmp_path: Path) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    inicial = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    sha_fijado = inicial.resoluciones[0].sha_resuelto
+    ruta_bloqueo = raiz / ".tramalia" / "habilidades.lock.json"
+    bloqueo_original = ruta_bloqueo.read_bytes()
+    destino = raiz / ".tramalia" / "habilidades" / "demo"
+
+    (remoto / "SKILL.md").write_text("v2\n", encoding="utf-8")
+    assert _ejecutar_git(remoto, "add", "SKILL.md").returncode == 0
+    assert (
+        _ejecutar_git(
+            remoto,
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=Test",
+            "commit",
+            "-m",
+            "v2",
+        ).returncode
+        == 0
+    )
+    sha_nuevo = _ejecutar_git(remoto, "rev-parse", "HEAD").stdout.strip()
+    assert sha_nuevo != sha_fijado
+
+    # Simula un clon fresco del proyecto: se conserva el lock, no el checkout externo.
+    _eliminar_checkout(destino)
+    rehidratado = habilidades.sincronizar_habilidades(raiz)
+
+    assert rehidratado.estado.estado == "completo"
+    assert rehidratado.resoluciones[0].sha_resuelto == sha_fijado
+    assert _ejecutar_git(destino, "rev-parse", "HEAD").stdout.strip() == sha_fijado
+    assert ruta_bloqueo.read_bytes() == bloqueo_original
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_actualizacion_explicita_mueve_el_bloqueo(tmp_path: Path) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    anterior = (
+        habilidades.sincronizar_habilidades(raiz, actualizar=True).resoluciones[0].sha_resuelto
+    )
+    (remoto / "SKILL.md").write_text("v2\n", encoding="utf-8")
+    _ejecutar_git(remoto, "add", "SKILL.md")
+    _ejecutar_git(
+        remoto,
+        "-c",
+        "user.email=test@example.com",
+        "-c",
+        "user.name=Test",
+        "commit",
+        "-m",
+        "v2",
+    )
+
+    actualizado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    nuevo = actualizado.resoluciones[0].sha_resuelto
+    bloqueo = json.loads((raiz / ".tramalia" / "habilidades.lock.json").read_text(encoding="utf-8"))
+    assert nuevo != anterior
+    assert bloqueo["habilidades"]["demo"] == {
+        "fuente": remoto.as_uri(),
+        "referencia": "main",
+        "sha_resuelto": nuevo,
+    }
+
+
+def test_clonacion_no_cero_es_fallida_y_no_escribe_bloqueo(tmp_path: Path, monkeypatch) -> None:
+    raiz = _proyecto(tmp_path, tmp_path / "ausente", modo="local-first")
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda *_a, **_k: ResultadoProceso(("git", "clone"), 128, "", "fatal: clone", False, False),
+    )
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert resultado.estado.estado == "fallido"
+    assert resultado.resoluciones[0].estado.motivo == "git_salida_no_cero"
+    assert not (raiz / ".tramalia" / "habilidades.lock.json").exists()
+
+
+def test_pull_no_cero_no_declara_actualizada(tmp_path: Path, monkeypatch) -> None:
+    raiz = _proyecto(tmp_path, tmp_path / "remoto", modo="local-first")
+    destino = raiz / ".tramalia" / "habilidades" / "demo" / ".git"
+    destino.mkdir(parents=True)
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda *_a, **_k: ResultadoProceso(
+            ("git", "pull"), 1, "", "non-fast-forward", False, False
+        ),
+    )
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert resultado.estado.estado == "fallido"
+    assert resultado.resoluciones[0].accion == "fallida"
+
+
+def test_tiempo_agotado_git_es_fallido_explicito(tmp_path: Path, monkeypatch) -> None:
+    raiz = _proyecto(tmp_path, tmp_path / "remoto")
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda *_a, **_k: ResultadoProceso(("git", "ls-remote"), 124, "", "", True, False),
+    )
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert resultado.estado.estado == "fallido"
+    assert resultado.resoluciones[0].estado.motivo == "git_tiempo_agotado"
+
+
+@pytest.mark.parametrize(
+    ("codigo_salida", "salida", "motivo"),
+    [
+        (2, "", "referencia_no_resuelta"),
+        (7, "", "git_salida_no_cero"),
+        (0, "referencia sin sha\n", "sha_no_verificado"),
+    ],
+)
+def test_clasificacion_ls_remote_respeta_orden_y_sha_verificable(
+    tmp_path: Path,
+    monkeypatch,
+    codigo_salida: int,
+    salida: str,
+    motivo: str,
+) -> None:
+    raiz = _proyecto(tmp_path, tmp_path / "remoto")
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda *_a, **_k: ResultadoProceso(
+            ("git", "ls-remote", "--exit-code"),
+            codigo_salida,
+            salida,
+            "fallo simulado",
+            False,
+            False,
+        ),
+    )
+
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+
+    assert resultado.estado.estado == "fallido"
+    assert resultado.resoluciones[0].estado.motivo == motivo
+
+
+def test_latest_se_rechaza_sin_invocar_git(tmp_path: Path, monkeypatch) -> None:
+    raiz = _proyecto(tmp_path, tmp_path / "remoto")
+    manifiesto = raiz / ".tramalia" / "habilidades.toml"
+    manifiesto.write_text(
+        manifiesto.read_text(encoding="utf-8").replace("main", "latest"),
+        encoding="utf-8",
+    )
+    llamadas: list[tuple[str, ...]] = []
+
+    def ejecutar(argumentos, **_opciones):
+        llamadas.append(tuple(argumentos))
+        return ResultadoProceso(tuple(argumentos), 0, "", "", False, False)
+
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+
+    assert resultado.estado.estado == "fallido"
+    assert resultado.resoluciones[0].estado.motivo == "referencia_no_resuelta"
+    assert llamadas == []
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_fallo_de_actualizacion_conserva_bloqueo_anterior_byte_a_byte(
+    tmp_path: Path,
+) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    inicial = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert inicial.estado.estado == "completo"
+    ruta_bloqueo = raiz / ".tramalia" / "habilidades.lock.json"
+    bloqueo_anterior = ruta_bloqueo.read_bytes()
+    manifiesto = raiz / ".tramalia" / "habilidades.toml"
+    manifiesto.write_text(
+        manifiesto.read_text(encoding="utf-8").replace("main", "no-existe"),
+        encoding="utf-8",
+    )
+
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+
+    assert resultado.estado.estado == "fallido"
+    assert ruta_bloqueo.read_bytes() == bloqueo_anterior
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_sync_team_no_mueve_lock_si_manifiesto_cambia_referencia(
+    tmp_path: Path, monkeypatch
+) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    inicial = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert inicial.estado.estado == "completo"
+    assert _ejecutar_git(remoto, "branch", "otra").returncode == 0
+    ruta_bloqueo = raiz / ".tramalia" / "habilidades.lock.json"
+    bloqueo_anterior = ruta_bloqueo.read_bytes()
+    manifiesto = raiz / ".tramalia" / "habilidades.toml"
+    manifiesto.write_text(
+        manifiesto.read_text(encoding="utf-8").replace("main", "otra"),
+        encoding="utf-8",
+    )
+    ejecutar_real = habilidades._ejecutar_git
+    llamadas: list[tuple[str, ...]] = []
+
+    def ejecutar(argumentos, **opciones):
+        llamadas.append(tuple(argumentos))
+        return ejecutar_real(argumentos, **opciones)
+
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+
+    resultado = habilidades.sincronizar_habilidades(raiz)
+
+    assert resultado.estado.estado == "fallido"
+    assert resultado.resoluciones[0].estado.motivo == "bloqueo_desalineado"
+    assert llamadas == []
+    assert ruta_bloqueo.read_bytes() == bloqueo_anterior
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_modo_equipo_no_usa_pull_ni_resuelve_referencia_con_lock(
+    tmp_path: Path, monkeypatch
+) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    inicial = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert inicial.estado.estado == "completo"
+    ejecutar_real = habilidades._ejecutar_git
+    llamadas: list[tuple[str, ...]] = []
+
+    def ejecutar(argumentos, **opciones):
+        llamadas.append(tuple(argumentos))
+        return ejecutar_real(argumentos, **opciones)
+
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+
+    resultado = habilidades.sincronizar_habilidades(raiz)
+
+    assert resultado.estado.estado == "completo"
+    assert all("pull" not in llamada for llamada in llamadas)
+    assert all("ls-remote" not in llamada for llamada in llamadas)
+    assert any("--detach" in llamada for llamada in llamadas)
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_bloqueo_se_publica_mediante_replace_de_temporal_hermano(
+    tmp_path: Path, monkeypatch
+) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    reemplazar_real = Path.replace
+    publicaciones: list[tuple[Path, Path]] = []
+
+    def reemplazar(origen: Path, destino: Path) -> Path:
+        destino = Path(destino)
+        if destino.name == "habilidades.lock.json":
+            publicaciones.append((origen, destino))
+        return reemplazar_real(origen, destino)
+
+    monkeypatch.setattr(Path, "replace", reemplazar)
+
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+
+    assert resultado.estado.estado == "completo"
+    assert len(publicaciones) == 1
+    temporal, destino = publicaciones[0]
+    assert temporal.parent == destino.parent
+    assert ".tmp-" in temporal.name
+    assert not temporal.exists()
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_referencia_invalida_no_mueve_bloqueo(tmp_path: Path) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    manifiesto = raiz / ".tramalia" / "habilidades.toml"
+    manifiesto.write_text(
+        manifiesto.read_text(encoding="utf-8").replace("main", "no-existe"),
+        encoding="utf-8",
+    )
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert resultado.estado.estado == "fallido"
+    assert resultado.resoluciones[0].estado.motivo == "referencia_no_resuelta"
+    assert not (raiz / ".tramalia" / "habilidades.lock.json").exists()

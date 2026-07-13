@@ -6,7 +6,7 @@ Tramalia es una **capa fina** con una regla de oro: *no implementa capacidades, 
 
 La filosofía de Tramalia es el **minimalismo**: hacer lo mínimo correcto y no reconstruir lo que ya existe. Esto sigue el principio [Ponytail](https://github.com/DietrichGebert/ponytail) (y YAGNI). No es una herramienta que se instale: es una **regla que se lee y se sigue**.
 
-Por eso `tramalia init` lo deja escrito en el `AGENTS.md` de tu proyecto (sección *Reglas generales — Ponytail / YAGNI*), para que **cualquier agente** que trabaje el repo priorice la solución mínima, no abstraiga de más y no duplique lógica. Si lo prefieres como skill versionada, está como ejemplo en `.tramalia/skills.toml`.
+Por eso `tramalia init` lo deja escrito en el `AGENTS.md` de tu proyecto (sección *Reglas generales — Ponytail / YAGNI*), para que **cualquier agente** que trabaje el repo priorice la solución mínima, no abstraiga de más y no duplique lógica. Si lo prefieres como skill versionada, está como ejemplo en `.tramalia/habilidades.toml`.
 
 ## Las tres capas
 

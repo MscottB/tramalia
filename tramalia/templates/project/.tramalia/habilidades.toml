@@ -1,67 +1,68 @@
 # Manifiesto de skills EXTERNAS: referencias, no copias. `tramalia skills` las
-# clona/actualiza desde sus repos a .tramalia/skills/<name>.
-# Las 16 skills propias del proyecto (01-… a 16-…) ya viven en .tramalia/skills/.
+# clona/actualiza desde sus repos a .tramalia/habilidades/<nombre>.
+# habilidades.lock.json fija cada referencia a un sha_resuelto; tramalia skills update es la única operación que mueve el bloqueo en modo team.
+# Las 16 skills propias del proyecto (01-… a 16-…) ya viven en .tramalia/habilidades/.
 # Criterio de cuál instalar y cómo administrarlas: docs → página "Skills".
 
 # Ponytail: ruleset de minimalismo + servidor MCP propio (ponytail-mcp).
 # Tras `tramalia skills`, su MCP se puede cablear con `tramalia init --with-ponytail`.
-[[skill]]
-name   = "ponytail"
-source = "git+https://github.com/DietrichGebert/ponytail"
-ref    = "main"
+[[habilidad]]
+nombre = "ponytail"
+fuente = "git+https://github.com/DietrichGebert/ponytail"
+referencia = "main"
 
 # ── Catálogo de skills externas verificadas (descomenta las que quieras) ──────
 # Formato SKILL.md estándar; se clonan con `tramalia skills` y los agentes las leen.
 
 # Anthropic (oficial): document skills (PDF/DOCX/XLSX), creativas, técnicas.
-# [[skill]]
-# name   = "anthropic-skills"
-# source = "git+https://github.com/anthropics/skills"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "anthropic-skills"
+# fuente = "git+https://github.com/anthropics/skills"
+# referencia = "main"
 
 # Vercel: react-best-practices (40+ reglas), web-design-guidelines (100+ reglas
 # de a11y/UX — complementa el gate ux), writing-guidelines, vercel-optimize.
-# [[skill]]
-# name   = "vercel-agent-skills"
-# source = "git+https://github.com/vercel-labs/agent-skills"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "vercel-agent-skills"
+# fuente = "git+https://github.com/vercel-labs/agent-skills"
+# referencia = "main"
 
 # Superpowers: pack popular de skills de proceso para Claude Code (TDD,
 # debugging sistemático, planificación).
-# [[skill]]
-# name   = "superpowers"
-# source = "git+https://github.com/obra/superpowers"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "superpowers"
+# fuente = "git+https://github.com/obra/superpowers"
+# referencia = "main"
 
 # Matt Pocock: skills de TypeScript (incluye "grill-me": preguntas rigurosas
 # antes de implementar — complementa la skill 01-spec-governance).
-# [[skill]]
-# name   = "mattpocock-skills"
-# source = "git+https://github.com/mattpocock/skills"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "mattpocock-skills"
+# fuente = "git+https://github.com/mattpocock/skills"
+# referencia = "main"
 
 # Caveman: reduce ~65-75% los tokens de salida (respuestas "estilo cavernícola",
 # sin relleno conversacional). Familia ahorro de tokens junto a Headroom.
-# [[skill]]
-# name   = "caveman"
-# source = "git+https://github.com/JuliusBrussee/caveman"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "caveman"
+# fuente = "git+https://github.com/JuliusBrussee/caveman"
+# referencia = "main"
 
 # gstack: 31 skills que simulan un equipo completo (Security OWASP+STRIDE,
 # Release/Deploy, QA, Designer…) — profundiza las skills 14 y 16 propias.
-# [[skill]]
-# name   = "gstack"
-# source = "git+https://github.com/garrytan/gstack"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "gstack"
+# fuente = "git+https://github.com/garrytan/gstack"
+# referencia = "main"
 
 # Impeccable: guías de diseño/craft para UI de alta calidad (complementa 11-ux).
-# [[skill]]
-# name   = "impeccable"
-# source = "git+https://github.com/pbakaus/impeccable"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "impeccable"
+# fuente = "git+https://github.com/pbakaus/impeccable"
+# referencia = "main"
 
 # Emil Kowalski: animación e interacción de UI (complementa el gate ux).
-# [[skill]]
-# name   = "emilkowalski-skills"
-# source = "git+https://github.com/emilkowalski/skills"
-# ref    = "main"
+# [[habilidad]]
+# nombre = "emilkowalski-skills"
+# fuente = "git+https://github.com/emilkowalski/skills"
+# referencia = "main"

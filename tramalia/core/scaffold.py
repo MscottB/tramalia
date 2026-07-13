@@ -220,11 +220,10 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
         dest.write_text(content, encoding="utf-8")
         results.append((name, "creado"))
 
-    # 3. .gitignore: excluir skills externas (re-sincronizables) sin perder las
-    #    propias NN-*; el manifiesto skills.toml basta para re-hidratarlas.
-    from tramalia.core.skills import ensure_skills_gitignore
+    # 3. .gitignore: excluir habilidades externas sin perder las propias NN-*.
+    from tramalia.core.habilidades import asegurar_gitignore_habilidades
 
-    results.append((".gitignore", ensure_skills_gitignore(root)))
+    results.append((".gitignore", asegurar_gitignore_habilidades(root)))
 
     return results
 
@@ -386,7 +385,7 @@ def _mcp_servers(answers: dict) -> dict:
     if answers.get("with_ponytail"):
         servers["ponytail"] = {
             "command": "node",
-            "args": [".tramalia/skills/ponytail/ponytail-mcp/index.js"],
+            "args": [".tramalia/habilidades/ponytail/ponytail-mcp/index.js"],
         }
     return servers
 
@@ -409,6 +408,6 @@ def build_mcp_json(answers: dict) -> str:
     if "ponytail" in servers:
         note += (
             " Ponytail añadido por --with-ponytail: ejecuta `tramalia skills` y "
-            "`npm install` en .tramalia/skills/ponytail/ponytail-mcp antes de usarlo."
+            "`npm install` en .tramalia/habilidades/ponytail/ponytail-mcp antes de usarlo."
         )
     return json.dumps({"_note": note, "mcpServers": servers}, indent=2, ensure_ascii=False) + "\n"
