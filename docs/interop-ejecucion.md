@@ -23,7 +23,7 @@ Estas herramientas **corren** las validaciones. Tramalia las orquesta vía `mise
 - **Qué es / alcance:** control de versiones; base de toda la memoria, skills y evidencia versionada.
 - **Requiere:** nada.
 - **Instalar:** `winget install Git.Git` · `brew install git` · `apt install git` ([git-scm.com](https://git-scm.com)).
-- **Tramalia la usa en:** `skills` (clone/pull), `evidence` (lee `git diff`).
+- **Tramalia la usa en:** `skills` (en Team: clone/fetch del SHA + `checkout --detach`; nunca pull), `evidence` (lee `git diff`).
 - **Interactúa con:** el repo entero — es la "fuente de verdad" que Tramalia gobierna.
 
 ## uv — instalador de tools Python (bootstrap)

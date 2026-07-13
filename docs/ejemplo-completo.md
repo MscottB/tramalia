@@ -136,4 +136,4 @@ O en el **dashboard**: `tramalia ui` → pestaña Auditoría, Enter sobre el cie
     Todo lo de arriba funciona en cualquier repo: `pip install tramalia-cli`, `tramalia init`, `tramalia doctor` — y desde ahí el flujo de [Flujo completo](flujo-completo.md).
 
 !!! note "Cuando salga una versión nueva de Tramalia"
-    `pip install -U tramalia-cli` actualiza el CLI; **`tramalia upgrade`** pone al día la convención de `clinica-web` (agrega lo nuevo, nunca pisa lo que ya editaste). Distinto de `tramalia update`, que actualiza las herramientas orquestadas (mise + skills). Detalle: [Comandos → upgrade](comandos.md#upgrade-actualizar-un-repo-ya-inicializado).
+    `pip install -U tramalia-cli` actualiza el CLI; **`tramalia upgrade`** pone al día la convención de `clinica-web` (agrega lo nuevo, nunca pisa lo que ya editaste). `tramalia update` actualiza mise y sólo rehidrata las skills fijadas; para mover uno o todos los bloqueos Team usa `tramalia skills update [nombre]`. Detalle: [Comandos → upgrade](comandos.md#upgrade-actualizar-un-repo-ya-inicializado).

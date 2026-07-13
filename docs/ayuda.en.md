@@ -127,7 +127,7 @@ Resolution: `TRAMALIA_LANG` > `config.json → language` > system locale. Force 
 ## Skills
 
 **I added a skill by URL and it isn't cloned.**
-`add` only declares it in the manifest. In the TUI, **Enter** on an absent external skill **declares and materializes it in one step**; from the CLI, `tramalia skills sync [name]` —or the abbreviated `tramalia skills` command— rehydrates the pinned SHA. The `s` key performs that same rehydration for all skills and never advances a Team lock; the `d` key opens the selected skill's docs (repo).
+`add` only declares it in the manifest. Use `tramalia skills update <name>` to pin and materialize its initial SHA; in the TUI, **Enter** on an absent external skill performs both steps. Once the lock exists, `tramalia skills sync [name]` —or the abbreviated `tramalia skills` command— rehydrates the pinned SHA. The `s` key performs that same rehydration for all skills and never advances a Team lock; the `d` key opens the selected skill's docs (repo).
 
 **Did I have to press Enter and then sync? It wasn't clear.**
 It used to be two steps (declare, then sync) and wasn't explained. Since **v0.29**, in the TUI **Enter installs in one step** (declare + materialize); if the skill is already installed, Enter is the explicit update for that one skill. In Team mode it is equivalent to `tramalia skills update <name>` and may move only its lock after verifying the new SHA.

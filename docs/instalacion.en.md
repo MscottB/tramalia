@@ -88,4 +88,4 @@ tramalia doctor                          # 5. verify nothing is missing
 ## Updating
 
 - **Tramalia (the CLI):** `pip install -U tramalia-cli` — the install command with `-U`. Verify with `tramalia --version`.
-- **What Tramalia orchestrates** (mise tools + external skills): `tramalia update`. They're different things: `update` doesn't touch the package itself.
+- **What Tramalia orchestrates:** `tramalia update` updates mise and rehydrates external skills at their pinned SHAs; it neither touches the package nor moves Team locks. To explicitly advance one or all locks, use `tramalia skills update [name]`.

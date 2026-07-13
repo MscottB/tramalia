@@ -287,10 +287,13 @@ while a past close remains immutable in its package. To maintain the environment
 pip install -U tramalia-cli
 tramalia upgrade
 tramalia update
+# Only when you explicitly want to advance one or all Team locks:
+tramalia skills update [name]
 ```
 
 - `upgrade` adds new convention files without overwriting existing ones.
-- `update` updates orchestrated tools and declared skills.
+- `update` updates mise and rehydrates declared skills at their pinned SHAs; it does not move Team locks.
+- `skills update [name]` explicitly moves one or all Team locks after verifying the new SHA.
 - PyPI distributes the package, GitHub Pages publishes the documentation, and
   GitHub releases record versions. They are separate channels and must be
   verified separately.

@@ -63,16 +63,20 @@ La distinción más importante del diseño: qué es **core** (propio, standalone
     - eficiencia → **Ponytail → caveman (`lite`) → Headroom** (en ese orden; ver [criterio](interop-memoria.md#el-criterio-cual-montar-y-cual-usar))
     - agentes CLI → **detección informativa** en `doctor` (claude, codex, antigravity, gemini, opencode — nunca los configura)
 
-## El modelo "manifiesto + actualizador"
+## El modelo "manifiesto + lock + actualización explícita"
 
-Tramalia no copia el código de nadie. Lo **referencia** y un comando lo mantiene al día:
+El manifiesto canónico usa `[[habilidad]]` con `nombre`/`fuente`/`referencia`; el lock fija el SHA reproducible. `tramalia update` sólo rehidrata ese SHA. Para avanzar uno o todos los bloqueos Team se usa explícitamente `tramalia skills update [nombre]`; Team verifica un checkout detached y nunca usa `git pull`:
 
 ```mermaid
 flowchart LR
     classDef step fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     U["tramalia update"]:::step --> A["mise upgrade<br/><small>tools externas</small>"]:::step
     U --> B["copier update<br/><small>la convención</small>"]:::step
-    U --> C["skills sync<br/><small>skills referenciadas</small>"]:::step
+    U --> C["skills sync<br/><small>rehidrata sha_resuelto</small>"]:::step
+    V["tramalia skills update [nombre]"]:::step --> R["ls-remote → SHA"]:::step
+    R --> F["clone/fetch SHA"]:::step
+    F --> D["checkout --detach<br/>verificar HEAD"]:::step
+    D --> L["publicar lock"]:::step
 ```
 
 ## La fachada MCP (nivel 1)

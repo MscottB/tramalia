@@ -89,4 +89,4 @@ tramalia doctor                          # 5. verifica que no falte nada
 ## Actualizar
 
 - **Tramalia (el CLI):** `pip install -U tramalia-cli` — el mismo comando de instalación con `-U`. Verifica con `tramalia --version`.
-- **Lo que Tramalia orquesta** (tools de mise + skills externas): `tramalia update`. Son cosas distintas: `update` no toca el propio paquete.
+- **Lo que Tramalia orquesta:** `tramalia update` actualiza mise y rehidrata las skills externas en sus SHA fijados; no toca el paquete ni mueve bloqueos Team. Para avanzar explícitamente uno o todos los bloqueos usa `tramalia skills update [nombre]`.

@@ -15,7 +15,7 @@ Código propio de Tramalia (Python, MIT). Funciona **standalone, solo con la std
 | **`log` (`core/governance.py`)** | **pista de auditoría: lee `metadata.json` de cada cierre** | core ★ |
 | `evidence` (`core/evidence.py`) | crea el evidence pack de cierre | core |
 | `handoff` (`core/handoff.py`) | agrega un traspaso estructurado a `docs/ai/07` | core |
-| `skills` (`core/habilidades.py`) | clona/actualiza skills desde sus repos | core (usa git) |
+| `skills` (`core/habilidades.py`) | rehidrata SHA fijados y sólo los avanza con `skills update`; Team usa fetch + checkout detached, nunca pull | core (usa git) |
 | `mcp` (`mcp_server.py`) | fachada MCP: expone la convención como tools nativas | core (+ SDK mcp) |
 | `ui` (`tui.py`) | dashboard TUI: Resumen · Auditoría · Cierre | core (+ extra `[tui]`) |
 | `tools` (`core/tools.py`) | registro de herramientas y sondeo de presencia | interno |

@@ -136,4 +136,4 @@ Or in the **dashboard**: `tramalia ui` → Audit tab; Enter on the close shows i
     Everything above works in any repo: `pip install tramalia-cli`, `tramalia init`, `tramalia doctor` — and from there the [Full workflow](flujo-completo.md).
 
 !!! note "When a new Tramalia version ships"
-    `pip install -U tramalia-cli` updates the CLI; **`tramalia upgrade`** brings `clinica-web`'s convention up to date (adds what's new, never overwrites what you already edited). Different from `tramalia update`, which updates the orchestrated tools (mise + skills). Detail: [Commands → upgrade](comandos.md#upgrade-update-an-already-initialized-repo).
+    `pip install -U tramalia-cli` updates the CLI; **`tramalia upgrade`** brings `clinica-web`'s convention up to date (adds what's new, never overwrites what you already edited). `tramalia update` updates mise and only rehydrates pinned skills; use `tramalia skills update [name]` to move one or all Team locks. Detail: [Commands → upgrade](comandos.md#upgrade-update-an-already-initialized-repo).

@@ -292,11 +292,14 @@ mantener el entorno:
 pip install -U tramalia-cli
 tramalia upgrade
 tramalia update
+# Sólo cuando quieras avanzar explícitamente uno o todos los locks Team:
+tramalia skills update [nombre]
 ```
 
 - `upgrade` incorpora archivos nuevos de la convención sin sobrescribir los
   existentes.
-- `update` actualiza herramientas orquestadas y skills declaradas.
+- `update` actualiza mise y rehidrata las skills declaradas en sus SHA fijados; no mueve bloqueos Team.
+- `skills update [nombre]` mueve explícitamente uno o todos los bloqueos Team después de verificar el nuevo SHA.
 - PyPI distribuye el paquete; GitHub Pages publica la documentación; los releases
   de GitHub registran versiones. Son canales separados y deben verificarse por
   separado.

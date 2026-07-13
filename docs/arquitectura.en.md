@@ -63,16 +63,20 @@ The most important design distinction: what is **core** (own, standalone, Python
     - efficiency → **Ponytail → caveman (`lite`) → Headroom** (in that order; see [criterion](interop-memoria.md#the-criterion-which-to-mount-and-which-to-use))
     - agent CLIs → **informational detection** in `doctor` (claude, codex, antigravity, gemini, opencode — never configured)
 
-## The "manifest + updater" model
+## The "manifest + lock + explicit update" model
 
-Tramalia doesn't copy anyone's code. It **references** it and one command keeps it up to date:
+The canonical manifest uses `[[habilidad]]` with `nombre`/`fuente`/`referencia`; the lock pins a reproducible SHA. `tramalia update` only rehydrates that SHA. Explicitly use `tramalia skills update [name]` to advance one or all Team locks; Team verifies a detached checkout and never uses `git pull`:
 
 ```mermaid
 flowchart LR
     classDef step fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     U["tramalia update"]:::step --> A["mise upgrade<br/><small>external tools</small>"]:::step
     U --> B["copier update<br/><small>the convention</small>"]:::step
-    U --> C["skills sync<br/><small>referenced skills</small>"]:::step
+    U --> C["skills sync<br/><small>rehydrates sha_resuelto</small>"]:::step
+    V["tramalia skills update [name]"]:::step --> R["ls-remote → SHA"]:::step
+    R --> F["clone/fetch SHA"]:::step
+    F --> D["checkout --detach<br/>verify HEAD"]:::step
+    D --> L["publish lock"]:::step
 ```
 
 ## The MCP façade (level 1)

@@ -127,7 +127,7 @@ Resolución: `TRAMALIA_LANG` > `config.json → language` > locale del sistema. 
 ## Skills
 
 **Agregué una skill por URL y no aparece clonada.**
-`add` solo la declara en el manifiesto. En la TUI, **Enter** sobre una skill externa ausente la **declara y materializa en un paso**; por CLI, `tramalia skills sync [nombre]` —o el comando abreviado `tramalia skills`— rehidrata el SHA fijado. La tecla `s` hace esa misma rehidratación para todas y nunca avanza un bloqueo Team; la tecla `d` abre la documentación (repo) de la skill seleccionada.
+`add` solo la declara en el manifiesto. Usa `tramalia skills update <nombre>` para fijar y materializar su SHA inicial; en la TUI, **Enter** sobre una skill externa ausente hace ambos pasos. Cuando el lock ya existe, `tramalia skills sync [nombre]` —o el comando abreviado `tramalia skills`— rehidrata el SHA fijado. La tecla `s` hace esa misma rehidratación para todas y nunca avanza un bloqueo Team; la tecla `d` abre la documentación (repo) de la skill seleccionada.
 
 **¿Tenía que apretar Enter y luego sincronizar? No estaba claro.**
 Antes sí eran dos pasos (declarar, luego sync) y no se explicaba. Desde **v0.29**, en la TUI **Enter instala en un paso** (declara + materializa); si la skill ya está instalada, Enter es la actualización explícita de esa sola skill. En Team equivale a `tramalia skills update <nombre>` y puede mover únicamente su bloqueo después de verificar el nuevo SHA.

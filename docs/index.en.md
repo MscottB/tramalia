@@ -67,7 +67,7 @@ tramalia doctor             # tells you what else is worth installing
 From there, your agent reads `AGENTS.md` and works under the project's rules; you close each task with `tramalia close` and the evidence stays. The whole journey, step by step: [Full workflow](flujo-completo.md).
 
 !!! tip "Keeping Tramalia up to date is TWO steps, not one"
-    `pip install -U tramalia-cli` updates **the CLI** on your machine — but your already-generated repo **doesn't change on its own**. Then run **`tramalia upgrade`** in each project: it adds what's new in the convention **without overwriting anything of yours**. (And `tramalia update`, a different thing, updates the *orchestrated tools*: mise + skills.) Detail: [Commands → upgrade](comandos.md#upgrade-update-an-already-initialized-repo).
+    `pip install -U tramalia-cli` updates **the CLI** on your machine — but your already-generated repo **doesn't change on its own**. Then run **`tramalia upgrade`** in each project: it adds what's new in the convention **without overwriting anything of yours**. `tramalia update`, a different command, updates mise and rehydrates skills at their pinned SHAs; it does not move Team locks. Use `tramalia skills update [name]` to advance them. Detail: [Commands → upgrade](comandos.md#upgrade-update-an-already-initialized-repo).
 
 ## How does it fit with the other tools?
 

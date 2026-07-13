@@ -72,7 +72,7 @@ tramalia doctor             # te dice qué más te conviene instalar
 Desde ahí, tu agente lee `AGENTS.md` y trabaja bajo las reglas del proyecto; tú cierras cada tarea con `tramalia close` y queda la evidencia. El recorrido entero, paso a paso: [Flujo completo](flujo-completo.md).
 
 !!! tip "Mantener Tramalia al día son DOS pasos, no uno"
-    `pip install -U tramalia-cli` actualiza **el CLI** en tu máquina — pero tu repo ya generado **no cambia solo**. Después corre **`tramalia upgrade`** en cada proyecto: agrega lo nuevo de la convención **sin pisar nada tuyo**. (Y `tramalia update`, distinto, actualiza las *herramientas orquestadas*: mise + skills.) Detalle: [Comandos → upgrade](comandos.md#upgrade-actualizar-un-repo-ya-inicializado).
+    `pip install -U tramalia-cli` actualiza **el CLI** en tu máquina — pero tu repo ya generado **no cambia solo**. Después corre **`tramalia upgrade`** en cada proyecto: agrega lo nuevo de la convención **sin pisar nada tuyo**. `tramalia update`, distinto, actualiza mise y rehidrata las skills en sus SHA fijados; no mueve bloqueos Team. Para avanzarlos usa `tramalia skills update [nombre]`. Detalle: [Comandos → upgrade](comandos.md#upgrade-actualizar-un-repo-ya-inicializado).
 
 ## ¿Cómo encaja con las demás herramientas?
 

@@ -23,7 +23,7 @@ These tools **run** the validations. Tramalia orchestrates them via `mise` (the 
 - **What it is / scope:** version control; the base of all versioned memory, skills and evidence.
 - **Requires:** nothing.
 - **Install:** `winget install Git.Git` · `brew install git` · `apt install git` ([git-scm.com](https://git-scm.com)).
-- **Tramalia uses it in:** `skills` (clone/pull), `evidence` (reads `git diff`).
+- **Tramalia uses it in:** `skills` (in Team: clone/fetch the SHA + `checkout --detach`; never pull), `evidence` (reads `git diff`).
 - **Interacts with:** the whole repo — it's the "source of truth" that Tramalia governs.
 
 ## uv — Python tools installer (bootstrap)
