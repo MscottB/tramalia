@@ -8,9 +8,9 @@ import pytest
 from tramalia import i18n
 from tramalia.core.detect import detect_stack, enabled_features
 from tramalia.core.doctor import diagnose
+from tramalia.core.integraciones import REGISTRO, herramientas_relevantes
 from tramalia.core.project import task_description
 from tramalia.core.scaffold import scaffold
-from tramalia.core.tools import REGISTRY, relevant_tools
 
 
 # ---------------------------------------------------------------- i18n
@@ -138,12 +138,12 @@ def test_task_description_extrae_seccion(tmp_path):
 
 # ---------------------------------------------------------------- agentes CLI
 def test_agentes_cli_detectables_y_no_bloqueantes(tmp_path):
-    agentes = {t.key for t in REGISTRY if t.category == "agent"}
+    agentes = {herramienta.clave for herramienta in REGISTRO if herramienta.categoria == "agent"}
     assert {"claude", "codex", "antigravity", "opencode", "openclaw", "hermes"} <= agentes
-    keys = {t.key for t in relevant_tools([], ())}
+    keys = {herramienta.clave for herramienta in herramientas_relevantes([], ())}
     assert "claude" in keys  # siempre visibles
     rep = diagnose(tmp_path)
-    assert all(s.tool.category != "agent" for s in rep.missing_blocking)
+    assert all(estado.herramienta.categoria != "agent" for estado in rep.missing_blocking)
 
 
 # ---------------------------------------------------------------- analítica

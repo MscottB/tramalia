@@ -1,11 +1,11 @@
 """v0.23: versión en el UI + prerequisitos de runtime visibles y facilitados."""
 
 from tramalia.core import installer
-from tramalia.core.tools import REGISTRY
+from tramalia.core.integraciones import REGISTRO
 
 
-def _tool(key):
-    return next(t for t in REGISTRY if t.key == key)
+def _herramienta(clave):
+    return next(herramienta for herramienta in REGISTRO if herramienta.clave == clave)
 
 
 # ---------------------------------------------------------------- versión en UI
@@ -32,20 +32,20 @@ def test_tui_title_incluye_version():
 
 # ---------------------------------------------------------------- runtime bloqueante
 def test_go_es_automatizable():
-    win = installer.options_for(_tool("go"), os_name="windows")
+    win = installer.options_for(_herramienta("go"), os_name="windows")
     assert any(o.method == "winget" and o.auto for o in win)
 
 
 def test_engram_bloqueado_por_go_si_falta(monkeypatch):
     # sin go ni ningún gestor auto → engram queda bloqueado por el runtime Go
     monkeypatch.setattr(installer.shutil, "which", lambda _n: None)
-    rt = installer.blocking_runtime(_tool("engram"), os_name="windows")
+    rt = installer.blocking_runtime(_herramienta("engram"), os_name="windows")
     assert rt == "go"
 
 
 def test_engram_no_bloqueado_si_go_presente(monkeypatch):
     monkeypatch.setattr(installer.shutil, "which", lambda n: "C:/x/go.exe" if n == "go" else None)
-    assert installer.blocking_runtime(_tool("engram"), os_name="windows") is None
+    assert installer.blocking_runtime(_herramienta("engram"), os_name="windows") is None
 
 
 def test_runtime_install_option_para_go():
@@ -60,7 +60,7 @@ def test_plan_for_ofrece_el_runtime_que_desbloquea(monkeypatch):
         installer.shutil, "which", lambda n: "C:/w/winget.exe" if n == "winget" else None
     )
     monkeypatch.setattr(installer, "current_os", lambda: "windows")
-    auto, manual, offers = installer.plan_for([_tool("engram")])
+    auto, manual, offers = installer.plan_for([_herramienta("engram")])
     # engram no es auto (falta go), aparece en manual con su runtime
     assert any(rt == "go" for _c, _d, rt in manual)
     # y se ofrece instalar Go, listando que habilita engram

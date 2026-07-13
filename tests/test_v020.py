@@ -4,13 +4,13 @@ import sys
 import threading
 from pathlib import Path
 
-from tramalia.core import installer, tools
+from tramalia.core import installer, integraciones
 from tramalia.core.installer import InstallOption, needs_admin, run_install_streaming
-from tramalia.core.tools import REGISTRY, docs_url
+from tramalia.core.integraciones import REGISTRO, url_documentacion
 
 
-def _tool(key):
-    return next(t for t in REGISTRY if t.key == key)
+def _herramienta(clave):
+    return next(herramienta for herramienta in REGISTRO if herramienta.clave == clave)
 
 
 # ---------------------------------------------------------------- detección uv
@@ -19,32 +19,34 @@ def test_probe_ve_instaladas_por_uv_fuera_del_path(tmp_path, monkeypatch):
     (tmp_path / ".local" / "bin").mkdir(parents=True)
     (tmp_path / ".local" / "bin" / "headroom.exe").write_bytes(b"")
     monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
-    monkeypatch.setattr(tools.shutil, "which", lambda _n: None)
-    st = tools.probe(_tool("headroom"))
-    assert st.present is True and "uv" in (st.version or "")
+    monkeypatch.setattr(integraciones.shutil, "which", lambda _n: None)
+    estado = integraciones.sondear(_herramienta("headroom"))
+    assert estado.presente is True and "uv" in (estado.version or "")
 
 
 def test_serena_efimera_ok_con_uv(monkeypatch):
-    monkeypatch.setattr(tools.shutil, "which", lambda n: "C:/x/uv.exe" if n == "uv" else None)
-    st = tools.probe(_tool("serena"))
-    assert st.present is True and "uvx" in (st.version or "")
+    monkeypatch.setattr(
+        integraciones.shutil, "which", lambda n: "C:/x/uv.exe" if n == "uv" else None
+    )
+    estado = integraciones.sondear(_herramienta("serena"))
+    assert estado.presente is True and "uvx" in (estado.version or "")
 
 
 # ---------------------------------------------------------------- registro
 def test_gemini_fuera_openclaw_hermes_dentro():
-    keys = {t.key for t in REGISTRY}
+    keys = {herramienta.clave for herramienta in REGISTRO}
     assert "gemini" not in keys
     assert {"openclaw", "hermes"} <= keys
 
 
 def test_opencode_automatizable_via_npm():
-    opts = installer.options_for(_tool("opencode"))
+    opts = installer.options_for(_herramienta("opencode"))
     assert any(o.method == "npm" for o in opts)
 
 
 def test_docs_url_conocida_y_fallback():
-    assert docs_url(_tool("mise")).startswith("https://mise")
-    assert docs_url(_tool("markitdown")).startswith("https://github.com/microsoft")
+    assert url_documentacion(_herramienta("mise")).startswith("https://mise")
+    assert url_documentacion(_herramienta("markitdown")).startswith("https://github.com/microsoft")
 
 
 # ---------------------------------------------------------------- admin

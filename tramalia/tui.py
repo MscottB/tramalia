@@ -308,27 +308,32 @@ def build_app():
             )
             for cat, rows in group_statuses(report.statuses):
                 tabla.add_row(f"[bold cyan]· {t('doctor.group.' + cat)}[/]", "", "", "")
-                for s in rows:
-                    if s.present:
-                        mark, detalle = t("tui.status.ok"), (s.version or "—")
+                for estado in rows:
+                    if estado.presente:
+                        mark, detalle = t("tui.status.ok"), (estado.version or "—")
                     else:
-                        best = installer.best_auto(s.tool)
+                        best = installer.best_auto(estado.herramienta)
                         hint = (
                             best.display
                             if best
                             else (
-                                installer.options_for(s.tool)[0].display
-                                if installer.options_for(s.tool)
-                                else s.tool.install_hint
+                                installer.options_for(estado.herramienta)[0].display
+                                if installer.options_for(estado.herramienta)
+                                else estado.herramienta.sugerencia_instalacion
                             )
                         )
                         mark = (
                             t("tui.status.optional")
-                            if s.tool.category in ("feature", "agent")
+                            if estado.herramienta.categoria in ("feature", "agent")
                             else t("tui.status.missing")
                         )
                         detalle = hint
-                    tabla.add_row(f"  {s.tool.cmd}", s.tool.role, mark, detalle)
+                    tabla.add_row(
+                        f"  {estado.herramienta.comando}",
+                        estado.herramienta.rol,
+                        mark,
+                        detalle,
+                    )
 
             self._refresh_skills(root, inicializado)
             self._refresh_audit(root, inicializado, entries)
@@ -575,9 +580,9 @@ def build_app():
             button.disabled = True
             root = Path.cwd()
             stack = detect_stack(root)
-            from tramalia.core.tools import detect_default_agents
+            from tramalia.core.integraciones import detectar_agentes_predeterminados
 
-            primary, reviewer = detect_default_agents()
+            primary, reviewer = detectar_agentes_predeterminados()
             scaffold(
                 root,
                 {
@@ -605,7 +610,7 @@ def build_app():
             más la acción de configurar el PATH de uv si hace falta."""
             self.query_one(TabbedContent).active = "resumen"
             report = getattr(self, "_report")
-            faltantes = [s.tool for s in report.statuses if not s.present]
+            faltantes = [estado.herramienta for estado in report.statuses if not estado.presente]
             auto, manual, runtime_offers = installer.plan_for(faltantes)
             # plans: 3-tuplas (label, opción, [cmds que desbloquea al instalarse])
             plans: list[tuple[str, installer.InstallOption, list[str]]] = [
@@ -653,7 +658,7 @@ def build_app():
                 ev.set()
 
         def _install_worker(self, seleccion) -> None:
-            from tramalia.core.tools import REGISTRY
+            from tramalia.core.integraciones import REGISTRO
 
             cola = list(seleccion)  # crece si un runtime desbloquea otras (engram tras Go)
             i = 0
@@ -683,8 +688,11 @@ def build_app():
                     # refrescar el PATH del proceso y encadenar lo que desbloquea.
                     installer.refresh_runtime_path()
                     for cmd in enables:
-                        tool = next((x for x in REGISTRY if x.cmd == cmd), None)
-                        best = installer.best_auto(tool) if tool else None
+                        herramienta = next(
+                            (x for x in REGISTRO if x.comando == cmd),
+                            None,
+                        )
+                        best = installer.best_auto(herramienta) if herramienta else None
                         if best:
                             cola.append((cmd, best, []))
                             self.call_from_thread(
@@ -715,7 +723,7 @@ def build_app():
             if self.query_one(TabbedContent).active == "skills":
                 url = self._skill_docs_url()
             else:
-                from tramalia.core.tools import REGISTRY, docs_url
+                from tramalia.core.integraciones import REGISTRO, url_documentacion
 
                 tabla = self.query_one("#tabla-doctor", DataTable)
                 try:
@@ -723,8 +731,8 @@ def build_app():
                 except Exception:
                     return
                 cmd = str(fila[0]).strip()
-                tool = next((x for x in REGISTRY if x.cmd == cmd), None)
-                url = docs_url(tool) if tool else ""
+                herramienta = next((x for x in REGISTRO if x.comando == cmd), None)
+                url = url_documentacion(herramienta) if herramienta else ""
             if url:
                 webbrowser.open(url)
                 self.notify(t("tui.docs.opened", url=url), markup=False)

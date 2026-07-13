@@ -12,28 +12,38 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tramalia.core.detect import detect_stack, enabled_features
-from tramalia.core.tools import Status, probe, relevant_tools
+from tramalia.core.integraciones import (
+    EstadoHerramienta,
+    herramientas_relevantes,
+    sondear,
+)
 
 
 @dataclass
 class Report:
     stack: list[str]
     features: tuple[str, ...]
-    statuses: list[Status]
+    statuses: list[EstadoHerramienta]
     node_present: bool = True
     node_tools: list[str] = field(default_factory=list)
     uv_bin_on_path: bool = True
 
     @property
-    def missing_blocking(self) -> list[Status]:
+    def missing_blocking(self) -> list[EstadoHerramienta]:
         # bootstrap y stack bloquean; feature es advertencia
         return [
-            s for s in self.statuses if not s.present and s.tool.category in ("bootstrap", "stack")
+            estado
+            for estado in self.statuses
+            if not estado.presente and estado.herramienta.categoria in ("bootstrap", "stack")
         ]
 
     @property
-    def missing_optional(self) -> list[Status]:
-        return [s for s in self.statuses if not s.present and s.tool.category == "feature"]
+    def missing_optional(self) -> list[EstadoHerramienta]:
+        return [
+            estado
+            for estado in self.statuses
+            if not estado.presente and estado.herramienta.categoria == "feature"
+        ]
 
     @property
     def needs_node(self) -> bool:
@@ -44,8 +54,12 @@ def diagnose(root: Path | None = None, features: tuple[str, ...] | None = None) 
     root = root or Path.cwd()
     stack = detect_stack(root)
     feats = features if features is not None else enabled_features(stack)
-    statuses = [probe(t) for t in relevant_tools(stack, feats)]
-    node_tools = [s.tool.cmd for s in statuses if s.tool.runtime == "node"]
+    statuses = [sondear(herramienta) for herramienta in herramientas_relevantes(stack, feats)]
+    node_tools = [
+        estado.herramienta.comando
+        for estado in statuses
+        if estado.herramienta.entorno_ejecucion == "node"
+    ]
     node_present = shutil.which("node") is not None
     # PATH de uv: solo es un problema si uv está presente pero su bin no está en PATH
     from tramalia.core import installer
@@ -92,15 +106,17 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
         "model_cap": project_core.agents_model_cap(root),
         "tools": [
             {
-                "key": s.tool.key,
-                "cmd": s.tool.cmd,
-                "installed": s.present,
-                "version": s.version,
-                "category": s.tool.category,
-                "feature": s.tool.feature or None,
-                "alternative": None if s.present else s.tool.install_hint,
+                "key": estado.herramienta.clave,
+                "cmd": estado.herramienta.comando,
+                "installed": estado.presente,
+                "version": estado.version,
+                "category": estado.herramienta.categoria,
+                "feature": estado.herramienta.capacidad or None,
+                "alternative": (
+                    None if estado.presente else estado.herramienta.sugerencia_instalacion
+                ),
             }
-            for s in report.statuses
+            for estado in report.statuses
         ],
     }
     out = dest / "tools.json"
@@ -110,7 +126,10 @@ def write_snapshot(report: Report, root: Path) -> Path | None:
 
 def fix(report: Report) -> bool:
     """Intenta instalar lo que falte delegando en mise. Devuelve True si actuó."""
-    mise_ok = next((s.present for s in report.statuses if s.tool.key == "mise"), False)
+    mise_ok = next(
+        (estado.presente for estado in report.statuses if estado.herramienta.clave == "mise"),
+        False,
+    )
     if not mise_ok:
         return False  # sin mise no se puede delegar; el caller mostrará el bootstrap
     try:

@@ -68,10 +68,18 @@ def build_server():
         """Diagnóstico de herramientas requeridas/opcionales para este proyecto."""
         report = doctor_core.diagnose(Path.cwd())
         lines = [f"stack: {', '.join(report.stack) or '—'}"]
-        for s in report.statuses:
-            mark = "OK" if s.present else ("opcional" if s.tool.category == "feature" else "FALTA")
+        for estado in report.statuses:
+            mark = (
+                "OK"
+                if estado.presente
+                else "opcional"
+                if estado.herramienta.categoria == "feature"
+                else "FALTA"
+            )
             lines.append(
-                f"  [{mark}] {s.tool.cmd} ({s.tool.category}) — {s.version or s.tool.install_hint}"
+                f"  [{mark}] {estado.herramienta.comando} "
+                f"({estado.herramienta.categoria}) — "
+                f"{estado.version or estado.herramienta.sugerencia_instalacion}"
             )
         return "\n".join(lines)
 

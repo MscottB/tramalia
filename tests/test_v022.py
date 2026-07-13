@@ -2,31 +2,31 @@
 
 from tramalia.cli.render import group_of, group_statuses
 from tramalia.core import installer
-from tramalia.core.tools import REGISTRY, Status
+from tramalia.core.integraciones import REGISTRO, EstadoHerramienta
 
 
-def _tool(key):
-    return next(t for t in REGISTRY if t.key == key)
+def _herramienta(clave):
+    return next(herramienta for herramienta in REGISTRO if herramienta.clave == clave)
 
 
 # ---------------------------------------------------------------- subgrupos
 def test_features_se_reparten_por_dominio():
-    assert group_of(_tool("serena")) == "context"
-    assert group_of(_tool("engram")) == "memory"
-    assert group_of(_tool("semgrep")) == "security"
-    assert group_of(_tool("sqlfluff")) == "database"
-    assert group_of(_tool("databricks")) == "analytics"
-    assert group_of(_tool("rulesync")) == "convention"  # feature=sync
-    assert group_of(_tool("claude")) == "agent"
-    assert group_of(_tool("mise")) == "bootstrap"
+    assert group_of(_herramienta("serena")) == "context"
+    assert group_of(_herramienta("engram")) == "memory"
+    assert group_of(_herramienta("semgrep")) == "security"
+    assert group_of(_herramienta("sqlfluff")) == "database"
+    assert group_of(_herramienta("databricks")) == "analytics"
+    assert group_of(_herramienta("rulesync")) == "convention"  # capacidad=sync
+    assert group_of(_herramienta("claude")) == "agent"
+    assert group_of(_herramienta("mise")) == "bootstrap"
 
 
 def test_grupos_respetan_orden():
     st = [
-        Status(_tool("databricks"), False),
-        Status(_tool("engram"), False),
-        Status(_tool("mise"), True),
-        Status(_tool("serena"), False),
+        EstadoHerramienta(_herramienta("databricks"), False),
+        EstadoHerramienta(_herramienta("engram"), False),
+        EstadoHerramienta(_herramienta("mise"), True),
+        EstadoHerramienta(_herramienta("serena"), False),
     ]
     grupos = [g for g, _ in group_statuses(st)]
     assert grupos == ["bootstrap", "context", "memory", "analytics"]
@@ -34,10 +34,10 @@ def test_grupos_respetan_orden():
 
 # ---------------------------------------------------------------- engram/codegraph
 def test_engram_instalable_en_mac_y_en_windows_con_go():
-    mac = installer.options_for(_tool("engram"), os_name="macos")
+    mac = installer.options_for(_herramienta("engram"), os_name="macos")
     assert any(o.method == "brew" and o.auto for o in mac)
     # Windows: automatizable vía `go install` (si Go está) + binario manual de respaldo
-    win = installer.options_for(_tool("engram"), os_name="windows")
+    win = installer.options_for(_herramienta("engram"), os_name="windows")
     go = next(o for o in win if o.method == "go")
     assert go.auto and go.requires == "go" and "engram" in go.args[2]
     assert any(not o.auto for o in win)  # respaldo manual visible
@@ -46,20 +46,20 @@ def test_engram_instalable_en_mac_y_en_windows_con_go():
 def test_probe_detecta_engram_instalado_por_go(tmp_path, monkeypatch):
     import pathlib
 
-    from tramalia.core import tools
+    from tramalia.core import integraciones
 
     (tmp_path / "go" / "bin").mkdir(parents=True)
     (tmp_path / "go" / "bin" / "engram.exe").write_bytes(b"")
     monkeypatch.delenv("GOPATH", raising=False)
     monkeypatch.setattr(pathlib.Path, "home", staticmethod(lambda: tmp_path))
-    monkeypatch.setattr(tools.shutil, "which", lambda _n: None)
-    st = tools.probe(_tool("engram"))
-    assert st.present is True and "go" in (st.version or "")
+    monkeypatch.setattr(integraciones.shutil, "which", lambda _n: None)
+    estado = integraciones.sondear(_herramienta("engram"))
+    assert estado.presente is True and "go" in (estado.version or "")
 
 
 def test_codegraph_siempre_visible_como_manual():
     for os_name in ("windows", "macos", "linux"):
-        opts = installer.options_for(_tool("codegraph"), os_name=os_name)
+        opts = installer.options_for(_herramienta("codegraph"), os_name=os_name)
         assert opts and "codegraph" in opts[0].display
 
 
@@ -82,8 +82,8 @@ def test_selector_incluye_todas_las_faltantes():
     """Cada faltante cae en automatizable (best_auto) o manual (options_for) —
     ninguna se omite (el bug: solo aparecían las automatizables)."""
     for key in ("engram", "codegraph", "hermes", "openclaw"):
-        tool = _tool(key)
-        best = installer.best_auto(tool)
-        opts = installer.options_for(tool)
+        herramienta = _herramienta(key)
+        best = installer.best_auto(herramienta)
+        opts = installer.options_for(herramienta)
         # o tiene vía automatizable, o al menos una opción manual visible
         assert best is not None or any(not o.auto for o in opts), key

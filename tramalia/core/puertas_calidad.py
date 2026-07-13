@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from time import monotonic
 
-from tramalia.core import proc
+from tramalia.core import procesos
 from tramalia.core.errores import ErrorConfiguracionPuertas
 from tramalia.core.modelos import (
     EjecucionPuertas,
@@ -125,7 +125,7 @@ def ejecutar_puertas(
     nombres = tuple(puerta.nombre for puerta in puertas)
     if not puertas:
         return EjecucionPuertas(estado=ValorEstadoPuertas.SIN_CONFIGURAR)
-    if proc.which("mise") is None:
+    if procesos.encontrar("mise") is None:
         return EjecucionPuertas(
             estado=ValorEstadoPuertas.EJECUTOR_NO_DISPONIBLE,
             descubiertas=nombres,
@@ -140,19 +140,17 @@ def ejecutar_puertas(
         inicio_utc = datetime.now(UTC)
         marca_inicio = monotonic()
         try:
-            proceso = proc.run(
-                list(puerta.comando),
-                cwd=raiz,
-                capture_output=True,
-                text=True,
-                timeout=900,
+            proceso = procesos.ejecutar(
+                puerta.comando,
+                raiz=raiz,
+                limite_segundos=900,
             )
-            salida = (proceso.stdout or "") + (proceso.stderr or "")
-            if proceso.returncode == 0:
+            salida = proceso.salida + proceso.error
+            if proceso.exitoso:
                 estado = ValorResultadoPuerta.APROBADO
             else:
                 estado = ValorResultadoPuerta.FALLIDO
-            codigo_salida = proceso.returncode
+            codigo_salida = proceso.codigo_salida
         except Exception as error:
             salida = f"{type(error).__name__}: {error}"
             estado = ValorResultadoPuerta.ERROR_EJECUCION

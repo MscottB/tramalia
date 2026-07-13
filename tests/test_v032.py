@@ -2,61 +2,81 @@
 
 Antes, `tramalia init` grababa siempre primary="codex", reviewer="claude" en
 config.json sin importar qué había instalado — el tab Cierre precargaba esos
-nombres sin relación con la máquina real. Ahora se detecta con tools.probe().
+nombres sin relación con la máquina real. Ahora se detecta con integraciones.sondear().
 """
 
 import json
 import types
 
-from tramalia.core import tools
+from tramalia.core import integraciones
 from tramalia.core.detect import enabled_features
 from tramalia.core.scaffold import scaffold
 
 
-def _tool(key):
-    return next(t for t in tools.REGISTRY if t.key == key)
+def _herramienta(clave):
+    return next(herramienta for herramienta in integraciones.REGISTRO if herramienta.clave == clave)
 
 
-# ---------------------------------------------------------------- detect_default_agents
+# --------------------------------------------------- detectar_agentes_predeterminados
 def test_dos_agentes_detectados_uno_ejecuta_otro_revisa(monkeypatch):
-    def fake_probe(tool, timeout=8.0):
-        return tools.Status(tool, present=tool.key in ("claude", "codex"))
+    def sondeo_falso(herramienta, limite_segundos=8.0):
+        return integraciones.EstadoHerramienta(
+            herramienta,
+            presente=herramienta.clave in ("claude", "codex"),
+        )
 
-    monkeypatch.setattr(tools, "probe", fake_probe)
-    primary, reviewer = tools.detect_default_agents()
+    monkeypatch.setattr(integraciones, "sondear", sondeo_falso)
+    primary, reviewer = integraciones.detectar_agentes_predeterminados()
     assert primary == "claude"  # primero en el orden de preferencia
     assert reviewer == "codex"
     assert primary != reviewer  # cross-review real
 
 
 def test_un_solo_agente_se_usa_para_ambos(monkeypatch):
-    def fake_probe(tool, timeout=8.0):
-        return tools.Status(tool, present=tool.key == "opencode")
+    def sondeo_falso(herramienta, limite_segundos=8.0):
+        return integraciones.EstadoHerramienta(
+            herramienta,
+            presente=herramienta.clave == "opencode",
+        )
 
-    monkeypatch.setattr(tools, "probe", fake_probe)
-    primary, reviewer = tools.detect_default_agents()
+    monkeypatch.setattr(integraciones, "sondear", sondeo_falso)
+    primary, reviewer = integraciones.detectar_agentes_predeterminados()
     assert primary == reviewer == "opencode"
 
 
 def test_ningun_agente_cae_a_ejemplo_editable(monkeypatch):
-    monkeypatch.setattr(tools, "probe", lambda tool, timeout=8.0: tools.Status(tool, present=False))
-    assert tools.detect_default_agents() == ("codex", "claude")
+    monkeypatch.setattr(
+        integraciones,
+        "sondear",
+        lambda herramienta, limite_segundos=8.0: integraciones.EstadoHerramienta(
+            herramienta,
+            presente=False,
+        ),
+    )
+    assert integraciones.detectar_agentes_predeterminados() == ("codex", "claude")
 
 
 def test_antigravity_ide_y_2_excluidos_de_deteccion(monkeypatch):
     # apps de escritorio: no pueden ejecutar `close` por shell, no deben elegirse
-    def fake_probe(tool, timeout=8.0):
-        return tools.Status(tool, present=tool.key in ("antigravity-ide", "antigravity-2"))
+    def sondeo_falso(herramienta, limite_segundos=8.0):
+        return integraciones.EstadoHerramienta(
+            herramienta,
+            presente=herramienta.clave in ("antigravity-ide", "antigravity-2"),
+        )
 
-    monkeypatch.setattr(tools, "probe", fake_probe)
-    assert tools.detect_default_agents() == ("codex", "claude")  # fallback, no las apps
+    monkeypatch.setattr(integraciones, "sondear", sondeo_falso)
+    assert integraciones.detectar_agentes_predeterminados() == ("codex", "claude")
 
 
 # ---------------------------------------------------------------- init usa la detección
 def test_init_config_json_usa_agentes_detectados(tmp_path, monkeypatch):
-    # cmd_init hace `from tramalia.core.tools import detect_default_agents` en
+    # cmd_init importa `detectar_agentes_predeterminados` dentro de la función:
     # el cuerpo de la función: parchar el atributo del módulo alcanza.
-    monkeypatch.setattr(tools, "detect_default_agents", lambda: ("opencode", "opencode"))
+    monkeypatch.setattr(
+        integraciones,
+        "detectar_agentes_predeterminados",
+        lambda: ("opencode", "opencode"),
+    )
     monkeypatch.chdir(tmp_path)
     from tramalia.cli import commands
 

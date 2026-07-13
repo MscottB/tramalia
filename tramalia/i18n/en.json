@@ -116,7 +116,7 @@
   "tui.binding.closepanels": "Close panel",
   "tui.binding.checkupdates": "Check skill updates",
   "tui.binding.contextbackend": "Context backend",
-  "tui.binding.docs": "Tool docs",
+  "tui.binding.docs": "External tool documentation",
   "tui.binding.install": "Install missing",
   "tui.binding.quit": "Quit",
   "tui.binding.refresh": "Refresh",

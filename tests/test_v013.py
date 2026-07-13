@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
+from tramalia.core.integraciones import REGISTRO
 from tramalia.core.scaffold import scaffold
-from tramalia.core.tools import REGISTRY
 
 RAIZ = Path(__file__).resolve().parents[1]
 DOCS = RAIZ / "docs"
@@ -11,15 +11,15 @@ DOCS = RAIZ / "docs"
 
 # ---------------------------------------------------------------- registry
 def test_markitdown_en_registry_como_contexto():
-    tool = next(t for t in REGISTRY if t.key == "markitdown")
-    assert tool.category == "feature"
-    assert tool.feature == "context"
-    assert "markitdown[all]" in tool.install_hint
+    herramienta = next(candidata for candidata in REGISTRO if candidata.clave == "markitdown")
+    assert herramienta.categoria == "feature"
+    assert herramienta.capacidad == "context"
+    assert "markitdown[all]" in herramienta.sugerencia_instalacion
 
 
 def test_notebooklm_no_esta_en_registry():
     # corre vía npx y es cloud: se documenta, no se detecta (doctor honesto).
-    assert not any("notebooklm" in t.key for t in REGISTRY)
+    assert not any("notebooklm" in herramienta.clave for herramienta in REGISTRO)
 
 
 # ---------------------------------------------------------------- plantilla

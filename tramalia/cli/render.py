@@ -79,38 +79,38 @@ GROUP_ORDER = (
 )
 
 
-def group_of(tool) -> str:
-    if tool.category == "feature":
-        return _FEATURE_GROUP.get(tool.feature, "convention")
-    return tool.category
+def group_of(herramienta) -> str:
+    if herramienta.categoria == "feature":
+        return _FEATURE_GROUP.get(herramienta.capacidad, "convention")
+    return herramienta.categoria
 
 
 def group_statuses(statuses) -> list[tuple[str, list]]:
     """Agrupa los statuses del doctor por dominio, en orden fijo."""
     groups: list[tuple[str, list]] = []
     for g in GROUP_ORDER:
-        rows = [s for s in statuses if group_of(s.tool) == g]
+        rows = [estado for estado in statuses if group_of(estado.herramienta) == g]
         if rows:
             groups.append((g, rows))
     return groups
 
 
-def _hint_for(tool) -> str:
+def _hint_for(herramienta) -> str:
     """La mejor sugerencia de instalación para ESTE sistema (no un hint fijo)."""
     from tramalia.core import installer
 
-    best = installer.best_auto(tool)
+    best = installer.best_auto(herramienta)
     if best:
         return best.display
-    opts = installer.options_for(tool)
-    return opts[0].display if opts else tool.install_hint
+    opts = installer.options_for(herramienta)
+    return opts[0].display if opts else herramienta.sugerencia_instalacion
 
 
-def _runtime_note(tool, plain: bool = False) -> str:
+def _runtime_note(herramienta, plain: bool = False) -> str:
     """Si automatizar la tool requiere un runtime ausente (Node/Go), avisarlo."""
     from tramalia.core import installer
 
-    rt = installer.blocking_runtime(tool)
+    rt = installer.blocking_runtime(herramienta)
     if not rt:
         return ""
     name = installer._RUNTIME_NAME.get(rt, rt)
@@ -124,15 +124,15 @@ def doctor(report: Report) -> int:
     stack_txt = " · ".join(report.stack) if report.stack else "—"
     from tramalia.i18n import t
 
-    def fila(s):
-        if s.present:
-            return t("tui.status.ok"), (s.version or "—")
+    def fila(estado_herramienta):
+        if estado_herramienta.presente:
+            return t("tui.status.ok"), (estado_herramienta.version or "—")
         estado = (
             t("tui.status.optional")
-            if s.tool.category in ("feature", "agent")
+            if estado_herramienta.herramienta.categoria in ("feature", "agent")
             else t("tui.status.missing")
         )
-        return estado, _hint_for(s.tool)
+        return estado, _hint_for(estado_herramienta.herramienta)
 
     if _rich():
         table = Table(box=box.SIMPLE_HEAVY, expand=False)
@@ -142,29 +142,37 @@ def doctor(report: Report) -> int:
         table.add_column(t("tui.col.detail"), overflow="fold")
         for cat, rows in group_statuses(report.statuses):
             table.add_row(f"[bold cyan]· {t('doctor.group.' + cat)}[/]", "", "", "")
-            for s in rows:
-                estado, detalle = fila(s)
-                if not s.present:
-                    detalle += _runtime_note(s.tool)
-                table.add_row(f"  {s.tool.cmd}", s.tool.role, estado, detalle)
+            for estado_herramienta in rows:
+                estado, detalle = fila(estado_herramienta)
+                if not estado_herramienta.presente:
+                    detalle += _runtime_note(estado_herramienta.herramienta)
+                table.add_row(
+                    f"  {estado_herramienta.herramienta.comando}",
+                    estado_herramienta.herramienta.rol,
+                    estado,
+                    detalle,
+                )
         _console.print(f"\n[dim]{t('doctor.stack')}[/dim] {stack_txt}")
         _console.print(table)
     else:
         print(f"\n{t('doctor.stack')} {stack_txt}")
         for cat, rows in group_statuses(report.statuses):
             print(f"\n-- {t('doctor.group.' + cat)} " + "-" * 40)
-            for s in rows:
-                _, detalle = fila(s)
+            for estado_herramienta in rows:
+                _, detalle = fila(estado_herramienta)
                 estado = (
                     "instalada"
-                    if s.present
+                    if estado_herramienta.presente
                     else "no-inst(opc)"
-                    if s.tool.category in ("feature", "agent")
+                    if estado_herramienta.herramienta.categoria in ("feature", "agent")
                     else "NO INSTALADA"
                 )
-                if not s.present:
-                    detalle += _runtime_note(s.tool, plain=True)
-                print(f"{s.tool.cmd:<13}{estado:<14}{s.tool.role} — {detalle}")
+                if not estado_herramienta.presente:
+                    detalle += _runtime_note(estado_herramienta.herramienta, plain=True)
+                print(
+                    f"{estado_herramienta.herramienta.comando:<13}"
+                    f"{estado:<14}{estado_herramienta.herramienta.rol} — {detalle}"
+                )
 
     if not getattr(report, "uv_bin_on_path", True):
         _warn(t("doctor.path.uv.missing"))
@@ -176,13 +184,13 @@ def doctor(report: Report) -> int:
     blocking = report.missing_blocking
     optional = report.missing_optional
     if blocking:
-        names = ", ".join(s.tool.cmd for s in blocking)
+        names = ", ".join(estado.herramienta.comando for estado in blocking)
         _warn(f"faltan herramientas requeridas: {names}")
         _info("instálalas con los comandos de arriba y vuelve a correr `tramalia doctor`.")
         _info("una vez que tengas mise, el resto se instala con `mise install`.")
         return 1
     if optional:
-        names = ", ".join(s.tool.cmd for s in optional)
+        names = ", ".join(estado.herramienta.comando for estado in optional)
         _info(f"opcionales ausentes (se activan al usar su gate): {names}")
     _ok("todo lo requerido está presente.")
     return 0

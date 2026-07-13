@@ -40,20 +40,23 @@ DEFAULT = "serena"
 
 
 def backend_installed(key: str) -> bool:
-    """¿El backend está disponible? Usa la MISMA sonda que doctor (`probe`), para
+    """¿El backend está disponible? Usa la MISMA sonda que doctor (`sondear`), para
     que Serena — que corre efímera vía uvx — no salga como ausente (era el bug de
     ✓/○ que mostraba solo codegraph/graphify instalados). Los backends que no están
     en el registro (p. ej. codebase-memory-mcp) se verifican por comando en PATH."""
     import shutil
 
-    from tramalia.core import tools as _tools
+    from tramalia.core import integraciones as _integraciones
 
     meta = BACKENDS.get(key)
     if not meta:
         return False
-    tool = next((t for t in _tools.REGISTRY if t.key == meta["tool"]), None)
-    if tool is not None:
-        return _tools.probe(tool).present
+    herramienta = next(
+        (candidata for candidata in _integraciones.REGISTRO if candidata.clave == meta["tool"]),
+        None,
+    )
+    if herramienta is not None:
+        return _integraciones.sondear(herramienta).presente
     return shutil.which(meta["tool"]) is not None
 
 

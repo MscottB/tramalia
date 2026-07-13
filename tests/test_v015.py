@@ -1,8 +1,8 @@
 """v0.15: matriz de gates por stack + dialectos SQL + detección fina."""
 
 from tramalia.core.detect import detect_stack, enabled_features
+from tramalia.core.integraciones import REGISTRO, herramientas_relevantes
 from tramalia.core.scaffold import build_mise_toml, build_sqlfluff, scaffold
-from tramalia.core.tools import REGISTRY, relevant_tools
 
 
 def _mise(stacks):
@@ -91,8 +91,14 @@ def test_init_genera_sqlfluff_para_stack_sql(tmp_path):
 
 # ---------------------------------------------------------------- doctor stacks
 def test_doctor_surface_toolchains_por_stack():
-    keys = {t.key for t in REGISTRY if t.category == "stack"}
+    keys = {herramienta.clave for herramienta in REGISTRO if herramienta.categoria == "stack"}
     assert {"go", "cargo", "mvn", "gradle"} <= keys
     # go solo aparece si el stack lo usa
-    assert "go" in {t.key for t in relevant_tools(["go"], enabled_features(["go"]))}
-    assert "go" not in {t.key for t in relevant_tools(["python"], enabled_features(["python"]))}
+    assert "go" in {
+        herramienta.clave
+        for herramienta in herramientas_relevantes(["go"], enabled_features(["go"]))
+    }
+    assert "go" not in {
+        herramienta.clave
+        for herramienta in herramientas_relevantes(["python"], enabled_features(["python"]))
+    }

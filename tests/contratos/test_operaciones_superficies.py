@@ -20,6 +20,7 @@ from tramalia.core.modelos import (
     ValorEstadoPuertas,
 )
 from tramalia.core.operaciones import cerrar_proyecto, crear_evidencia, registrar_traspaso
+from tramalia.core.procesos import ResultadoProceso
 
 
 def test_firmas_publicas_compartidas() -> None:
@@ -127,9 +128,34 @@ def test_export_engram_es_best_effort_ante_error_inesperado(
     def fallar(*argumentos: object, **opciones: object) -> object:
         raise OSError("servicio no disponible")
 
-    monkeypatch.setattr(commands.proc, "run", fallar)
+    monkeypatch.setattr(commands.procesos, "ejecutar", fallar)
 
     commands._engram_save("cierre", "paquete ya publicado")
+
+
+def test_cli_ejecutable_ausente_no_duplica_el_error_interno(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    errores: list[str] = []
+    monkeypatch.setattr(
+        commands.procesos,
+        "ejecutar",
+        lambda _comando: ResultadoProceso(
+            ("ausente",),
+            127,
+            "",
+            "[WinError 2] El sistema no puede encontrar el archivo",
+        ),
+    )
+    monkeypatch.setattr(commands.render, "err", errores.append)
+
+    codigo = commands._run(["ausente"])
+
+    captura = capsys.readouterr()
+    assert codigo == 127
+    assert captura.err == ""
+    assert errores == ["no se encontró 'ausente'. Corre `tramalia doctor` para instalarlo."]
 
 
 @pytest.mark.parametrize(

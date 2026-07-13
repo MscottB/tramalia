@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import subprocess
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,11 +11,20 @@ from tramalia.core import puertas_calidad
 from tramalia.core.detect import enabled_features
 from tramalia.core.errores import ErrorConfiguracionPuertas
 from tramalia.core.modelos import ValorEstadoPuertas, ValorResultadoPuerta
+from tramalia.core.procesos import ResultadoProceso
 from tramalia.core.scaffold import build_mise_toml
 
 
 def _escribir_mise(tmp_path: Path, contenido: str) -> None:
     (tmp_path / "mise.toml").write_text(contenido, encoding="utf-8")
+
+
+def _resultado_proceso(
+    codigo: int,
+    salida: str = "",
+    error: str = "",
+) -> ResultadoProceso:
+    return ResultadoProceso(("mise",), codigo, salida, error)
 
 
 def test_toml_invalido_no_se_convierte_en_lista_vacia(tmp_path: Path) -> None:
@@ -102,7 +110,7 @@ def test_mise_ausente_y_sin_puertas_son_estados_bloqueantes(
 ) -> None:
     _escribir_mise(tmp_path, "[tasks.test]\nrun = 'pytest'")
     cargadas = puertas_calidad.cargar_puertas(tmp_path)
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: None)
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: None)
 
     sin_ejecutor = puertas_calidad.ejecutar_puertas(tmp_path, cargadas)
     sin_configurar = puertas_calidad.ejecutar_puertas(tmp_path, ())
@@ -186,11 +194,11 @@ def test_codigo_de_retorno_distingue_verde_y_rojo(
     estado_ejecucion: ValorEstadoPuertas,
 ) -> None:
     _escribir_mise(tmp_path, "[tasks.test]\nrun = 'pytest'")
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
     monkeypatch.setattr(
-        puertas_calidad.proc,
-        "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess([], codigo, "salida", ""),
+        puertas_calidad.procesos,
+        "ejecutar",
+        lambda *args, **kwargs: _resultado_proceso(codigo, "salida"),
     )
 
     ejecucion = puertas_calidad.ejecutar_puertas(tmp_path, puertas_calidad.cargar_puertas(tmp_path))
@@ -206,21 +214,21 @@ def test_error_de_ejecucion_no_aborta_la_puerta_posterior(
         tmp_path,
         "[tasks.test]\nrun = 'pytest'\n[tasks.lint]\nrun = 'ruff check'",
     )
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
-    respuestas: Iterator[subprocess.CompletedProcess[str] | BaseException] = iter(
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
+    respuestas: Iterator[ResultadoProceso | BaseException] = iter(
         [
-            subprocess.TimeoutExpired(["mise"], 900),
-            subprocess.CompletedProcess([], 0, "lint verde", ""),
+            TimeoutError("tiempo agotado"),
+            _resultado_proceso(0, "lint verde"),
         ]
     )
 
-    def ejecutar(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def ejecutar(*args: object, **kwargs: object) -> ResultadoProceso:
         respuesta = next(respuestas)
         if isinstance(respuesta, BaseException):
             raise respuesta
         return respuesta
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", ejecutar)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", ejecutar)
 
     ejecucion = puertas_calidad.ejecutar_puertas(tmp_path, puertas_calidad.cargar_puertas(tmp_path))
 
@@ -237,14 +245,14 @@ def test_conserva_stdout_stderr_hash_tiempos_duracion_y_comando(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _escribir_mise(tmp_path, "[tasks.test]\nrun = 'pytest'")
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
     llamadas: list[tuple[tuple[object, ...], dict[str, object]]] = []
 
-    def ejecutar(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def ejecutar(*args: object, **kwargs: object) -> ResultadoProceso:
         llamadas.append((args, kwargs))
-        return subprocess.CompletedProcess([], 0, "uno\n", "dos\n")
+        return _resultado_proceso(0, "uno\n", "dos\n")
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", ejecutar)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", ejecutar)
     antes = datetime.now(UTC)
 
     ejecucion = puertas_calidad.ejecutar_puertas(tmp_path, puertas_calidad.cargar_puertas(tmp_path))
@@ -260,12 +268,10 @@ def test_conserva_stdout_stderr_hash_tiempos_duracion_y_comando(
     assert resultado.duracion_segundos >= 0
     assert llamadas == [
         (
-            (["mise", "run", "test"],),
+            (("mise", "run", "test"),),
             {
-                "cwd": tmp_path,
-                "capture_output": True,
-                "text": True,
-                "timeout": 900,
+                "raiz": tmp_path,
+                "limite_segundos": 900,
             },
         )
     ]
@@ -278,12 +284,12 @@ def test_no_captura_interrupciones_del_proceso(
     interrupcion: type[BaseException],
 ) -> None:
     _escribir_mise(tmp_path, "[tasks.test]\nrun = 'pytest'")
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
 
     def interrumpir(*args: object, **kwargs: object) -> None:
         raise interrupcion()
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", interrumpir)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", interrumpir)
 
     with pytest.raises(interrupcion):
         puertas_calidad.ejecutar_puertas(tmp_path, puertas_calidad.cargar_puertas(tmp_path))

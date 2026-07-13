@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
-import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -20,6 +19,15 @@ from tramalia.core.errores import (
 )
 from tramalia.core.evidencia import leer_bitacora
 from tramalia.core.modelos import ExcepcionFallo, ValorEstadoCierre
+from tramalia.core.procesos import ResultadoProceso
+
+
+def _resultado_proceso(
+    codigo: int,
+    salida: str = "",
+    error: str = "",
+) -> ResultadoProceso:
+    return ResultadoProceso(("mise",), codigo, salida, error)
 
 
 def _simular_mise(
@@ -29,13 +37,11 @@ def _simular_mise(
     salida: str,
     error: str = "",
 ) -> None:
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
     monkeypatch.setattr(
-        puertas_calidad.proc,
-        "run",
-        lambda *argumentos, **opciones: subprocess.CompletedProcess(
-            argumentos, codigo, salida, error
-        ),
+        puertas_calidad.procesos,
+        "ejecutar",
+        lambda *argumentos, **opciones: _resultado_proceso(codigo, salida, error),
     )
 
 
@@ -47,7 +53,7 @@ def test_sin_mise_bloquea_y_no_aprueba(
     proyecto_listo: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: None)
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: None)
 
     resultado = operaciones.cerrar_proyecto(proyecto_listo, "TASK-1")
 
@@ -98,8 +104,8 @@ def test_esquema_de_umbrales_invalido_no_ejecuta_ni_escribe(
         ejecutado = True
         raise AssertionError("las puertas no deben ejecutarse con configuracion invalida")
 
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
-    monkeypatch.setattr(puertas_calidad.proc, "run", ejecutar)
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", ejecutar)
 
     with pytest.raises(ErrorConfiguracionMetricas):
         operaciones.cerrar_proyecto(proyecto_listo, "TASK-2C")
@@ -132,8 +138,8 @@ def test_json_no_finito_unicode_invalido_o_profundo_falla_antes_de_puertas(
         ejecutado = True
         raise AssertionError("el JSON invalido debe fallar antes de las puertas")
 
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
-    monkeypatch.setattr(puertas_calidad.proc, "run", ejecutar)
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", ejecutar)
 
     with pytest.raises(ErrorConfiguracionMetricas):
         operaciones.cerrar_proyecto(proyecto_listo, "TASK-JSON")
@@ -231,12 +237,12 @@ def test_error_al_ejecutar_puerta_bloquea_y_se_registra(
     proyecto_listo: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
 
     def fallar(*argumentos: object, **opciones: object) -> object:
         raise TimeoutError("tiempo agotado")
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", fallar)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", fallar)
 
     resultado = operaciones.cerrar_proyecto(proyecto_listo, "TASK-ERROR")
 
@@ -268,13 +274,13 @@ def test_puerta_que_invalida_el_gobierno_no_puede_publicar_aprobacion(
     proyecto_listo: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
 
-    def invalidar(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+    def invalidar(*argumentos: object, **opciones: object) -> ResultadoProceso:
         (proyecto_listo / "AGENTS.md").unlink()
-        return subprocess.CompletedProcess([], 0, "ok", "")
+        return _resultado_proceso(0, "ok")
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", invalidar)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", invalidar)
 
     with pytest.raises(ErrorProyectoNoGobernado):
         operaciones.cerrar_proyecto(proyecto_listo, "TASK-GOBIERNO-MUTADO")
@@ -291,10 +297,10 @@ def test_puerta_que_muta_mise_no_puede_publicar_aprobacion(
         "[tasks.build]\nrun = 'real-build'\n[tasks.test]\nrun = 'real-test'\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
     ejecuciones = 0
 
-    def mutar(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+    def mutar(*argumentos: object, **opciones: object) -> ResultadoProceso:
         nonlocal ejecuciones
         ejecuciones += 1
         if ejecuciones == 1:
@@ -302,9 +308,9 @@ def test_puerta_que_muta_mise_no_puede_publicar_aprobacion(
                 "[tasks.build]\nrun = 'true'\n[tasks.test]\nrun = 'true'\n",
                 encoding="utf-8",
             )
-        return subprocess.CompletedProcess([], 0, "ok", "")
+        return _resultado_proceso(0, "ok")
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", mutar)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", mutar)
 
     with pytest.raises(ErrorConfiguracionPuertas):
         operaciones.cerrar_proyecto(proyecto_listo, "TASK-MISE-MUTADO")
@@ -318,14 +324,14 @@ def test_puerta_que_sustituye_la_raiz_no_publica_en_el_reemplazo(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     raiz_anterior = proyecto_listo.parent / f"{proyecto_listo.name}-anterior"
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
 
-    def sustituir(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+    def sustituir(*argumentos: object, **opciones: object) -> ResultadoProceso:
         proyecto_listo.rename(raiz_anterior)
         shutil.copytree(raiz_anterior, proyecto_listo)
-        return subprocess.CompletedProcess([], 0, "ok", "")
+        return _resultado_proceso(0, "ok")
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", sustituir)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", sustituir)
 
     with pytest.raises(ErrorProyectoNoGobernado):
         operaciones.cerrar_proyecto(proyecto_listo, "TASK-RAIZ-SUSTITUIDA")
@@ -405,16 +411,16 @@ def test_metricas_regeneradas_por_puerta_son_las_que_deciden_el_cierre(
         json.dumps({"coverage": {"min": 80}}),
         encoding="utf-8",
     )
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
 
-    def regenerar(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+    def regenerar(*argumentos: object, **opciones: object) -> ResultadoProceso:
         ruta_metricas.write_text(
             json.dumps({"metrics": {"coverage": 50}}),
             encoding="utf-8",
         )
-        return subprocess.CompletedProcess([], 0, "ok", "")
+        return _resultado_proceso(0, "ok")
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", regenerar)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", regenerar)
 
     resultado = operaciones.cerrar_proyecto(proyecto_listo, "TASK-METRICAS-EFECTIVAS")
 
@@ -437,16 +443,16 @@ def test_umbrales_no_pueden_cambiar_durante_las_puertas(
         json.dumps({"coverage": {"min": 80}}),
         encoding="utf-8",
     )
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
 
-    def relajar(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+    def relajar(*argumentos: object, **opciones: object) -> ResultadoProceso:
         ruta_umbrales.write_text(
             json.dumps({"coverage": {"min": 40}}),
             encoding="utf-8",
         )
-        return subprocess.CompletedProcess([], 0, "ok", "")
+        return _resultado_proceso(0, "ok")
 
-    monkeypatch.setattr(puertas_calidad.proc, "run", relajar)
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", relajar)
 
     with pytest.raises(ErrorConfiguracionMetricas):
         operaciones.cerrar_proyecto(proyecto_listo, "TASK-UMBRAL-MUTABLE")
@@ -554,8 +560,8 @@ def test_excepcion_expirada_no_publica(
         ejecutado = True
         raise AssertionError("una excepcion expirada debe fallar antes de las puertas")
 
-    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
-    monkeypatch.setattr(puertas_calidad.proc, "run", ejecutar)
+    monkeypatch.setattr(puertas_calidad.procesos, "encontrar", lambda _: "mise")
+    monkeypatch.setattr(puertas_calidad.procesos, "ejecutar", ejecutar)
     excepcion = ExcepcionFallo(
         "razon",
         "riesgo",

@@ -9,12 +9,12 @@ from tramalia import __version__
 from tramalia.core import installer, project
 from tramalia.core.context_backend import BACKENDS, DEFAULT, UTILITIES
 from tramalia.core.detect import enabled_features
+from tramalia.core.integraciones import REGISTRO
 from tramalia.core.scaffold import scaffold
-from tramalia.core.tools import REGISTRY
 
 
-def _tool(key):
-    return next(t for t in REGISTRY if t.key == key)
+def _herramienta(clave):
+    return next(herramienta for herramienta in REGISTRO if herramienta.clave == clave)
 
 
 def _init(tmp_path):
@@ -34,25 +34,25 @@ def _init(tmp_path):
 
 # ---------------------------------------------------------------- registro
 def test_codegraph_automatizable_via_npm():
-    opts = installer.options_for(_tool("codegraph"))
+    opts = installer.options_for(_herramienta("codegraph"))
     npm = next((o for o in opts if o.method == "npm"), None)
     assert npm is not None and npm.auto and npm.requires == "npm"
     assert "@colbymchenry/codegraph" in npm.args[-1]
 
 
 def test_antigravity_cmd_es_agy_no_antigravity():
-    tool = _tool("antigravity")
-    assert tool.cmd == "agy"  # el binario real en PATH
-    assert tool.key == "antigravity"  # la key no cambia (no rompe otros usos)
+    herramienta = _herramienta("antigravity")
+    assert herramienta.comando == "agy"  # el binario real en PATH
+    assert herramienta.clave == "antigravity"  # la clave no cambia
 
 
 def test_antigravity_winget_en_windows_script_manual_en_resto():
     # v0.27: en Windows hay paquete winget oficial (Google.AntigravityCLI) → automatizable;
     # en mac/linux solo el script curl|sh, que nunca se automatiza.
-    win = installer.options_for(_tool("antigravity"), os_name="windows")
+    win = installer.options_for(_herramienta("antigravity"), os_name="windows")
     assert win[0].method == "winget" and win[0].auto
     for os_name in ("macos", "linux"):
-        opts = installer.options_for(_tool("antigravity"), os_name=os_name)
+        opts = installer.options_for(_herramienta("antigravity"), os_name=os_name)
         assert opts and not any(o.auto for o in opts)
 
 
@@ -60,7 +60,7 @@ def test_ningun_script_pipe_es_automatizado():
     # regla dura intacta: un `curl … | sh` / `irm … | iex` jamás corre automatizado
     for key in ("antigravity", "hermes"):
         for os_name in ("windows", "macos", "linux"):
-            for o in installer.options_for(_tool(key), os_name=os_name):
+            for o in installer.options_for(_herramienta(key), os_name=os_name):
                 if any(m in o.display for m in ("|", "curl", "iex")):
                     assert not o.auto
 

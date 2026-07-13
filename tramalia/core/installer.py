@@ -15,8 +15,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from tramalia.core import proc
-from tramalia.core.tools import Tool
+from tramalia.core.integraciones import Herramienta
+from tramalia.core.procesos import _resolver, ejecutar
 
 
 def current_os() -> str:
@@ -66,7 +66,7 @@ def _manual(display: str) -> InstallOption:
 
 
 def _go_install(pkg: str) -> InstallOption:
-    # requiere Go; el binario queda en ~/go/bin (probe lo detecta aunque no esté en PATH)
+    # requiere Go; el binario queda en ~/go/bin (sondear lo detecta aunque no esté en PATH)
     return InstallOption("go", ("go", "install", pkg), f"go install {pkg}", requires="go")
 
 
@@ -203,9 +203,9 @@ def pathfix_option() -> InstallOption:
     )
 
 
-def _from_hint(tool: Tool) -> list[InstallOption]:
+def _from_hint(herramienta: Herramienta) -> list[InstallOption]:
     """Deriva opciones del install_hint del registro (mise use / uv / pip / npm)."""
-    hint = (tool.install_hint or "").strip()
+    hint = (herramienta.sugerencia_instalacion or "").strip()
     opts: list[InstallOption] = []
     if hint.startswith("mise use "):
         spec = hint.removeprefix("mise use ").strip()
@@ -245,19 +245,19 @@ def _from_hint(tool: Tool) -> list[InstallOption]:
     return opts
 
 
-def options_for(tool: Tool, os_name: str | None = None) -> list[InstallOption]:
+def options_for(herramienta: Herramienta, os_name: str | None = None) -> list[InstallOption]:
     """Opciones de instalación ordenadas (mejor primero) para esta herramienta."""
     os_name = os_name or current_os()
-    opts = list(_SYSTEM.get(tool.key, {}).get(os_name, []))
-    opts += _from_hint(tool)
-    if not opts and tool.install_hint:
-        opts.append(_manual(tool.install_hint))
+    opts = list(_SYSTEM.get(herramienta.clave, {}).get(os_name, []))
+    opts += _from_hint(herramienta)
+    if not opts and herramienta.sugerencia_instalacion:
+        opts.append(_manual(herramienta.sugerencia_instalacion))
     return opts
 
 
-def best_auto(tool: Tool, os_name: str | None = None) -> InstallOption | None:
+def best_auto(herramienta: Herramienta, os_name: str | None = None) -> InstallOption | None:
     """La primera opción ejecutable automatizada (su gestor está presente)."""
-    for opt in options_for(tool, os_name):
+    for opt in options_for(herramienta, os_name):
         if opt.available:
             return opt
     return None
@@ -269,13 +269,13 @@ _RUNTIME_NAME = {"npm": "Node.js", "go": "Go"}
 _RUNTIME_KEY = {"npm": "node", "go": "go"}
 
 
-def blocking_runtime(tool: Tool, os_name: str | None = None) -> str | None:
-    """Si la mejor vía automatizable de `tool` NO está disponible SOLO porque
+def blocking_runtime(herramienta: Herramienta, os_name: str | None = None) -> str | None:
+    """Si la mejor vía automatizable de `herramienta` NO está disponible SOLO porque
     falta un runtime (Node/Go), devuelve ese runtime (`npm`/`go`); None si ya es
     automatizable o si no depende de un runtime que se pueda instalar."""
-    if best_auto(tool, os_name):
+    if best_auto(herramienta, os_name):
         return None
-    for opt in options_for(tool, os_name):
+    for opt in options_for(herramienta, os_name):
         if opt.auto and opt.requires in _RUNTIME_NAME and shutil.which(opt.requires) is None:
             return opt.requires
     return None
@@ -294,7 +294,7 @@ def runtime_install_option(requires: str, os_name: str | None = None) -> Install
 
 
 def plan_for(tools, os_name: str | None = None):
-    """Arma el plan de instalación para una lista de Tools faltantes.
+    """Arma el plan de instalación para una lista de Herramientas faltantes.
 
     Devuelve (auto, manual, runtime_offers):
     - auto: [(label, InstallOption)] automatizables ya.
@@ -305,17 +305,17 @@ def plan_for(tools, os_name: str | None = None):
     os_name = os_name or current_os()
     auto, manual = [], []
     blocked: dict[str, list[str]] = {}
-    for tool in tools:
-        best = best_auto(tool, os_name)
+    for herramienta in tools:
+        best = best_auto(herramienta, os_name)
         if best:
-            auto.append((tool.cmd, best))
+            auto.append((herramienta.comando, best))
             continue
-        rt = blocking_runtime(tool, os_name)
-        opts = options_for(tool, os_name)
-        cmd = opts[0].display if opts else tool.install_hint
-        manual.append((tool.cmd, cmd, rt))
+        rt = blocking_runtime(herramienta, os_name)
+        opts = options_for(herramienta, os_name)
+        cmd = opts[0].display if opts else herramienta.sugerencia_instalacion
+        manual.append((herramienta.comando, cmd, rt))
         if rt:
-            blocked.setdefault(rt, []).append(tool.cmd)
+            blocked.setdefault(rt, []).append(herramienta.comando)
     runtime_offers = []
     for rt, enables in blocked.items():
         opt = runtime_install_option(rt, os_name)
@@ -329,8 +329,8 @@ def run_install(opt: InstallOption, timeout: int = 900) -> tuple[int, str]:
     if not opt.args:
         return 1, f"opción manual, no ejecutable: {opt.display}"
     try:
-        cp = proc.run(list(opt.args), capture_output=True, text=True, timeout=timeout)
-        return cp.returncode, (cp.stdout or "") + (cp.stderr or "")
+        resultado = ejecutar(opt.args, limite_segundos=timeout)
+        return resultado.codigo_salida, resultado.salida + resultado.error
     except Exception as exc:
         return 1, str(exc)
 
@@ -370,8 +370,8 @@ def run_install_streaming(
     if not opt.args:
         return 1, f"opción manual, no ejecutable: {opt.display}"
     try:
-        p = proc.popen(
-            list(opt.args),
+        p = subprocess.Popen(
+            _resolver(opt.args),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,

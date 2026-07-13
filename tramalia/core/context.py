@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tramalia.core import proc
+from tramalia.core import procesos
 from tramalia.core.detect import detect_stack
 
 _EXCLUDE = {
@@ -76,11 +76,13 @@ def build_context(root: Path) -> list[str]:
     )
     results.append("project-map.md")
 
-    if proc.which("repomix"):
-        try:
-            proc.run(["repomix", "-o", str(out / "repomix-output.md")], cwd=root, timeout=120)
+    if procesos.encontrar("repomix"):
+        resultado = procesos.ejecutar(
+            ["repomix", "-o", str(out / "repomix-output.md")],
+            raiz=root,
+            limite_segundos=120,
+        )
+        if resultado.exitoso:
             results.append("repomix-output.md")
-        except Exception:
-            pass
 
     return results

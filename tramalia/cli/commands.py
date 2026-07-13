@@ -12,7 +12,7 @@ from pathlib import Path
 
 from tramalia.cli import menu, render
 from tramalia.core import doctor as doctor_core
-from tramalia.core import proc
+from tramalia.core import procesos
 from tramalia.core.detect import detect_stack, enabled_features
 from tramalia.core.errores import ErrorProyectoNoGobernado, ErrorTramalia
 from tramalia.core.evidencia import leer_bitacora
@@ -39,11 +39,15 @@ from tramalia.core.proyecto import (
 def _run(cmd: list[str]) -> int:
     """Ejecuta un comando externo mostrando exactamente su salida."""
     render.info(f"→ {' '.join(cmd)}")
-    try:
-        return proc.run(cmd).returncode
-    except FileNotFoundError:
+    resultado = procesos.ejecutar(cmd)
+    if resultado.codigo_salida == 127:
         render.err(f"no se encontró '{cmd[0]}'. Corre `tramalia doctor` para instalarlo.")
         return 127
+    if resultado.salida:
+        sys.stdout.write(resultado.salida)
+    if resultado.error:
+        sys.stderr.write(resultado.error)
+    return resultado.codigo_salida
 
 
 _CODIGOS_ERROR = {
@@ -86,7 +90,7 @@ def cmd_doctor(args) -> int:
     from tramalia.core import installer
     from tramalia.i18n import t
 
-    faltantes = [s.tool for s in report.statuses if not s.present]
+    faltantes = [estado.herramienta for estado in report.statuses if not estado.presente]
     auto, manual, runtime_offers = installer.plan_for(faltantes)
     # plans: [(label, opt)] — automatizables + runtimes que desbloquean otras tools
     plans = list(auto)
@@ -152,12 +156,12 @@ def cmd_detect(args) -> int:
 
 def cmd_init(args) -> int:
     from tramalia.core import scaffold
-    from tramalia.core.tools import detect_default_agents
+    from tramalia.core.integraciones import detectar_agentes_predeterminados
 
     root = Path.cwd()
     stack = detect_stack(root)
     adopt = getattr(args, "adopt", False)
-    primary, reviewer = detect_default_agents()
+    primary, reviewer = detectar_agentes_predeterminados()
     answers = {
         "project_name": root.name,
         "stacks": stack,
@@ -216,13 +220,15 @@ def _suggest_fanout(root: Path) -> None:
     las reglas a sus formatos con `tramalia sync` (rulesync). `init` solo deja
     `.claude/` nativo; el resto consume AGENTS.md vía fan-out (no carpetas
     hand-rolled) — AGENTS.md es la fuente única."""
-    from tramalia.core import tools
+    from tramalia.core import integraciones
 
     skip = {"claude", "antigravity-ide", "antigravity-2"}  # nativo / apps de escritorio
     presentes = [
-        tl.cmd
-        for tl in tools.REGISTRY
-        if tl.category == "agent" and tl.key not in skip and tools.probe(tl).present
+        herramienta.comando
+        for herramienta in integraciones.REGISTRO
+        if herramienta.categoria == "agent"
+        and herramienta.clave not in skip
+        and integraciones.sondear(herramienta).presente
     ]
     if presentes:
         render.info(
@@ -247,9 +253,9 @@ def cmd_upgrade(args) -> int:
         return 1
     old = project.scaffolded_version(root)
     stack = detect_stack(root)
-    from tramalia.core.tools import detect_default_agents
+    from tramalia.core.integraciones import detectar_agentes_predeterminados
 
-    primary, reviewer = detect_default_agents()
+    primary, reviewer = detectar_agentes_predeterminados()
     answers = {
         "project_name": root.name,
         "stacks": stack,

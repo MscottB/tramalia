@@ -1,14 +1,14 @@
+from tramalia.core.integraciones import herramientas_relevantes
 from tramalia.core.skills import read_skills, sync_skills
-from tramalia.core.tools import relevant_tools
 
 
 def test_bootstrap_tools_always_present():
-    keys = {t.key for t in relevant_tools([], ())}
+    keys = {herramienta.clave for herramienta in herramientas_relevantes([], ())}
     assert {"mise", "git", "uv"} <= keys
 
 
 def test_stack_and_feature_filtering():
-    keys = {t.key for t in relevant_tools(["node"], ("security",))}
+    keys = {herramienta.clave for herramienta in herramientas_relevantes(["node"], ("security",))}
     assert "node" in keys
     assert {"semgrep", "gitleaks"} <= keys
     assert "sqlfluff" not in keys  # feature "database" no habilitado

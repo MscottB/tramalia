@@ -1,6 +1,6 @@
 """v0.28 (R2): backend de contexto — detección correcta, ESC, backend no instalado.
 
-- backend_installed usa la misma sonda que doctor (probe): Serena (efímera vía
+- backend_installed usa la misma sonda que doctor (sondear): Serena (efímera vía
   uvx) NO debe salir como ausente — era el bug del ✓/○.
 - ESC cierra el panel de backend (antes solo el botón Cancelar).
 - Elegir un backend no instalado lo fija igual (es preferencia) con aviso.
@@ -35,21 +35,21 @@ def _init(tmp_path):
 
 # ---------------------------------------------------------------- detección
 def test_serena_efimera_cuenta_como_instalada(monkeypatch):
-    import tramalia.core.tools as tools_mod
+    import tramalia.core.integraciones as integraciones_mod
 
     # serena no está como binario, pero uv sí → corre vía uvx → instalada
-    monkeypatch.setattr(tools_mod.shutil, "which", lambda c: "uv" if c == "uv" else None)
-    monkeypatch.setattr(tools_mod, "_uv_has", lambda c: False)
-    monkeypatch.setattr(tools_mod, "_go_has", lambda c: False)
+    monkeypatch.setattr(integraciones_mod.shutil, "which", lambda c: "uv" if c == "uv" else None)
+    monkeypatch.setattr(integraciones_mod, "_instalada_por_uv", lambda c: False)
+    monkeypatch.setattr(integraciones_mod, "_instalada_por_go", lambda c: False)
     assert backend_installed("serena") is True
 
 
 def test_serena_sin_uv_no_esta(monkeypatch):
-    import tramalia.core.tools as tools_mod
+    import tramalia.core.integraciones as integraciones_mod
 
-    monkeypatch.setattr(tools_mod.shutil, "which", lambda c: None)
-    monkeypatch.setattr(tools_mod, "_uv_has", lambda c: False)
-    monkeypatch.setattr(tools_mod, "_go_has", lambda c: False)
+    monkeypatch.setattr(integraciones_mod.shutil, "which", lambda c: None)
+    monkeypatch.setattr(integraciones_mod, "_instalada_por_uv", lambda c: False)
+    monkeypatch.setattr(integraciones_mod, "_instalada_por_go", lambda c: False)
     assert backend_installed("serena") is False
 
 
