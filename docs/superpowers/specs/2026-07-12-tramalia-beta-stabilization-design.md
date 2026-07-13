@@ -25,11 +25,18 @@ de código.
 - Se aplicará una estabilización estructural incremental; no una sucesión de
   parches aislados ni una reescritura total.
 - CLI, TUI y MCP serán fachadas delgadas sobre una única capa de operaciones.
-- Toda escritura nueva de evidencia usará Evidence Pack v2; los packs v1
-  continuarán siendo legibles.
+- La implementación actual de evidencia se reemplazará directamente por el primer
+  esquema formal del paquete de evidencia, `version_esquema: 1`. No existen
+  proyectos consumidores que requieran compatibilidad con el formato previo sin
+  versión.
 - Las integraciones opcionales no serán necesarias para usar el núcleo repo-first.
 - Los comentarios internos se escribirán en español.
 - Los docstrings de la API pública se escribirán en inglés y con estilo Google.
+- Los nombres propios de archivos, módulos, clases, funciones, métodos, variables,
+  fixtures y markers se escribirán en español ASCII. La letra `ñ` se representará
+  como `n`.
+- Se conservarán en inglés únicamente nombres impuestos por Python, GitHub,
+  PyPI, MkDocs, MCP, formatos externos o comandos públicos ya establecidos.
 - Las guías explicativas alrededor de la API tendrán versiones española e inglesa.
 - La referencia de código se generará con MkDocs Material y
   `mkdocstrings-python`, conservando el sistema visual actual.
@@ -44,7 +51,8 @@ de código.
   intento fallido.
 - No se incorporará una base de datos, event sourcing ni un framework de
   persistencia.
-- No se romperá la lectura del historial de evidence packs v1.
+- No se implementará un lector de compatibilidad para el formato de evidencia
+  previo porque no tiene consumidores externos.
 - Las escrituras deben ser seguras en Windows, Linux y macOS.
 - Los cambios de comportamiento se implementarán con TDD: test fallando,
   implementación mínima y refactor posterior.
@@ -56,66 +64,68 @@ de código.
 
 ### 4.1 Errores y modelos
 
-`tramalia/core/errors.py` contendrá una jerarquía de errores de dominio con:
+`tramalia/core/errores.py` contendrá una jerarquía de errores de dominio con:
 
-- `code`: identificador estable para automatización.
-- `message`: descripción humana.
-- `hint`: acción de recuperación.
-- `path`: archivo relacionado, cuando corresponda.
-- `details`: datos estructurados sin secretos.
+- `codigo`: identificador estable para automatización.
+- `mensaje`: descripción humana.
+- `sugerencia`: acción de recuperación.
+- `ruta`: archivo relacionado, cuando corresponda.
+- `detalles`: datos estructurados sin secretos.
 
-`tramalia/core/models.py` contendrá modelos tipados para `ProjectState`,
-`GateResult`, `GateRun`, `FailureOverride`, `CloseOutcome`, `IntegrationStatus` y
-metadatos de Evidence v2.
+`tramalia/core/modelos.py` contendrá modelos tipados para `EstadoProyecto`,
+`ResultadoPuerta`, `EjecucionPuertas`, `ExcepcionFallo`, `ResultadoCierre`,
+`EstadoIntegracion` y metadatos del paquete de evidencia formal.
 
 Las superficies transformarán esos modelos a texto, widgets o respuestas MCP; no
 recalcularán política.
 
 ### 4.2 Estado del proyecto
 
-`inspect_project_state(root)` distinguirá:
+`inspeccionar_estado_proyecto(raiz)` distinguirá:
 
-- `ready`: convención y configuración válidas.
-- `legacy`: proyecto Tramalia anterior que puede migrarse.
-- `partial`: existen marcadores, pero faltan piezas obligatorias o son inválidas.
-- `missing`: Tramalia no está inicializada.
+- `listo`: convención y configuración válidas.
+- `heredado`: proyecto Tramalia anterior que puede migrarse.
+- `parcial`: existen marcadores, pero faltan piezas obligatorias o son inválidas.
+- `ausente`: Tramalia no está inicializada.
 
-`require_governed_project(root)` será la única guardia para operaciones mutantes.
+`exigir_proyecto_gobernado(raiz)` será la única guardia para operaciones mutantes.
 La presencia aislada de `AGENTS.md` o de un directorio `.tramalia` vacío no será
 suficiente.
 
-### 4.3 Gates y política de cierre
+### 4.3 Puertas de calidad y política de cierre
 
-`tramalia/core/gates.py` será responsable de cargar, validar y ejecutar gates.
-Los errores de TOML no se convertirán en una lista vacía.
+`tramalia/core/puertas_calidad.py` será responsable de cargar, validar y ejecutar
+puertas de calidad (*gates*). Los errores de TOML no se convertirán en una lista
+vacía.
 
-`GateRun.state` podrá ser:
+`EjecucionPuertas.estado` podrá ser:
 
-- `passed`
-- `failed`
-- `runner_unavailable`
-- `not_configured`
-- `config_invalid`
-- `execution_error`
+- `aprobado`
+- `fallido`
+- `ejecutor_no_disponible`
+- `sin_configurar`
+- `configuracion_invalida`
+- `error_ejecucion`
 
-`CloseOutcome.status` se limitará a:
+`ResultadoCierre.estado` se limitará a:
 
-- `passed`: existen gates aplicables, se ejecutaron y todos los controles pasaron.
-- `passed_with_exceptions`: cada bloqueo sobreescribible tiene una excepción
+- `aprobado`: existen gates aplicables, se ejecutaron y todos los controles pasaron.
+- `aprobado_con_excepciones`: cada bloqueo sobreescribible tiene una excepción
   explícita y vigente.
-- `blocked`: cualquier otro resultado.
+- `bloqueado`: cualquier otro resultado.
 
-`config_invalid`, un ID inseguro, un proyecto `partial` y un fallo de persistencia
-no serán sobreescribibles. La ausencia del runner, la ausencia de gates, un gate
-fallido o un umbral incumplido sólo podrán continuar con una excepción razonada.
+`configuracion_invalida`, un ID inseguro, un proyecto `parcial` y un fallo de
+persistencia no serán sobreescribibles. La ausencia del ejecutor, la ausencia de
+puertas, una puerta fallida o un umbral incumplido sólo podrán continuar con una
+excepción razonada.
 
 ### 4.4 Operaciones compartidas
 
-`tramalia/core/operations.py` expondrá las únicas entradas mutantes:
+`tramalia/core/operaciones.py` expondrá las únicas entradas mutantes:
 
-- `close_project(...)`
-- `create_evidence(...)`
-- `record_handoff(...)`
+- `cerrar_proyecto(...)`
+- `crear_evidencia(...)`
+- `registrar_traspaso(...)`
 
 Estas operaciones aplicarán la misma validación, política, persistencia y
 telemetría local para CLI, TUI y MCP.
@@ -126,18 +136,18 @@ Flujo de cierre:
 2. Validar tarea, configuración y excepción solicitada.
 3. Descubrir y ejecutar gates.
 4. Evaluar métricas y construir el resultado definitivo.
-5. Construir Evidence v2 completo en staging.
+5. Construir el paquete de evidencia completo en staging.
 6. Publicar el pack de forma atómica.
 7. Actualizar la proyección global de handoff.
-8. Devolver el mismo `CloseOutcome` a cualquier superficie.
+8. Devolver el mismo `ResultadoCierre` a cualquier superficie.
 
-## 5. Evidence Pack v2
+## 5. Paquete de evidencia formal v1
 
 ### 5.1 Identidad y rutas
 
-- `pack_id`: timestamp UTC con microsegundos más sufijo aleatorio corto.
+- `id_paquete`: timestamp UTC con microsegundos más sufijo aleatorio corto.
 - La ruta final siempre será nueva; nunca se reabrirá para sobrescribir un pack.
-- `task_id` tendrá un máximo de 64 caracteres y sólo admitirá letras ASCII,
+- `id_tarea` tendrá un máximo de 64 caracteres y sólo admitirá letras ASCII,
   números, punto, guion y guion bajo.
 - Se rechazarán separadores, `..`, controles, saltos de línea y nombres reservados
   de Windows.
@@ -152,10 +162,10 @@ parcial ni modificará evidencia previa.
 
 ### 5.3 Contenido mínimo
 
-`metadata.json` incluirá:
+`metadata.json` incluirá claves en español ASCII:
 
-- `schema_version: 2`
-- `pack_id`, tarea, operación y timestamps UTC
+- `version_esquema: 1`
+- `id_paquete`, `id_tarea`, operación y marcas de tiempo UTC
 - versión de Tramalia, Python, sistema operativo y toolchain
 - commit, branch, estado Git y base de comparación
 - comandos exactos, duración, código de salida y hashes de outputs
@@ -168,19 +178,19 @@ parcial ni modificará evidencia previa.
 Las salidas crudas de cada gate permanecerán separadas. `lint` y `format` nunca
 compartirán archivo.
 
-### 5.4 Handoff y lectura histórica
+### 5.4 Traspaso y lectura estructurada
 
-El pack contendrá el handoff canónico con el resultado ya calculado. El archivo
-global `docs/ai/07-handoff-agentes.md` será una proyección atómica que enlaza el
-`pack_id`; un fallo de esa proyección no invalidará el handoff canónico.
+El pack contendrá el traspaso (*handoff*) canónico con el resultado ya calculado.
+El archivo global `docs/ai/07-handoff-agentes.md` será una proyección atómica que
+enlaza el `id_paquete`; un fallo de esa proyección no invalidará el traspaso
+canónico.
 
-`read_log()` leerá v2 de forma estructurada y conservará un lector explícito para
-v1. Metadata corrupta aparecerá como `invalid`; no se reinterpretará
-silenciosamente desde Markdown.
+`leer_bitacora()` leerá el esquema formal de forma estructurada. Metadata corrupta
+aparecerá como `invalida`; no se reinterpretará silenciosamente desde Markdown.
 
 ## 6. Excepciones y revisión
 
-`FailureOverride` exigirá:
+`ExcepcionFallo` exigirá:
 
 - razón no vacía
 - riesgo aceptado
@@ -196,23 +206,24 @@ prueba criptográfica de aprobación.
 
 ## 7. Contrato de integraciones
 
-Toda integración devolverá `IntegrationStatus` con:
+Toda integración devolverá `EstadoIntegracion` con:
 
-- `state`: `full`, `degraded`, `unavailable` o `failed`
-- `capability`: capacidad solicitada
-- `requested`: adaptador preferido
-- `used`: adaptador efectivo
-- `reason`: causa estable
-- `impact`: limitación resultante
-- `remediation`: acción sugerida
+- `estado`: `completo`, `degradado`, `no_disponible` o `fallido`
+- `capacidad`: capacidad solicitada
+- `solicitado`: adaptador preferido
+- `utilizado`: adaptador efectivo
+- `motivo`: causa estable
+- `impacto`: limitación resultante
+- `remediacion`: acción sugerida
 
-`degraded` sólo será éxito si un fallback terminó correctamente. `unavailable`
-representará una capacidad opcional no solicitada o no instalada. `failed`
+`degradado` sólo será éxito si una alternativa (*fallback*) terminó correctamente.
+`no_disponible` representará una capacidad opcional no solicitada o no instalada.
+`fallido`
 representará un intento fallido y propagará código de salida no cero.
 
-Las skills Git conservarán `source`, `ref` y SHA resuelto. El modo Team no usará
-ramas flotantes ni `latest`; una actualización explícita moverá el lock. El
-runtime del paquete conservará rangos compatibles, mientras CI, docs y release
+Las skills Git conservarán `fuente`, `referencia` y `sha_resuelto`. El modo Team
+no usará ramas flotantes ni `latest`; una actualización explícita moverá el lock.
+El runtime del paquete conservará rangos compatibles, mientras CI, docs y release
 usarán entornos reproducibles.
 
 ## 8. TUI
@@ -221,8 +232,8 @@ La TUI dejará de concentrar presentación y orquestación en `build_app()`.
 
 Primera separación:
 
-- `DashboardService`: obtiene snapshots y ejecuta operaciones.
-- `DashboardSnapshot`: datos inmutables para representar.
+- `ServicioTablero`: obtiene instantáneas y ejecuta operaciones.
+- `InstantaneaTablero`: datos inmutables para representar.
 - Textual: widgets, navegación, bindings y mensajes.
 
 Las sondas y procesos externos se ejecutarán fuera del event loop. La corrupción
@@ -231,7 +242,19 @@ explícita y pruebas mediante la API pública de `pilot`.
 
 ## 9. Comentarios y docstrings
 
-### 9.1 Política de comentarios
+### 9.1 Convención de nombres
+
+El código propio usará español ASCII y `snake_case` para módulos, archivos,
+funciones, métodos, variables y fixtures; las clases usarán `PascalCase` en
+español ASCII. Ejemplos: `puertas_calidad.py`, `cargar_configuracion`,
+`resultado_cierre`, `EstadoIntegracion` y `proyecto_inicializado`.
+
+La `ñ` se escribirá como `n`: `tamano`, `contrasena` y `companero`. No se usarán
+traducciones forzadas para nombres exigidos por librerías o protocolos, como
+`metadata.json`, `pyproject.toml`, `workflow_dispatch`, `MCP` o métodos especiales
+de Python.
+
+### 9.2 Política de comentarios
 
 Los comentarios internos estarán en español y se reservarán para:
 
@@ -243,7 +266,7 @@ Los comentarios internos estarán en español y se reservarán para:
 
 No se añadirán comentarios que sólo traduzcan una sentencia de Python.
 
-### 9.2 Política de docstrings
+### 9.3 Política de docstrings
 
 Los módulos y APIs públicas tendrán docstrings en inglés, estilo Google, con:
 
@@ -290,27 +313,48 @@ La configuración usará rutas explícitas desde `mkdocs.yml`, referencias cruza
 y docstrings estilo Google. El build se verificará en español e inglés, aunque la
 referencia generada comparta docstrings ingleses.
 
+### 10.1 Documentación conceptual en español
+
+La navegación añadirá una página `Conceptos básicos` antes de la referencia
+técnica. Explicará con lenguaje directo y ejemplos:
+
+- **Puerta de calidad (gate):** comprobación automática que debe aprobar antes de
+  cerrar una tarea, por ejemplo tests, lint o seguridad.
+- **Paquete de evidencia (evidence pack):** carpeta inmutable que conserva qué se
+  ejecutó, sus salidas y el resultado.
+- **Traspaso (handoff):** resumen que permite a otra persona o agente continuar.
+- **Ejecutor (runner):** programa que lanza las puertas configuradas.
+- **Alternativa (fallback):** vía secundaria usada cuando una integración opcional
+  no está disponible.
+- **Degradación:** resultado válido pero con menor capacidad, siempre explicado.
+- **Lock o resolución fija:** versión o commit exacto que permite reproducir una
+  integración.
+
+Toda sigla o término técnico se explicará en español en su primera aparición y
+enlazará al glosario. La versión inglesa mantendrá el término internacional y una
+definición equivalente.
+
 ## 11. Arquitectura de pruebas
 
 Los 250 tests actuales se migrarán desde archivos históricos por release hacia:
 
 ```text
 tests/
-  unit/
-  contract/
-  integration/
-  ui/
-  release/
+  unidad/
+  contratos/
+  integracion/
+  interfaz/
+  publicacion/
 ```
 
 Markers:
 
-- `unit`: lógica pura y rápida
-- `contract`: scaffold, schemas y superficies públicas
-- `integration`: filesystem, Git, procesos y pipeline de cierre
-- `ui`: flujos públicos de Textual
-- `optional`: requiere extras TUI/MCP
-- `release`: wheel, metadata y smoke tests
+- `unidad`: lógica pura y rápida
+- `contrato`: scaffold, esquemas y superficies públicas
+- `integracion`: filesystem, Git, procesos y pipeline de cierre
+- `interfaz`: flujos públicos de Textual
+- `opcional`: requiere extras TUI/MCP
+- `publicacion`: wheel, metadata y smoke tests
 
 Se conservarán los comportamientos de regresión valiosos, pero se parametrizarán
 matrices repetidas de stacks, sistemas, herramientas e instaladores. Se retirarán
@@ -320,7 +364,7 @@ comprobaciones de prosa que pertenecen al pipeline documental.
 Los primeros tests nuevos cubrirán:
 
 - mise ausente, presente sin gates y TOML inválido
-- error de ejecución y estado `blocked`
+- error de ejecución y estado `bloqueado`
 - dos cierres en el mismo instante y cierres concurrentes
 - traversal, nombres Windows y containment
 - fallo inyectado durante la publicación atómica
@@ -330,19 +374,36 @@ Los primeros tests nuevos cubrirán:
 - importación y smoke en Python 3.11–3.14
 - release bloqueada si tests, versión o wheel fallan
 
-## 12. CI, documentación y release
+## 12. CI, documentación, GitHub Release y PyPI
 
-Jobs obligatorios:
+Los despliegues serán responsabilidades independientes. Compartirán validaciones y
+artefactos, pero un despliegue de documentación no publicará un paquete y una
+publicación PyPI no redeplegará GitHub Pages.
 
-1. `core`: unit y contract en Python 3.11–3.14.
-2. `platform`: integración crítica en Windows, Linux y macOS.
-3. `optional`: TUI y MCP con extras instalados.
-4. `docs`: pares ES/EN, enlaces y `mkdocs build --strict`.
-5. `package`: build sdist/wheel, `twine check`, instalación limpia y smoke CLI.
+Workflows:
 
-El workflow de publicación consumirá exactamente el artefacto del job `package`.
-Sólo aceptará tags `v*` cuya versión coincida con metadata y changelog. Una
-ejecución manual desde una rama no publicará.
+1. `validacion.yml`: PR y push; ejecuta pruebas, contratos, plataformas y paquete.
+2. `documentacion.yml`: cambios de docs en `main`; valida y despliega GitHub Pages.
+3. `documentacion-offline.yml`: genera el ZIP navegable y lo conserva como
+   artefacto o asset de lanzamiento.
+4. `lanzamiento-github.yml`: valida tag, versión y changelog; toma wheel, sdist,
+   hashes y docs offline ya validados; crea GitHub Release con notas y assets.
+5. `publicar-pypi.yml`: se activa al publicar GitHub Release, descarga exactamente
+   los wheel/sdist del release, verifica hashes y publica mediante Trusted
+   Publishing. Nunca reconstruye el paquete.
+
+Jobs obligatorios de `validacion.yml`:
+
+1. `nucleo`: unidad y contratos en Python 3.11–3.14.
+2. `plataformas`: integración crítica en Windows, Linux y macOS.
+3. `opcionales`: TUI y MCP con extras instalados.
+4. `documentacion`: pares ES/EN, enlaces y `mkdocs build --strict`.
+5. `paquete`: build sdist/wheel, `twine check`, instalación limpia y smoke CLI.
+
+El flujo de lanzamiento y el de PyPI consumirán exactamente el artefacto del job
+`paquete`. Sólo aceptarán tags `v*` cuya versión coincida con metadata y changelog.
+Una ejecución manual desde una rama podrá validar o crear un borrador, pero nunca
+publicará en PyPI.
 
 Las GitHub Actions se fijarán por SHA con comentario de versión. Las dependencias
 de desarrollo, docs y release tendrán resolución reproducible y actualización
@@ -363,7 +424,7 @@ deliberada.
 1. Entorno reproducible, baseline y reorganización inicial de tests.
 2. Python 3.11 mínimo, errores y modelos tipados.
 3. Política fail-closed de gates y cierre.
-4. Evidence v2, lectura dual y excepciones.
+4. Paquete de evidencia formal v1 y excepciones.
 5. Operaciones compartidas y migración CLI/TUI/MCP.
 6. Contrato de integraciones y locks reproducibles.
 7. Separación de servicios TUI.
@@ -376,21 +437,28 @@ la siguiente.
 
 ## 15. Criterios de aceptación BETA
 
-- Ningún camino produce `passed` sin gates aplicables ejecutados.
+- Ningún camino produce `aprobado` sin puertas aplicables ejecutadas.
 - TOML inválido produce error tipado y exit no cero.
 - CLI, TUI y MCP devuelven la misma política y códigos de error.
 - Dos cierres simultáneos de una tarea producen packs distintos.
 - Un fallo de escritura deja cero packs finales parciales.
 - IDs inseguros no pueden escapar del directorio administrado.
-- Evidence v2 registra cambios completos, comandos, entorno y hashes.
+- El paquete de evidencia formal registra cambios completos, comandos, entorno y
+  hashes.
 - Handoff y metadata coinciden en tarea, pack, resultado y excepción.
-- Packs v1 permanecen visibles en el log.
 - Fallos externos nunca se presentan como éxito o ausencia silenciosa.
 - La suite se ejecuta en Python 3.11–3.14 y en los tres sistemas objetivo.
 - El wheel validado por CI es el mismo artefacto publicado.
 - La documentación strict compila en ES/EN.
 - La referencia API mantiene legibilidad en claro, oscuro, escritorio y móvil.
-- El piloto registra cero falsos `passed` y cero colisiones de evidencia.
+- Los identificadores nuevos propios del proyecto usan español ASCII y la
+  convención queda protegida por revisión y tests de contrato.
+- La documentación ES/EN explica puerta de calidad, paquete de evidencia,
+  traspaso, ejecutor, alternativa, degradación y lock sin asumir conocimiento
+  previo.
+- GitHub Pages, GitHub Release y PyPI se despliegan mediante workflows separados.
+- PyPI publica exactamente los assets validados y adjuntos al GitHub Release.
+- El piloto registra cero falsos `aprobado` y cero colisiones de evidencia.
 
 ## 16. Riesgos y mitigaciones
 
@@ -398,10 +466,11 @@ la siguiente.
   ofrecer excepción razonada durante adopción.
 - **Scripts existentes con `--allow-fail`:** mantener alias deprecado durante un
   ciclo y devolver guía de migración.
-- **Repos parcialmente inicializados:** `inspect_project_state` ofrecerá diagnóstico
-  y comando de reparación antes de bloquear.
-- **Cambio de nombres de pack:** lectores internos usarán `pack_id` opaco; se
-  documentará que los nombres no son API.
+- **Repos parcialmente inicializados:** `inspeccionar_estado_proyecto` ofrecerá
+  diagnóstico y comando de reparación antes de bloquear.
+- **Reemplazo del formato de evidencia actual:** al no existir consumidores, se
+  elimina la compatibilidad heredada y se publica el primer esquema formal con una
+  migración simple para el propio repositorio de Tramalia.
 - **Atomicidad en Windows o filesystem de red:** pruebas por plataforma y error
   explícito cuando el filesystem no ofrezca la garantía requerida.
 - **Volumen de refactor:** migración por contratos pequeños y compatibilidad de
