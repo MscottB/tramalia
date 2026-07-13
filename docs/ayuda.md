@@ -122,15 +122,15 @@ En esos hosts no hay ruteo por rol que Tramalia pueda reescribir (y no tocamos t
 Resolución: `TRAMALIA_LANG` > `config.json → language` > locale del sistema. Fuerza con `TRAMALIA_LANG=es tramalia ui`.
 
 **¿Cómo actualizo Tramalia?**
-`pip install -U tramalia-cli` (el CLI). `tramalia update` actualiza *lo orquestado* (tools de mise + skills), no el paquete.
+`pip install -U tramalia-cli` actualiza el CLI. `tramalia update` actualiza las tools de mise y rehidrata las skills en sus SHA fijados; no mueve bloqueos Team ni actualiza el paquete. Para avanzar de forma explícita uno o todos los bloqueos Team usa `tramalia skills update [nombre]`.
 
 ## Skills
 
 **Agregué una skill por URL y no aparece clonada.**
-`add` solo la declara en el manifiesto. En la TUI, **Enter** sobre una skill externa la **declara y la clona en un paso** (desde v0.29); por CLI, `tramalia skills` clona todas las declaradas. La tecla `s` sigue sincronizando todas; la tecla `d` abre la documentación (repo) de la skill seleccionada.
+`add` solo la declara en el manifiesto. En la TUI, **Enter** sobre una skill externa ausente la **declara y materializa en un paso**; por CLI, `tramalia skills sync [nombre]` —o el comando abreviado `tramalia skills`— rehidrata el SHA fijado. La tecla `s` hace esa misma rehidratación para todas y nunca avanza un bloqueo Team; la tecla `d` abre la documentación (repo) de la skill seleccionada.
 
 **¿Tenía que apretar Enter y luego sincronizar? No estaba claro.**
-Antes sí eran dos pasos (declarar, luego sync) y no se explicaba. Desde **v0.29**, en la TUI **Enter instala en un paso** (declara + clona); si la skill ya está, Enter la desactiva. La leyenda de la pestaña Skills ahora muestra los 3 estados y qué hace cada tecla.
+Antes sí eran dos pasos (declarar, luego sync) y no se explicaba. Desde **v0.29**, en la TUI **Enter instala en un paso** (declara + materializa); si la skill ya está instalada, Enter es la actualización explícita de esa sola skill. En Team equivale a `tramalia skills update <nombre>` y puede mover únicamente su bloqueo después de verificar el nuevo SHA.
 
 **Las skills externas pesan mucho y no quiero subirlas al repo — pero tampoco perderlas.**
 Desde **v0.29** `tramalia init` deja un bloque en `.gitignore` que **excluye** las skills externas de `.tramalia/habilidades/` y **conserva** las propias (numeradas `NN-*`). No se pierden: el manifiesto `.tramalia/habilidades.toml` (sí versionado) las **re-hidrata** — quien clone el repo corre `tramalia skills` y se le descargan localmente. Cubre `.gitignore` nuevo y existente (append idempotente, sin pisar lo tuyo).
@@ -139,13 +139,13 @@ Desde **v0.29** `tramalia init` deja un bloque en `.gitignore` que **excluye** l
 `.gitignore` no destrackea lo ya subido. `tramalia skills` (y `list`/`update`) **avisa** si detecta skills externas commiteadas y te da el remedio: `git rm -r --cached .tramalia/habilidades/<nombre>` (las saca del índice, no del disco; el `.gitignore` evita que se re-agreguen).
 
 **Enter sobre una skill propia (01–16) no hace nada.**
-Correcto: las propias siempre están instaladas y versionadas. Enter solo aplica a las **externas** (instalar/actualizar).
+Correcto: las propias siempre están instaladas y versionadas. Enter solo aplica a las **externas**: instala una ausente o actualiza explícitamente una instalada.
 
 **¿Qué es una skill "declarada" (`◍`)?**
-Está **anotada en el manifiesto** `.tramalia/habilidades.toml` (su bloque `[[skill]]` está activo) pero **aún no se clonó a disco**. Es el paso intermedio entre `○ disponible` (solo en el catálogo) y `✓ instalada` (ya en `.tramalia/habilidades/`). Tras clonar el repo, las externas arrancan declaradas (el manifiesto viaja, las carpetas no); un `tramalia skills` las trae.
+Está **anotada en el manifiesto** `.tramalia/habilidades.toml` (su bloque canónico `[[habilidad]]`, con `nombre`/`fuente`/`referencia`, está activo) pero **aún no se materializó en disco**. Es el paso intermedio entre `○ disponible` (solo en el catálogo) y `✓ instalada` (ya en `.tramalia/habilidades/`). Tras clonar el repo, las externas arrancan declaradas (el manifiesto y el lock viajan, las carpetas no); `tramalia skills sync [nombre]`, el comando abreviado `tramalia skills` o la tecla `s` rehidratan el SHA fijado sin avanzar el bloqueo Team.
 
 **¿Cómo sé si una skill externa tiene una versión más nueva, y cómo la actualizo?**
-Cada instalada muestra su **versión** como `@sha` (el commit corto). `tramalia skills outdated` (o la tecla **`u`** en la TUI) compara tu versión con el remoto (`git ls-remote`) y marca las atrasadas (`instalada → disponible`). Actualiza **una** con `tramalia skills sync <nombre>` (o Enter sobre ella en la TUI) o **todas** con `tramalia skills` (tecla `s`). Es un `git pull --ff-only` por skill; no toca nada más.
+Cada instalada muestra su **versión** como `@sha` (el commit corto). `tramalia skills outdated` (o la tecla **`u`** en la TUI) compara tu versión con el remoto (`git ls-remote`) y marca las atrasadas (`instalada → disponible`). Actualiza explícitamente **una** con `tramalia skills update <nombre>` o con Enter sobre ella en la TUI; actualiza **todas** con `tramalia skills update`. En Team, la actualización resuelve la referencia con `ls-remote`, clona o hace `fetch` del SHA, ejecuta `checkout --detach` de ese SHA, verifica `HEAD` y solo entonces publica el bloqueo; nunca usa `git pull`. `sync`, el comando abreviado `tramalia skills` y la tecla `s` solo rehidratan el SHA ya fijado. En `local-first`, una actualización explícita de un checkout existente sí puede usar `git pull --ff-only`.
 
 ## Actualizar y estructura del repo
 

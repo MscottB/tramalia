@@ -13,7 +13,7 @@ flowchart TB
     C -->|deepen| B
 ```
 
-**Golden rule**: an *own* skill exists only if it's **anchored to a Tramalia command, gate or evidence**. Deep knowledge (architecture patterns, exhaustive UX guides, detailed OWASP) comes from **specialized external repos** that update themselves — Tramalia doesn't freeze encyclopedias.
+**Golden rule**: an *own* skill exists only if it's **anchored to a Tramalia command, gate or evidence**. Deep knowledge comes from **specialized external repos**, but Tramalia pins every version by SHA and only updates it explicitly.
 
 ## What about the skills my CLI already has? (Claude Code, Codex…)
 
@@ -45,9 +45,10 @@ Why separate instead of integrated? Because **governance lives in the repo, not 
 | Action | CLI | TUI (`tramalia ui`, **Skills** tab) |
 |---|---|---|
 | **See what's there** | `tramalia skills list` | the table groups own and external with their state |
-| **Install an external one** | `tramalia skills enable <n>` + `tramalia skills` | **Enter** on it (declares and clones at once) |
-| **Update one** | `tramalia skills sync <n>` | **Enter** on an already-installed one |
-| **Update all** | `tramalia skills` (or `tramalia update`) | the **`s`** key |
+| **Install an external one** | `tramalia skills enable <n>` + `tramalia skills update <n>` | **Enter** on it (declares, pins, and materializes it) |
+| **Rehydrate pinned SHAs** | `tramalia skills sync [<n>]` or `tramalia skills` | the **`s`** key for all |
+| **Update one** | `tramalia skills update <n>` | **Enter** on an already-installed one |
+| **Update all** | `tramalia skills update` | — |
 | **See which have an update** | `tramalia skills outdated` | the **`u`** key (marks outdated ones `⬆`) |
 | **Open one's docs** | — | the **`d`** key (opens its repo) |
 | **Add by URL** | `tramalia skills add <url> [n]` | paste the URL in the input above |
@@ -57,12 +58,12 @@ Agents **discover them on their own**: `AGENTS.md` points them to `.tramalia/hab
 ### The 3 states (and what a "declared" skill is)
 
 - **`✓ installed @a71792a`** — cloned into `.tramalia/habilidades/<name>/`. The `@sha` is the exact **version** you have (the short commit).
-- **`◍ declared`** — it's **noted in the manifest** `.tramalia/habilidades.toml` (its `[[skill]]` block is active) **but hasn't been cloned to disk yet**. It's the in-between step: you *want* it, but it still needs fetching with `tramalia skills`. After a `git clone` of the repo, external skills always start here (the manifest travels, the folders don't) — a `tramalia skills` re-hydrates them.
+- **`◍ declared`** — it appears in `.tramalia/habilidades.toml` as a canonical `[[habilidad]]` block with `nombre`/`fuente`/`referencia`, but is not materialized yet. After `git clone`, `tramalia skills sync [<name>]`, the abbreviated `tramalia skills` command, or `s` rehydrates the lock's SHA without moving it.
 - **`○ available`** — it's in the **commented catalog** of `habilidades.toml` (a curated suggestion), not even declared. Enable it and it becomes declared.
 
 ### Updating: installed vs. available
 
-Each installed external skill shows its **installed version** (`@sha`). To see whether a newer one exists in its repo, `tramalia skills outdated` (or the **`u`** key in the TUI) runs a `git ls-remote` and marks the outdated ones with `installed → available`. Then you update **one** (`tramalia skills sync <name>` / Enter on it) or **all** of the project's (`tramalia skills` / the `s` key). It touches nothing else: it's a `git pull --ff-only` per skill.
+Each installed external skill shows its **installed version** (`@sha`). `tramalia skills outdated` (or `u`) checks the remote. `tramalia skills update <name>` —or Enter on that installed skill— moves one lock; `tramalia skills update` moves all. In Team mode Tramalia resolves the reference, fetches the SHA, runs `checkout --detach`, verifies `HEAD`, and only then publishes the lock; it never uses `git pull`. `sync` and `s` only rehydrate already-pinned SHAs.
 
 ### External skills are NOT committed to the repo (but aren't lost)
 

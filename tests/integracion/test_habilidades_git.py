@@ -356,6 +356,90 @@ def test_sync_team_no_mueve_lock_si_manifiesto_cambia_referencia(
     assert ruta_bloqueo.read_bytes() == bloqueo_anterior
 
 
+def test_preflight_team_detecta_segundo_bloqueo_desalineado_sin_invocar_git(
+    tmp_path: Path, monkeypatch
+) -> None:
+    raiz = tmp_path / "proyecto"
+    directorio_tramalia = raiz / ".tramalia"
+    directorio_tramalia.mkdir(parents=True)
+    (directorio_tramalia / "config.json").write_text(json.dumps({"mode": "team"}), encoding="utf-8")
+    fuente_primera = "git+https://example.com/equipo/primera.git"
+    fuente_segunda = "git+https://example.com/equipo/segunda.git"
+    (directorio_tramalia / "habilidades.toml").write_text(
+        f'[[habilidad]]\nnombre = "primera"\nfuente = "{fuente_primera}"\n'
+        'referencia = "main"\n\n'
+        f'[[habilidad]]\nnombre = "segunda"\nfuente = "{fuente_segunda}"\n'
+        'referencia = "otra"\n',
+        encoding="utf-8",
+    )
+    ruta_bloqueo = directorio_tramalia / "habilidades.lock.json"
+    ruta_bloqueo.write_text(
+        json.dumps(
+            {
+                "version_esquema": 1,
+                "habilidades": {
+                    "primera": {
+                        "fuente": fuente_primera,
+                        "referencia": "main",
+                        "sha_resuelto": "a" * 40,
+                    },
+                    "segunda": {
+                        "fuente": fuente_segunda,
+                        "referencia": "main",
+                        "sha_resuelto": "b" * 40,
+                    },
+                },
+            },
+            indent=3,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    bloqueo_anterior = ruta_bloqueo.read_bytes()
+    llamadas: list[tuple[str, ...]] = []
+
+    def ejecutar(argumentos, **_opciones):
+        llamadas.append(tuple(argumentos))
+        return ResultadoProceso(tuple(argumentos), 1, "", "Git no debe ejecutarse")
+
+    monkeypatch.setattr(habilidades, "git_disponible", lambda: True)
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+
+    resultado = habilidades.sincronizar_habilidades(raiz)
+
+    assert resultado.estado.estado == "fallido"
+    assert any(
+        resolucion.nombre == "segunda" and resolucion.estado.motivo == "bloqueo_desalineado"
+        for resolucion in resultado.resoluciones
+    )
+    assert llamadas == []
+    assert ruta_bloqueo.read_bytes() == bloqueo_anterior
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_consulta_remota_fallida_conserva_sha_local(tmp_path: Path, monkeypatch) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    sincronizacion = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    sha_local = sincronizacion.resoluciones[0].sha_resuelto
+    ejecutar_real = habilidades._ejecutar_git
+
+    def ejecutar(argumentos, **opciones):
+        if tuple(argumentos[:2]) == ("git", "ls-remote"):
+            return ResultadoProceso(tuple(argumentos), 128, "", "remoto inaccesible", False, False)
+        return ejecutar_real(argumentos, **opciones)
+
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+
+    resolucion = habilidades.consultar_habilidades(raiz, consultar_remoto=True)[0]
+
+    assert sha_local is not None
+    assert resolucion.sha_resuelto == sha_local
+    assert resolucion.accion == "fallida"
+    assert resolucion.estado.estado == "fallido"
+    assert resolucion.estado.motivo == "git_salida_no_cero"
+
+
 @pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
 def test_modo_equipo_no_usa_pull_ni_resuelve_referencia_con_lock(
     tmp_path: Path, monkeypatch

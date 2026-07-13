@@ -13,7 +13,7 @@ flowchart TB
     C -->|profundizan| B
 ```
 
-**Regla de oro**: una skill *propia* existe solo si está **anclada a un comando, gate o evidencia de Tramalia**. El conocimiento profundo (patrones de arquitectura, guías UX exhaustivas, OWASP detallado) viene de **repos externos especializados** que se actualizan solos — Tramalia no congela enciclopedias.
+**Regla de oro**: una skill *propia* existe solo si está **anclada a un comando, gate o evidencia de Tramalia**. El conocimiento profundo viene de **repos externos especializados**, pero Tramalia fija cada versión por SHA y sólo la actualiza de forma explícita.
 
 ## ¿Y las skills que ya trae mi CLI? (Claude Code, Codex…)
 
@@ -45,9 +45,10 @@ flowchart TB
 | Vía | CLI | TUI (`tramalia ui`, pestaña **Skills**) |
 |---|---|---|
 | **Ver qué hay** | `tramalia skills list` | la tabla agrupa propias y externas con su estado |
-| **Instalar una externa** | `tramalia skills enable <n>` + `tramalia skills` | **Enter** sobre ella (la declara y clona de una) |
-| **Actualizar una** | `tramalia skills sync <n>` | **Enter** sobre una ya instalada |
-| **Actualizar todas** | `tramalia skills` (o `tramalia update`) | tecla **`s`** |
+| **Instalar una externa** | `tramalia skills enable <n>` + `tramalia skills update <n>` | **Enter** sobre ella (la declara, fija y materializa) |
+| **Rehidratar SHA fijados** | `tramalia skills sync [<n>]` o `tramalia skills` | tecla **`s`** para todas |
+| **Actualizar una** | `tramalia skills update <n>` | **Enter** sobre una ya instalada |
+| **Actualizar todas** | `tramalia skills update` | — |
 | **Ver cuáles tienen update** | `tramalia skills outdated` | tecla **`u`** (marca `⬆` las atrasadas) |
 | **Abrir docs de una** | — | tecla **`d`** (abre su repo) |
 | **Agregar por URL** | `tramalia skills add <url> [n]` | pega la URL en el input de arriba |
@@ -57,12 +58,12 @@ Los agentes las **descubren solos**: `AGENTS.md` les indica consultar `.tramalia
 ### Los 3 estados (y qué es una skill "declarada")
 
 - **`✓ instalada @a71792a`** — clonada en `.tramalia/habilidades/<nombre>/`. El `@sha` es la **versión** exacta que tienes (el commit corto).
-- **`◍ declarada`** — está **anotada en el manifiesto** `.tramalia/habilidades.toml` (su bloque `[[skill]]` está activo) **pero todavía no se ha clonado a disco**. Es el paso intermedio: la *quieres*, pero falta traerla con `tramalia skills`. Tras un `git clone` del repo, las externas siempre arrancan aquí (el manifiesto viaja, las carpetas no) — un `tramalia skills` las re-hidrata.
+- **`◍ declarada`** — está en `.tramalia/habilidades.toml` mediante un bloque canónico `[[habilidad]]` con `nombre`/`fuente`/`referencia`, pero aún no se materializó. Tras un `git clone`, `tramalia skills sync [<nombre>]`, el comando abreviado `tramalia skills` o la tecla `s` rehidratan el SHA del lock sin moverlo.
 - **`○ disponible`** — está en el **catálogo comentado** de `habilidades.toml` (una sugerencia curada), ni siquiera declarada. Actívala y se vuelve declarada.
 
 ### Actualizar: instalada vs. disponible
 
-Cada skill externa instalada muestra su **versión instalada** (`@sha`). Para ver si hay una más nueva en su repo, `tramalia skills outdated` (o la tecla **`u`** en la TUI) hace un `git ls-remote` y marca las atrasadas con `instalada → disponible`. Luego actualizas **una** (`tramalia skills sync <nombre>` / Enter sobre ella) o **todas** las del proyecto (`tramalia skills` / tecla `s`). No toca nada más: es un `git pull --ff-only` por skill.
+Cada skill externa instalada muestra su **versión instalada** (`@sha`). `tramalia skills outdated` (o `u`) consulta el remoto. `tramalia skills update <nombre>` —o Enter sobre esa instalada— mueve un lock; `tramalia skills update` mueve todos. En Team se resuelve la referencia, se hace `fetch` del SHA, `checkout --detach`, se verifica `HEAD` y sólo entonces se publica el lock: nunca se usa `git pull`. `sync` y `s` sólo rehidratan los SHA ya fijados.
 
 ### Las skills externas NO se suben al repo (pero no se pierden)
 

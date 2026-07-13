@@ -87,8 +87,8 @@ Commands are designed to be short: `close` takes the task as a positional argume
 | `gates` | run the quality gates (via mise) | `tramalia gates` |
 | `context` | refresh derived context (token saving) | `tramalia context` |
 | `sync` | propagate rules **and subagents** to other hosts (rulesync) | `tramalia sync` |
-| `skills` | clone/update referenced skills from their repos | `tramalia skills` |
-| `update` | update everything (mise + skills) | `tramalia update` |
+| `skills` | rehydrate pinned SHAs; `skills update [name]` explicitly moves one or all Team locks | `tramalia skills` · `tramalia skills update [name]` |
+| `update` | update mise and rehydrate pinned skills; it does not move Team locks | `tramalia update` |
 | `mcp` | start the MCP façade (extra `[mcp]`) | `tramalia mcp` |
 
 Advanced flags (overrides): `close --task --agent --reviewer --model --allow-fail --engram` · `init --with-headroom --with-ponytail` · `sync --to --features`. Full reference: [Commands](docs/comandos.md).

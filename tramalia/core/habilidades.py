@@ -38,7 +38,15 @@ _CUERPO_GITIGNORE = (
 
 @dataclass(frozen=True, slots=True)
 class HabilidadDeclarada:
-    """Describe one external skill declared by a project manifest."""
+    """Describe one external skill declared by a project manifest.
+
+    Attributes:
+        nombre: Stable skill name inside the project.
+        fuente: Canonical source URL as written in the manifest.
+        referencia: Git reference requested by the project.
+        habilitada: Whether the manifest block is active.
+        instalada: Whether the checkout directory exists locally.
+    """
 
     nombre: str
     fuente: str
@@ -49,7 +57,13 @@ class HabilidadDeclarada:
 
 @dataclass(frozen=True, slots=True)
 class BloqueoHabilidad:
-    """Pin a skill source and reference to one immutable Git commit."""
+    """Pin a skill source and reference to one immutable Git commit.
+
+    Attributes:
+        fuente: Canonical source URL preserved in the lock.
+        referencia: Git reference that was resolved.
+        sha_resuelto: Verified full commit SHA.
+    """
 
     fuente: str
     referencia: str
@@ -58,7 +72,16 @@ class BloqueoHabilidad:
 
 @dataclass(frozen=True, slots=True)
 class ResolucionHabilidad:
-    """Report the resolved Git identity and resulting integration state."""
+    """Report the resolved Git identity and resulting integration state.
+
+    Attributes:
+        nombre: Skill name associated with the resolution.
+        fuente: Canonical source URL used by the declaration.
+        referencia: Requested Git reference.
+        sha_resuelto: Verified local SHA, when one remains available.
+        accion: Materialization action performed or failed.
+        estado: Typed integration state with impact and remediation.
+    """
 
     nombre: str
     fuente: str
@@ -70,7 +93,12 @@ class ResolucionHabilidad:
 
 @dataclass(frozen=True, slots=True)
 class ResultadoSincronizacionHabilidades:
-    """Aggregate a requested skill synchronization without losing item failures."""
+    """Aggregate a requested skill synchronization without losing item failures.
+
+    Attributes:
+        estado: Aggregate integration state for the request.
+        resoluciones: Per-skill resolutions produced by the request.
+    """
 
     estado: EstadoIntegracion
     resoluciones: tuple[ResolucionHabilidad, ...]
@@ -164,7 +192,15 @@ def _catalogo_desde_texto(
 
 
 def catalogo_habilidades(raiz: Path) -> tuple[HabilidadDeclarada, ...]:
-    """Read enabled and commented skill declarations conservatively."""
+    """Read enabled and commented skill declarations conservatively.
+
+    Args:
+        raiz: Project root containing the Tramalia directory.
+
+    Returns:
+        Active and commented declarations in manifest order, or an empty
+        tuple when the manifest cannot be read.
+    """
     ruta, heredado = _ruta_manifiesto_lectura(raiz)
     if ruta is None:
         return ()
@@ -234,7 +270,20 @@ def _preparar_manifiesto_escritura(raiz: Path) -> Path | None:
 
 
 def fijar_habilitada(raiz: Path, nombre: str, habilitada: bool) -> bool:
-    """Enable or disable one exact manifest block without rewriting others."""
+    """Enable or disable one exact manifest block without rewriting others.
+
+    Args:
+        raiz: Project root containing the skill manifest.
+        nombre: Exact skill name to mutate.
+        habilitada: Desired active state for the declaration.
+
+    Returns:
+        True when the declaration exists and has the requested state; False
+        when no writable declaration can be found.
+
+    Raises:
+        OSError: If an existing canonical manifest cannot be read or written.
+    """
     ruta = _preparar_manifiesto_escritura(raiz)
     if ruta is None:
         return False
@@ -270,7 +319,19 @@ def fijar_habilitada(raiz: Path, nombre: str, habilitada: bool) -> bool:
 
 
 def agregar_habilidad(raiz: Path, fuente: str, nombre: str | None = None) -> tuple[bool, str]:
-    """Append one enabled skill using the canonical Spanish manifest format."""
+    """Append one enabled skill using the canonical Spanish manifest format.
+
+    Args:
+        raiz: Project root containing the skill manifest.
+        fuente: HTTP or ``git+`` source URL to declare.
+        nombre: Optional explicit skill name derived from the URL when absent.
+
+    Returns:
+        A success flag and either the resolved name or a stable failure reason.
+
+    Raises:
+        OSError: If an existing canonical manifest cannot be read or written.
+    """
     ruta = _preparar_manifiesto_escritura(raiz)
     if ruta is None:
         return False, "sin-manifiesto"
@@ -297,7 +358,14 @@ def agregar_habilidad(raiz: Path, fuente: str, nombre: str | None = None) -> tup
 
 
 def habilidades_propias(raiz: Path) -> tuple[dict[str, str], ...]:
-    """List numbered project-owned skills and their frontmatter description."""
+    """List numbered project-owned skills and their frontmatter description.
+
+    Args:
+        raiz: Project root containing ``.tramalia/habilidades``.
+
+    Returns:
+        Skill names and descriptions ordered by directory name.
+    """
     base = raiz / _RUTA_HABILIDADES
     if not base.exists():
         return ()
@@ -319,12 +387,26 @@ def habilidades_propias(raiz: Path) -> tuple[dict[str, str], ...]:
 
 
 def bloque_gitignore() -> str:
-    """Return the managed ignore block for reproducible external checkouts."""
+    """Return the managed ignore block for reproducible external checkouts.
+
+    Returns:
+        Complete Tramalia-owned ``.gitignore`` block with a trailing newline.
+    """
     return f"{_INICIO_GITIGNORE}\n{_CUERPO_GITIGNORE}{_FIN_GITIGNORE}\n"
 
 
 def asegurar_gitignore_habilidades(raiz: Path) -> str:
-    """Create or update only Tramalia's managed skill ignore block."""
+    """Create or update only Tramalia's managed skill ignore block.
+
+    Args:
+        raiz: Project root whose ``.gitignore`` must be reconciled.
+
+    Returns:
+        ``creado``, ``adaptado``, or ``existe`` according to the mutation.
+
+    Raises:
+        OSError: If ``.gitignore`` cannot be read or written.
+    """
     ruta = raiz / ".gitignore"
     bloque = bloque_gitignore()
     if not ruta.exists():
@@ -354,7 +436,15 @@ def _ejecutar_git(
 
 
 def habilidades_externas_rastreadas(raiz: Path) -> tuple[str, ...]:
-    """List non-numbered external skill directories already tracked by Git."""
+    """List non-numbered external skill directories already tracked by Git.
+
+    Args:
+        raiz: Project root inspected through ``git ls-files``.
+
+    Returns:
+        Sorted external skill names, or an empty tuple when Git is unavailable
+        or the inspection fails.
+    """
     if not git_disponible():
         return ()
     resultado = _ejecutar_git(
@@ -374,7 +464,11 @@ def habilidades_externas_rastreadas(raiz: Path) -> tuple[str, ...]:
 
 
 def git_disponible() -> bool:
-    """Return whether Git can be resolved on the current process path."""
+    """Return whether Git can be resolved on the current process path.
+
+    Returns:
+        True when the Git executable can be resolved; otherwise False.
+    """
     return procesos.encontrar("git") is not None
 
 
@@ -417,7 +511,15 @@ def _sha_instalado_completo(raiz: Path, nombre: str) -> tuple[str | None, Result
 
 
 def referencia_instalada(raiz: Path, nombre: str) -> str | None:
-    """Return the seven-character Git identity of an installed external skill."""
+    """Return the seven-character Git identity of an installed external skill.
+
+    Args:
+        raiz: Project root containing the external checkout.
+        nombre: Exact skill directory name.
+
+    Returns:
+        Seven-character commit identity, or None when it cannot be verified.
+    """
     destino = raiz / _RUTA_HABILIDADES / nombre / ".git"
     if not destino.exists() or not git_disponible():
         return None
@@ -507,21 +609,54 @@ def _resolucion_fallida(
     resultado: ResultadoProceso,
     *,
     resolviendo: bool = False,
+    sha_resuelto: str | None = None,
 ) -> ResolucionHabilidad:
     motivo = _motivo_fallo_git(resultado, resolviendo=resolviendo)
     return ResolucionHabilidad(
         habilidad.nombre,
         habilidad.fuente,
         habilidad.referencia,
-        None,
+        sha_resuelto,
         "fallida",
         _estado_habilidad(
             ValorEstadoIntegracion.FALLIDO,
             solicitado="git",
             utilizado="git",
             motivo=motivo,
-            impacto="La habilidad no quedo fijada en un commit verificable.",
+            impacto=(
+                "No se pudo verificar la referencia remota; se conserva el SHA local."
+                if sha_resuelto is not None
+                else "La habilidad no quedo fijada en un commit verificable."
+            ),
             remediacion="Corrige la referencia o el acceso Git y vuelve a intentar.",
+        ),
+    )
+
+
+def _bloqueo_alineado(habilidad: HabilidadDeclarada, bloqueo: BloqueoHabilidad | None) -> bool:
+    return (
+        bloqueo is not None
+        and bloqueo.fuente == habilidad.fuente
+        and bloqueo.referencia == habilidad.referencia
+    )
+
+
+def _resolucion_bloqueo_desalineado(
+    habilidad: HabilidadDeclarada, bloqueo: BloqueoHabilidad | None
+) -> ResolucionHabilidad:
+    return ResolucionHabilidad(
+        habilidad.nombre,
+        habilidad.fuente,
+        habilidad.referencia,
+        bloqueo.sha_resuelto if bloqueo is not None else None,
+        "fallida",
+        _estado_habilidad(
+            ValorEstadoIntegracion.FALLIDO,
+            solicitado="git",
+            utilizado=None,
+            motivo="bloqueo_desalineado",
+            impacto="El manifiesto no coincide con el bloqueo Team publicado.",
+            remediacion="Ejecuta tramalia skills update para mover el bloqueo.",
         ),
     )
 
@@ -546,30 +681,9 @@ def _sincronizar_equipo(
         _sha, resultado = _resolver_sha(habilidad.fuente, habilidad.referencia, raiz)
         return _resolucion_fallida(habilidad, resultado, resolviendo=True), None
 
-    bloqueo_vigente = (
-        bloqueo is not None
-        and bloqueo.fuente == habilidad.fuente
-        and bloqueo.referencia == habilidad.referencia
-    )
+    bloqueo_vigente = _bloqueo_alineado(habilidad, bloqueo)
     if not actualizar and (raiz / _RUTA_BLOQUEO).exists() and not bloqueo_vigente:
-        return (
-            ResolucionHabilidad(
-                habilidad.nombre,
-                habilidad.fuente,
-                habilidad.referencia,
-                bloqueo.sha_resuelto if bloqueo is not None else None,
-                "fallida",
-                _estado_habilidad(
-                    ValorEstadoIntegracion.FALLIDO,
-                    solicitado="git",
-                    utilizado=None,
-                    motivo="bloqueo_desalineado",
-                    impacto=("El manifiesto no coincide con el bloqueo Team publicado."),
-                    remediacion=("Ejecuta tramalia skills update para mover el bloqueo."),
-                ),
-            ),
-            None,
-        )
+        return _resolucion_bloqueo_desalineado(habilidad, bloqueo), None
     usa_bloqueo = bloqueo_vigente and not actualizar
     sha_objetivo: str | None
     if usa_bloqueo:
@@ -761,7 +875,18 @@ def sincronizar_habilidades(
     *,
     actualizar: bool = False,
 ) -> ResultadoSincronizacionHabilidades:
-    """Synchronize declared skills while preserving an immutable Team lock."""
+    """Synchronize declared skills while preserving an immutable Team lock.
+
+    Args:
+        raiz: Project root containing the manifest and optional lock.
+        solo: Optional exact skill name that limits the request.
+        actualizar: Whether moving Team locks to freshly resolved SHAs is
+            explicitly authorized.
+
+    Returns:
+        Aggregate state and per-skill resolutions. In Team mode, any manifest
+        and lock mismatch aborts the complete request before invoking Git.
+    """
     habilidades = leer_habilidades(raiz)
     if solo is not None:
         habilidades = tuple(h for h in habilidades if h.nombre == solo)
@@ -777,6 +902,19 @@ def sincronizar_habilidades(
             ),
             (),
         )
+    from tramalia.core.configuracion import modo_trabajo
+
+    modo = modo_trabajo(raiz)
+    bloqueos_originales = _leer_bloqueos(raiz)
+    if modo == "team" and not actualizar and (raiz / _RUTA_BLOQUEO).exists():
+        desalineadas = tuple(
+            _resolucion_bloqueo_desalineado(habilidad, bloqueos_originales.get(habilidad.nombre))
+            for habilidad in habilidades
+            if not _bloqueo_alineado(habilidad, bloqueos_originales.get(habilidad.nombre))
+        )
+        if desalineadas:
+            return ResultadoSincronizacionHabilidades(_estado_agregado(desalineadas), desalineadas)
+
     if not git_disponible():
         estado = _estado_habilidad(
             ValorEstadoIntegracion.NO_DISPONIBLE,
@@ -801,10 +939,6 @@ def sincronizar_habilidades(
             ),
         )
 
-    from tramalia.core.configuracion import modo_trabajo
-
-    modo = modo_trabajo(raiz)
-    bloqueos_originales = _leer_bloqueos(raiz)
     bloqueos_nuevos = dict(bloqueos_originales)
     resoluciones: list[ResolucionHabilidad] = []
     for habilidad in habilidades:
@@ -834,7 +968,17 @@ def sincronizar_habilidades(
 def consultar_habilidades(
     raiz: Path, consultar_remoto: bool = False
 ) -> tuple[ResolucionHabilidad, ...]:
-    """Inspect installed Git identities without mutating skill checkouts."""
+    """Inspect installed Git identities without mutating skill checkouts.
+
+    Args:
+        raiz: Project root containing declared skill checkouts.
+        consultar_remoto: Whether each declared reference should be compared
+            with ``git ls-remote``.
+
+    Returns:
+        One resolution per catalog entry. A failed remote comparison preserves
+        the verified local SHA while exposing a failed integration state.
+    """
     resoluciones: list[ResolucionHabilidad] = []
     for habilidad in catalogo_habilidades(raiz):
         sha_local, resultado_local = _sha_instalado_completo(raiz, habilidad.nombre)
@@ -870,7 +1014,12 @@ def consultar_habilidades(
             )
             if sha_remoto is None:
                 resoluciones.append(
-                    _resolucion_fallida(habilidad, resultado_remoto, resolviendo=True)
+                    _resolucion_fallida(
+                        habilidad,
+                        resultado_remoto,
+                        resolviendo=True,
+                        sha_resuelto=sha_local,
+                    )
                 )
                 continue
             if sha_remoto.lower() != sha_local.lower():

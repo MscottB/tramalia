@@ -7,6 +7,7 @@ import types
 import pytest
 
 from tramalia.core import habilidades
+from tramalia.core.procesos import ResultadoProceso
 
 
 def _ejecutar_git(raiz, *argumentos):
@@ -125,6 +126,71 @@ def test_cli_habilidades_desactualizadas(tmp_path, monkeypatch):
 
     argumentos = types.SimpleNamespace(action="outdated", name=None)
     assert commands.cmd_skills(argumentos) == 0
+
+
+def test_cli_habilidades_desactualizadas_renderiza_fallo_remoto_y_devuelve_uno(
+    tmp_path, monkeypatch
+):
+    remoto = _crear_remoto(tmp_path)
+    proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    habilidades.sincronizar_habilidades(proyecto)
+    monkeypatch.chdir(proyecto)
+    monkeypatch.setattr(
+        habilidades,
+        "_resolver_sha",
+        lambda *_argumentos: (
+            None,
+            ResultadoProceso(("git", "ls-remote"), 128, "", "remoto inaccesible", False, False),
+        ),
+    )
+    from tramalia.cli import commands
+
+    errores: list[str] = []
+    monkeypatch.setattr(commands.render, "err", errores.append)
+    argumentos = types.SimpleNamespace(action="outdated", name=None)
+
+    codigo = commands.cmd_skills(argumentos)
+
+    assert codigo == 1
+    assert any("mihabilidad" in error and "git_salida_no_cero" in error for error in errores)
+
+
+def test_tui_habilidades_muestra_fallo_remoto_sin_informar_cero_actualizaciones(
+    tmp_path, monkeypatch
+):
+    pytest.importorskip("textual")
+    remoto = _crear_remoto(tmp_path)
+    proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    habilidades.sincronizar_habilidades(proyecto)
+    monkeypatch.chdir(proyecto)
+    monkeypatch.setattr(
+        habilidades,
+        "_resolver_sha",
+        lambda *_argumentos: (
+            None,
+            ResultadoProceso(("git", "ls-remote"), 128, "", "remoto inaccesible", False, False),
+        ),
+    )
+    resolucion = habilidades.consultar_habilidades(proyecto, consultar_remoto=True)[0]
+    from tramalia.i18n import t
+    from tramalia.tui import build_app
+
+    mensajes: list[str] = []
+
+    class RegistroMensajes:
+        def write(self, mensaje: str) -> None:
+            mensajes.append(mensaje)
+
+    aplicacion = build_app()()
+    aplicacion._skill_updates = {}
+    clase_aplicacion = type(aplicacion)
+    monkeypatch.setattr(clase_aplicacion, "_skills_log", lambda _self: RegistroMensajes())
+    monkeypatch.setattr(clase_aplicacion, "_refresh_skills", lambda *_argumentos: None)
+
+    aplicacion._after_check_updates((resolucion,))
+
+    assert any("mihabilidad" in mensaje and "git_salida_no_cero" in mensaje for mensaje in mensajes)
+    assert t("skills.update.found", n=0) not in mensajes
 
 
 def test_cli_habilidades_sincroniza_una(tmp_path, monkeypatch):

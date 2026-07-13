@@ -27,8 +27,8 @@ capability into approval.
 | `tramalia context [build\|list\|set <backend>]` | build context and select its backend | integration |
 | `tramalia agents [list\|cap <level>]` | inspect or cap subagent models | core |
 | `tramalia sync [--to --features]` | propagate compatible rules and subagents | `rulesync` integration |
-| `tramalia skills [sync [<n>]\|list\|outdated\|enable\|disable\|add]` | manage the skill catalog | Git integration |
-| `tramalia update` | update orchestrated tools and skills | integration |
+| `tramalia skills [sync [<n>]\|update [<n>]\|list\|outdated\|enable\|disable\|add]` | rehydrate SHAs or move locks explicitly | Git integration |
+| `tramalia update` | update mise and rehydrate skills; do not move Team locks | integration |
 | `tramalia mcp` | start the MCP façade | core + MCP SDK |
 
 ## close — governed close
@@ -217,9 +217,8 @@ participate in close policy.
 ## sync, skills, and update
 
 - `sync` propagates `AGENTS.md` and compatible formats through `rulesync`.
-- `skills` manages skill sources, versions, activation, and updates.
-- `update` updates orchestrated tools and skills; it neither installs a new PyPI
-  package version nor publishes documentation.
+- `skills sync [<name>]` and `tramalia skills` rehydrate pinned SHAs; `skills update [<name>]` explicitly moves one or all Team locks through `fetch`, `checkout --detach`, and `HEAD` verification.
+- `update` updates mise and rehydrates skills; it does not move Team locks, install a new PyPI package version, or publish documentation.
 
 ## mcp — level-1 façade
 

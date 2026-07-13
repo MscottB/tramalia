@@ -27,8 +27,8 @@ ocultan errores ni convierten una ausencia en aprobación.
 | `tramalia context [build\|list\|set <backend>]` | genera contexto y selecciona su backend | integración |
 | `tramalia agents [list\|cap <nivel>]` | consulta o limita modelos de subagentes | núcleo |
 | `tramalia sync [--to --features]` | propaga reglas y subagentes compatibles | integración `rulesync` |
-| `tramalia skills [sync [<n>]\|list\|outdated\|enable\|disable\|add]` | administra el catálogo de skills | integración Git |
-| `tramalia update` | actualiza herramientas orquestadas y skills | integración |
+| `tramalia skills [sync [<n>]\|update [<n>]\|list\|outdated\|enable\|disable\|add]` | rehidrata SHA o mueve locks explícitamente | integración Git |
+| `tramalia update` | actualiza mise y rehidrata skills; no mueve locks Team | integración |
 | `tramalia mcp` | inicia la fachada MCP | núcleo + SDK MCP |
 
 ## close — cierre gobernado
@@ -217,9 +217,8 @@ ni participa en la decisión de cierre.
 ## sync, skills y update
 
 - `sync` propaga `AGENTS.md` y formatos compatibles mediante `rulesync`.
-- `skills` administra fuentes, versiones, activación y actualización de skills.
-- `update` actualiza herramientas orquestadas y skills; no instala una versión
-  nueva del paquete de PyPI ni publica documentación.
+- `skills sync [<nombre>]` y `tramalia skills` rehidratan SHA fijados; `skills update [<nombre>]` mueve explícitamente uno o todos los locks Team mediante `fetch`, `checkout --detach` y verificación de `HEAD`.
+- `update` actualiza mise y rehidrata skills; no mueve locks Team, instala una versión nueva del paquete de PyPI ni publica documentación.
 
 ## mcp — fachada de nivel 1
 

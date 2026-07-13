@@ -558,13 +558,24 @@ def build_app():
             self.call_from_thread(self._after_check_updates, estados)
 
         def _after_check_updates(self, estados) -> None:
+            fallidas = [estado for estado in estados if estado.accion == "fallida"]
             self._skill_updates = {
                 estado.nombre: estado.estado.motivo == "actualizacion_disponible"
                 for estado in estados
-                if estado.sha_resuelto
+                if estado.sha_resuelto and estado.accion != "fallida"
             }
+            log = self._skills_log()
+            for estado in fallidas:
+                log.write(
+                    t(
+                        "skills.outdated.fail",
+                        name=estado.nombre,
+                        reason=estado.estado.motivo,
+                    )
+                )
             n = sum(1 for v in self._skill_updates.values() if v)
-            self._skills_log().write(t("skills.update.found", n=n))
+            if n or not fallidas:
+                log.write(t("skills.update.found", n=n))
             root = Path.cwd()
             self._refresh_skills(root, inspeccionar_estado_proyecto(root).listo)
 

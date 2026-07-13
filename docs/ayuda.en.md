@@ -122,15 +122,15 @@ On those hosts there's no per-role routing Tramalia can rewrite (and we don't to
 Resolution: `TRAMALIA_LANG` > `config.json → language` > system locale. Force with `TRAMALIA_LANG=en tramalia ui`.
 
 **How do I update Tramalia?**
-`pip install -U tramalia-cli` (the CLI). `tramalia update` updates *what's orchestrated* (mise tools + skills), not the package.
+`pip install -U tramalia-cli` updates the CLI. `tramalia update` updates mise tools and rehydrates skills at their pinned SHAs; it neither moves Team locks nor updates the package. To explicitly advance one or all Team locks, use `tramalia skills update [name]`.
 
 ## Skills
 
 **I added a skill by URL and it isn't cloned.**
-`add` only declares it in the manifest. In the TUI, **Enter** on an external skill **declares and clones it in one step** (since v0.29); from the CLI, `tramalia skills` clones all declared ones. The `s` key still syncs all; the `d` key opens the selected skill's docs (repo).
+`add` only declares it in the manifest. In the TUI, **Enter** on an absent external skill **declares and materializes it in one step**; from the CLI, `tramalia skills sync [name]` —or the abbreviated `tramalia skills` command— rehydrates the pinned SHA. The `s` key performs that same rehydration for all skills and never advances a Team lock; the `d` key opens the selected skill's docs (repo).
 
 **Did I have to press Enter and then sync? It wasn't clear.**
-It used to be two steps (declare, then sync) and wasn't explained. Since **v0.29**, in the TUI **Enter installs in one step** (declare + clone); if the skill is already there, Enter disables it. The Skills tab legend now shows the 3 states and what each key does.
+It used to be two steps (declare, then sync) and wasn't explained. Since **v0.29**, in the TUI **Enter installs in one step** (declare + materialize); if the skill is already installed, Enter is the explicit update for that one skill. In Team mode it is equivalent to `tramalia skills update <name>` and may move only its lock after verifying the new SHA.
 
 **External skills are heavy and I don't want to commit them to the repo — but I don't want to lose them either.**
 Since **v0.29** `tramalia init` drops a block in `.gitignore` that **excludes** external skills under `.tramalia/habilidades/` and **keeps** the own ones (numbered `NN-*`). They're not lost: the manifest `.tramalia/habilidades.toml` (which IS versioned) **re-hydrates** them — whoever clones the repo runs `tramalia skills` and they download locally. It covers both a new and an existing `.gitignore` (idempotent append, without overwriting yours).
@@ -139,13 +139,13 @@ Since **v0.29** `tramalia init` drops a block in `.gitignore` that **excludes** 
 `.gitignore` doesn't untrack what's already uploaded. `tramalia skills` (and `list`/`update`) **warns** if it detects committed external skills and gives the remedy: `git rm -r --cached .tramalia/habilidades/<name>` (removes from the index, not disk; `.gitignore` prevents re-adding).
 
 **Enter on an own skill (01–16) does nothing.**
-Correct: the own ones are always installed and versioned. Enter only applies to **external** skills (install/update).
+Correct: the own ones are always installed and versioned. Enter only applies to **external** skills: it installs an absent one or explicitly updates an installed one.
 
 **What is a "declared" (`◍`) skill?**
-It's **noted in the manifest** `.tramalia/habilidades.toml` (its `[[skill]]` block is active) but **hasn't been cloned to disk yet**. It's the in-between step from `○ available` (only in the catalog) to `✓ installed` (already in `.tramalia/habilidades/`). After cloning the repo, external skills start declared (the manifest travels, the folders don't); a `tramalia skills` fetches them.
+It's **noted in the manifest** `.tramalia/habilidades.toml` (its canonical `[[habilidad]]` block, with `nombre`/`fuente`/`referencia`, is active) but **hasn't been materialized on disk yet**. It's the in-between step from `○ available` (only in the catalog) to `✓ installed` (already in `.tramalia/habilidades/`). After cloning the repo, external skills start declared (the manifest and lock travel, the folders don't); `tramalia skills sync [name]`, the abbreviated `tramalia skills` command, or the `s` key rehydrates the pinned SHA without advancing the Team lock.
 
 **How do I know if an external skill has a newer version, and how do I update it?**
-Each installed one shows its **version** as `@sha` (the short commit). `tramalia skills outdated` (or the **`u`** key in the TUI) compares your version with the remote (`git ls-remote`) and marks the outdated ones (`installed → available`). Update **one** with `tramalia skills sync <name>` (or Enter on it in the TUI) or **all** with `tramalia skills` (the `s` key). It's a `git pull --ff-only` per skill; it touches nothing else.
+Each installed one shows its **version** as `@sha` (the short commit). `tramalia skills outdated` (or the **`u`** key in the TUI) compares your version with the remote (`git ls-remote`) and marks outdated ones (`installed → available`). Explicitly update **one** with `tramalia skills update <name>` or Enter on it in the TUI; update **all** with `tramalia skills update`. In Team mode, an update resolves the reference with `ls-remote`, clones or fetches the SHA, checks out that SHA with `checkout --detach`, verifies `HEAD`, and only then publishes the lock; it never uses `git pull`. `sync`, the abbreviated `tramalia skills` command, and the `s` key only rehydrate the already-pinned SHA. In `local-first`, an explicit update of an existing checkout may use `git pull --ff-only`.
 
 ## Updating & repo structure
 

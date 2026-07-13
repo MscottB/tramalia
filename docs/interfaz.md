@@ -99,18 +99,18 @@ Repomix y markitdown no aparecen en este selector: son utilidades puntuales
 Administra las skills sin editar archivos a mano (la contraparte visual de [la guía de skills](skills-guia.md)):
 
 - **Tabla agrupada**: las **16 propias** (workflows del repo, con su descripción) y las **externas** del catálogo `habilidades.toml` — incluidas las **comentadas**, que aparecen como `○ disponible`.
-- **Enter sobre una externa**: si no está, la **instala** en un paso (la declara y la clona); si ya está instalada, la **actualiza** (`git pull` de esa sola). La leyenda arriba recuerda los 3 estados y qué hace cada tecla.
-- **Tecla `s`** actualiza **todas** las declaradas desde sus repos (`git`), con el resultado en vivo (`clonada` / `actualizada` / `error`) y un resumen `✓ n/total`.
+- **Enter sobre una externa**: si no está, la instala; si ya está instalada, ejecuta la actualización explícita de esa sola skill (equivale a `skills update <nombre>`).
+- **Tecla `s`** sólo rehidrata todas las declaradas desde sus SHA fijados; nunca mueve los bloqueos Team.
 - **Tecla `u`** comprueba en los remotos qué skills tienen una **versión más nueva** (`git ls-remote`) y marca las atrasadas con `⬆ actualizable`.
 - **Tecla `d`** abre la documentación (repo de origen) de la skill seleccionada; para las propias, la guía de skills del sitio.
 - Estados: `✓ instalada @sha` (carpeta presente + versión) · `◍ declarada` (en el manifiesto, aún sin clonar) · `○ disponible` (en el catálogo, ni declarada).
 - Si detecta skills externas **commiteadas en git** (que no deberían subirse), lo **avisa** en amarillo con el remedio `git rm -r --cached`.
 
-Hay además un **input de URL**: pega la URL git de cualquier skill y Enter la agrega al manifiesto (luego Enter sobre ella, o `s`, la clona).
+Hay además un **input de URL**: pega la URL git de cualquier skill y Enter la agrega al manifiesto; usa Enter sobre ella o `skills update <nombre>` para fijarla y materializarla.
 
 > Las skills externas **no se suben al repo** (el `.gitignore` que deja `init` las excluye) pero **no se pierden**: el manifiesto `habilidades.toml` las re-hidrata con `tramalia skills` tras un `git clone`. Detalle en [la guía de skills](skills-guia.md).
 
-Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `add <url>` · `sync [<nombre>]` · `outdated`.
+Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombre>` · `add <url>` · `sync [<nombre>]` (rehidrata) · `update [<nombre>]` (mueve locks) · `outdated`.
 
 ## Auditoría vs. Cierre (dos cosas distintas)
 

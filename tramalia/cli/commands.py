@@ -676,8 +676,19 @@ def cmd_skills(args) -> int:
     if action == "outdated":
         render.info(t("skills.outdated.checking"))
         estados = habilidades.consultar_habilidades(root, consultar_remoto=True)
-        instaladas = [estado for estado in estados if estado.sha_resuelto]
-        if not instaladas:
+        fallidas = [estado for estado in estados if estado.accion == "fallida"]
+        for estado in fallidas:
+            render.err(
+                t(
+                    "skills.outdated.fail",
+                    name=estado.nombre,
+                    reason=estado.estado.motivo,
+                )
+            )
+        instaladas = [
+            estado for estado in estados if estado.sha_resuelto and estado.accion != "fallida"
+        ]
+        if not instaladas and not fallidas:
             render.info(t("skills.outdated.none_installed"))
             return 0
         hay = False
@@ -700,8 +711,11 @@ def cmd_skills(args) -> int:
                         ref=(estado.sha_resuelto or "")[:7],
                     )
                 )
-        render.info(t("skills.outdated.update_all") if hay else t("skills.outdated.uptodate"))
-        return 0
+        if hay:
+            render.info(t("skills.outdated.update_all"))
+        elif not fallidas:
+            render.info(t("skills.outdated.uptodate"))
+        return 1 if fallidas else 0
 
     if action == "add":
         url = getattr(args, "name", None)
@@ -761,7 +775,7 @@ def _avisar_habilidades_externas_rastreadas(habilidades, raiz) -> None:
 def cmd_update(args) -> int:
     from tramalia.core import habilidades
 
-    render.info("update = mise upgrade + skills sync (+ copier update, futuro)")
+    render.info("update = mise upgrade + rehidratación de skills fijadas (no mueve locks Team)")
     code = 0
     if shutil.which("mise"):
         code |= _run(["mise", "upgrade"])

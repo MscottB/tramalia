@@ -171,8 +171,8 @@ def build_parser() -> argparse.ArgumentParser:
     sk = sub.add_parser(
         "skills",
         help=(
-            "administra skills (.tramalia/habilidades.toml): "
-            "sync/update/list/outdated/enable/disable/add"
+            "administra skills (.tramalia/habilidades.toml): sync rehidrata "
+            "SHA fijados y update mueve locks explícitamente"
         ),
     )
     sk.add_argument(
@@ -193,7 +193,10 @@ def build_parser() -> argparse.ArgumentParser:
     sk.add_argument(
         "alias", nargs="?", default=None, help="nombre opcional para `add` (default: del URL)"
     )
-    sub.add_parser("update", help="actualiza todo (mise + copier + skills)")
+    sub.add_parser(
+        "update",
+        help="actualiza mise y rehidrata skills sin mover sus locks Team",
+    )
     sub.add_parser("mcp", help="levanta el Tramalia MCP (fachada nivel 1, stdio)")
     sub.add_parser("ui", help="abre el dashboard TUI (requiere extra [tui])")
     return p
