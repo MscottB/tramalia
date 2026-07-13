@@ -7,7 +7,7 @@ flowchart LR
     classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["databricks.yml · *.ipynb"]:::s -->|tramalia detect| B["stack: databricks · notebooks"]:::s
     B -->|mise.toml| C["gates: bundle · nbstripout · sqlfluff --dialect databricks"]:::s
-    C -->|tramalia close| D["evidence pack<br/><small>bundle-output.txt · database-output.txt</small>"]:::s
+    C -->|tramalia close| D["evidence pack<br/><small>bundle-salida.txt · database-salida.txt</small>"]:::s
 ```
 
 ## What it detects
@@ -88,7 +88,10 @@ mise install                  # brings sqlfluff, semgrep… (databricks CLI: off
 tramalia close TASK-014 --model sonnet
 ```
 
-A data close's evidence pack ends up with `bundle-output.txt` (the raw bundle validation), `database-output.txt` (SQLFluff), `lint-output.txt` (ruff + notebook verification) — **real audit for pipelines**, something `git log` never gives you.
+A data close's evidence pack preserves `bundle-salida.txt` (raw bundle
+validation), `database-salida.txt` (SQLFluff), and `lint-salida.txt` (ruff and
+notebook verification): **real audit for pipelines**, something `git log` never
+provides.
 
 ## Local vs. Databricks
 

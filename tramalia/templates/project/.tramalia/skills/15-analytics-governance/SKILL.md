@@ -19,8 +19,8 @@ Tareas que producen o modifican pipelines, notebooks, modelos o queries analíti
    métricas del run y referencia externa (p. ej. `mlflow_run`).
 3. Si la tarea tiene mínimos acordados, declararlos en `.tramalia/thresholds.json`
    (`{"accuracy": {"min": 0.90}}`) — un incumplimiento **bloquea** el close.
-4. `tramalia close TASK-XXX`: las métricas quedan crudas en el pack y en
-   `metadata.json`; el estado es honesto (`blocked` si un umbral falló).
+4. `tramalia close TASK-XXX`: las métricas se validan y normalizan en
+   `metricas.json` y `metadatos.json`; el estado es `bloqueado` si falla un umbral.
 
 ## Guardrails
 - Nunca inventar ni redondear métricas: se copian del output real del run.
@@ -28,5 +28,5 @@ Tareas que producen o modifican pipelines, notebooks, modelos o queries analíti
 - Datos reales con PII jamás en el evidence pack: identificadores y hashes, no filas.
 
 ## Evidencia esperada
-`metrics.json` + `metrics-thresholds.txt` en el pack; `metadata.json → metrics`
-consultable desde `tramalia log`.
+`metricas.json` + `umbrales-metricas.txt` en el paquete;
+`metadatos.json → metricas/umbrales` consultable desde `tramalia log`.

@@ -22,4 +22,5 @@ si el cambio toca esquema, migraciones o queries.
 - No modificar archivos fuera del alcance de la tarea.
 
 ## Evidencia esperada
-database-output.txt en el evidence pack; migración documentada.
+`database-salida.txt` en el paquete formal; migración y rollback documentados en
+la tarea, runbook o ADR referenciado.

@@ -27,10 +27,12 @@ Antes de cerrar una tarea de datos/ML, el pipeline o el agente escribe
   "metrics": { "accuracy": 0.91, "drift": 0.02 }, "mlflow_run": "…" }
 ```
 
-`tramalia close` lo copia **crudo** al paquete y registra sus valores en
-`metadatos.json`.
+`tramalia close` valida el JSON y conserva sus valores semánticos en
+`metricas.json` y en `metadatos.json`. El archivo se normaliza como JSON formal;
+no se promete una copia byte a byte del texto de entrada.
 Con `.tramalia/thresholds.json` (`{"accuracy": {"min": 0.90}}`), una métrica que
-incumple —o que **falta**— **bloquea el cierre** como una puerta fallida.
+incumple —o que **falta**— **bloquea el cierre** como una puerta fallida. El
+diagnóstico legible queda en `umbrales-metricas.txt`.
 
 - Umbral que baja de versión a versión = decisión humana registrada como ADR.
 - La regresión de una métrica nunca se "acepta" en silencio: `--allow-fail` la deja

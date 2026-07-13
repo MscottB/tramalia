@@ -50,7 +50,7 @@ def test_close_bloqueado_sin_init(tmp_path, monkeypatch):
         allow_fail=False,
         engram=False,
     )
-    assert commands.cmd_close(args) != 0
+    assert commands.cmd_close(args) == 2
     assert not (tmp_path / ".tramalia" / "evidencia").exists()
 
 
@@ -81,7 +81,7 @@ def test_mutaciones_cli_capturan_proyecto_parcial_sin_escribir(
         engram=False,
     )
 
-    assert getattr(commands, comando)(argumentos) != 0
+    assert getattr(commands, comando)(argumentos) == 2
     assert list((tmp_path / ".tramalia").iterdir()) == []
 
 

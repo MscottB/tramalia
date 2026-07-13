@@ -8,18 +8,13 @@ from __future__ import annotations
 import shutil
 import sys
 from collections.abc import Callable
-from datetime import datetime
 from pathlib import Path
 
 from tramalia.cli import menu, render
 from tramalia.core import doctor as doctor_core
 from tramalia.core import proc
 from tramalia.core.detect import detect_stack, enabled_features
-from tramalia.core.errores import (
-    ErrorExcepcionInvalida,
-    ErrorProyectoNoGobernado,
-    ErrorTramalia,
-)
+from tramalia.core.errores import ErrorProyectoNoGobernado, ErrorTramalia
 from tramalia.core.evidencia import leer_bitacora
 from tramalia.core.modelos import (
     EntradaBitacora,
@@ -28,7 +23,12 @@ from tramalia.core.modelos import (
     ValorEstadoCierre,
     ValorResultadoPuerta,
 )
-from tramalia.core.operaciones import cerrar_proyecto, crear_evidencia, registrar_traspaso
+from tramalia.core.operaciones import (
+    cerrar_proyecto,
+    construir_excepciones_fallo,
+    crear_evidencia,
+    registrar_traspaso,
+)
 from tramalia.core.proyecto import (
     exigir_proyecto_actualizable,
     exigir_proyecto_gobernado,
@@ -341,49 +341,62 @@ def cmd_agents(args) -> int:
     action = getattr(args, "action", None) or "list"
 
     if action == "list":
-        cap = project.agents_model_cap(root)
+        limite_actual = project.agents_model_cap(root)
         actuales = model_cap.current_agent_models(root)
         if not actuales:
             render.err(t("agents.none"))
             return 1
-        render.info(t("agents.cap.current", cap=cap))
+        render.info(t("agents.cap.current", cap=limite_actual))
         for role, default in model_cap.ROLE_DEFAULTS.items():
             ahora = actuales.get(role, "?")
             extra = "" if ahora == default else f"  (default: {default})"
             render.ok(f"{role:<20}{ahora}{extra}")
-        if cap != "none":
+        if limite_actual != "none":
             render.info(t("agents.cap.equivhint"))
-            for line in model_cap.equivalence_lines(cap):
+            for line in model_cap.equivalence_lines(limite_actual):
                 render.info(f"  {line}")
         return 0
 
     # action == "cap"
-    cap = getattr(args, "name", None)
-    if not cap:
+    nombre_limite = str(getattr(args, "name", "") or "")
+    if not nombre_limite:
         render.err(t("agents.cap.needvalue", opts=", ".join((*model_cap.CAPS, "none"))))
         return 1
-    if not project.set_agents_model_cap(root, cap):
-        if cap not in (*model_cap.CAPS, "none"):
-            render.err(t("agents.cap.invalid", name=cap, opts=", ".join((*model_cap.CAPS, "none"))))
+    if not project.set_agents_model_cap(root, nombre_limite):
+        if nombre_limite not in (*model_cap.CAPS, "none"):
+            render.err(
+                t(
+                    "agents.cap.invalid",
+                    name=nombre_limite,
+                    opts=", ".join((*model_cap.CAPS, "none")),
+                )
+            )
         else:
             render.err(t("agents.cap.noconfig"))
         return 1
-    resultados = model_cap.apply_to_agents(root, cap)
-    render.ok(t("agents.cap.set", cap=cap))
+    resultados = model_cap.apply_to_agents(root, nombre_limite)
+    render.ok(t("agents.cap.set", cap=nombre_limite))
     for role, modelo in resultados:
         render.ok(f"  {role:<20}→ {modelo}")
-    for line in model_cap.equivalence_lines(cap):
+    for line in model_cap.equivalence_lines(nombre_limite):
         render.info(f"  {line}")
     return 0
 
 
 def _engram_save(title: str, body: str) -> None:
     """Export opt-in a Engram (memoria persistente N2). Nunca automático."""
-    if shutil.which("engram") is None:
-        render.warn("engram no está instalado; se omite el export a memoria persistente.")
-        return
-    if _run(["engram", "save", title, body]) == 0:
-        render.ok("exportado a Engram (memoria persistente N2).")
+    try:
+        if shutil.which("engram") is None:
+            render.warn("engram no está instalado; se omite el export a memoria persistente.")
+            return
+        if _run(["engram", "save", title, body]) == 0:
+            render.ok("exportado a Engram (memoria persistente N2).")
+        else:
+            render.warn("Engram rechazó el export; el paquete publicado sigue siendo válido.")
+    except Exception:
+        # Engram es una copia opcional posterior. Nunca puede convertir un paquete
+        # durable en un falso fallo de CLI que invite a repetir la operación.
+        render.warn("no se pudo exportar a Engram; el paquete publicado sigue siendo válido.")
 
 
 def _interactive_ask_task():
@@ -419,51 +432,16 @@ def _construir_excepciones(
     booleano: sin los campos requeridos y una vigencia o remediación, la
     operación no llega al núcleo.
     """
-    if not getattr(argumentos, "allow_fail", False):
-        return ()
-
-    expiracion_texto = (getattr(argumentos, "expira_en", "") or "").strip()
-    try:
-        expiracion = datetime.fromisoformat(expiracion_texto) if expiracion_texto else None
-    except ValueError as error_fecha:
-        raise ErrorExcepcionInvalida(
-            "La expiración de la excepción no es ISO 8601.",
-            "Usa --expira-en 2026-08-01T00:00:00+00:00.",
-            detalles={"campo": "expira_en"},
-        ) from error_fecha
-
-    datos = {
-        "razon": (getattr(argumentos, "razon_excepcion", "") or "").strip(),
-        "riesgo_aceptado": (getattr(argumentos, "riesgo_aceptado", "") or "").strip(),
-        "control_afectado": (getattr(argumentos, "control_afectado", "") or "").strip(),
-        "referencia": (getattr(argumentos, "referencia_excepcion", "") or "").strip(),
-        "revisor": (
-            (getattr(argumentos, "revisor_excepcion", "") or "").strip()
-            or revisor_predeterminado.strip()
-        ),
-    }
-    condicion = (getattr(argumentos, "condicion_remediacion", "") or "").strip() or None
-    faltantes = tuple(nombre for nombre, valor in datos.items() if not valor)
-    if faltantes or (expiracion is None and condicion is None):
-        raise ErrorExcepcionInvalida(
-            "--allow-fail requiere una excepción completa.",
-            "Completa razón, riesgo, control, referencia, revisor y expiración o remediación.",
-            detalles={
-                "faltantes": faltantes,
-                "requiere_vigencia": expiracion is None and condicion is None,
-            },
-        )
-
-    return (
-        ExcepcionFallo(
-            razon=datos["razon"],
-            riesgo_aceptado=datos["riesgo_aceptado"],
-            control_afectado=datos["control_afectado"],
-            referencia=datos["referencia"],
-            revisor=datos["revisor"],
-            expira_en=expiracion,
-            condicion_remediacion=condicion,
-        ),
+    return construir_excepciones_fallo(
+        permitir_fallo=bool(getattr(argumentos, "allow_fail", False)),
+        razon=getattr(argumentos, "razon_excepcion", "") or "",
+        riesgo_aceptado=getattr(argumentos, "riesgo_aceptado", "") or "",
+        control_afectado=getattr(argumentos, "control_afectado", "") or "",
+        referencia=getattr(argumentos, "referencia_excepcion", "") or "",
+        revisor_excepcion=getattr(argumentos, "revisor_excepcion", "") or "",
+        revisor_predeterminado=revisor_predeterminado,
+        expira_en=getattr(argumentos, "expira_en", "") or "",
+        condicion_remediacion=getattr(argumentos, "condicion_remediacion", "") or "",
     )
 
 

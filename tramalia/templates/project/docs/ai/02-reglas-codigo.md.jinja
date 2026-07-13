@@ -17,7 +17,9 @@
 - Cambia lógica → cambia o agrega test en el mismo commit.
 - Un test por comportamiento, no por método; nombres que describen el caso.
 - Los tests no dependen del orden ni de la máquina (hermetismo — sin red, sin reloj real).
-- Sin test posible: documenta la validación manual en el evidence pack del `close`.
+- Sin test posible: documenta la validación manual y su justificación en
+  `specs/tasks.md` o en un ADR versionado; el paquete conserva el ID de tarea y
+  las salidas verificables de las puertas ejecutadas.
 
 ## Reglas del stack detectado
 {{ reglas_stack_codigo }}

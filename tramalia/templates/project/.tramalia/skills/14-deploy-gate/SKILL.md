@@ -17,8 +17,8 @@ Toda vez que la tarea sea un release/deploy (o incluya migraciones hacia un ento
    el entorno; escribir el trigger de rollback elegido.
 3. Respetar el orden: BD (expansión) → backend → frontend; contracción en el siguiente release.
 4. Ejecutar el deploy; monitorear la ventana definida.
-5. `tramalia close TASK-XXX` — pegar el checklist completado (con lo marcado) en
-   `summary.md` del evidence pack y el trigger de rollback en `risks.md`.
+5. Guardar el checklist y trigger de rollback en el runbook o ADR versionado,
+   referenciarlo desde la tarea y ejecutar `tramalia close TASK-XXX`.
 
 ## Guardrails
 - Sin rollback probado no hay deploy — se bloquea la tarea, no se "avisa".
@@ -26,5 +26,7 @@ Toda vez que la tarea sea un release/deploy (o incluya migraciones hacia un ento
 - Si el trigger de rollback se dispara: rollback primero, análisis después.
 
 ## Evidencia esperada
-Evidence pack del close con checklist completado, versión etiquetada y estado honesto.
+Paquete formal del cierre con salidas, hashes, identidad Git, versión de Tramalia
+y estado honesto. El traspaso conserva el ID de tarea; el checklist y rollback
+permanecen en el runbook o ADR versionado enlazado desde `specs/tasks.md`.
 `tramalia log` queda como historial de releases.

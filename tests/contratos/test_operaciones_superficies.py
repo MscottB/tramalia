@@ -7,9 +7,11 @@ from types import SimpleNamespace
 
 import pytest
 
+import tramalia.mcp_server as servidor_mcp
 from tramalia.__main__ import build_parser
 from tramalia.cli import commands
 from tramalia.cli.commands import _construir_excepciones
+from tramalia.core import operaciones
 from tramalia.core.errores import ErrorExcepcionInvalida
 from tramalia.core.modelos import (
     EjecucionPuertas,
@@ -26,8 +28,19 @@ def test_firmas_publicas_compartidas() -> None:
         "modelo: 'str' = '', excepciones: 'Sequence[ExcepcionFallo]' = ()) -> "
         "'ResultadoCierre'"
     )
-    assert inspect.signature(crear_evidencia).return_annotation == "PaqueteEvidencia"
-    assert inspect.signature(registrar_traspaso).return_annotation == "PaqueteEvidencia"
+
+
+def test_cli_y_mcp_comparten_el_constructor_de_excepciones() -> None:
+    assert commands.construir_excepciones_fallo is operaciones.construir_excepciones_fallo
+    assert servidor_mcp.construir_excepciones_fallo is operaciones.construir_excepciones_fallo
+    assert str(inspect.signature(crear_evidencia)) == (
+        "(raiz: 'Path', id_tarea: 'str', *, agente: 'str' = '', revisor: 'str' = '', "
+        "modelo: 'str' = '') -> 'PaqueteEvidencia'"
+    )
+    assert str(inspect.signature(registrar_traspaso)) == (
+        "(raiz: 'Path', id_tarea: 'str', *, agente: 'str' = '', revisor: 'str' = '') "
+        "-> 'PaqueteEvidencia'"
+    )
 
 
 def test_parser_expone_un_solo_juego_de_campos_de_excepcion() -> None:
@@ -85,6 +98,38 @@ def test_alias_allow_fail_con_campos_construye_excepcion_completa() -> None:
     assert excepciones[0].control_afectado == "test"
     assert excepciones[0].revisor == "ana"
     assert excepciones[0].expira_en is not None
+
+
+def test_campos_explicitos_construyen_excepcion_sin_requerir_alias() -> None:
+    argumentos = SimpleNamespace(
+        allow_fail=False,
+        razon_excepcion="falso positivo",
+        riesgo_aceptado="riesgo acotado",
+        control_afectado="test",
+        referencia_excepcion="ISSUE-2",
+        revisor_excepcion="ana",
+        expira_en="",
+        condicion_remediacion="corregir antes del release",
+    )
+
+    excepciones = _construir_excepciones(argumentos, "revisor por defecto")
+
+    assert len(excepciones) == 1
+    assert excepciones[0].referencia == "ISSUE-2"
+    assert excepciones[0].condicion_remediacion == "corregir antes del release"
+
+
+def test_export_engram_es_best_effort_ante_error_inesperado(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(commands.shutil, "which", lambda _programa: "engram")
+
+    def fallar(*argumentos: object, **opciones: object) -> object:
+        raise OSError("servicio no disponible")
+
+    monkeypatch.setattr(commands.proc, "run", fallar)
+
+    commands._engram_save("cierre", "paquete ya publicado")
 
 
 @pytest.mark.parametrize(

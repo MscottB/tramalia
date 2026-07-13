@@ -3,7 +3,7 @@ name: 10-evidence-and-handoff
 description: Cerrar con evidencia y traspaso
 ---
 
-# Evidence and handoff
+# Evidencia y traspaso
 
 ## Propósito
 Cerrar con evidencia y traspaso.
@@ -12,8 +12,9 @@ Cerrar con evidencia y traspaso.
 al finalizar un bloque de trabajo o cambiar de agente.
 
 ## Workflow
-1. Ejecutar `tramalia close` (gates → evidence pack → handoff enlazado).
-2. Completar summary, risks, rollback y next-steps del pack.
+1. Ejecutar `tramalia close` (puertas → paquete formal → traspaso enlazado).
+2. Registrar riesgos y próximos pasos accionables en `specs/tasks.md`; si hay
+   despliegue, documentar el rollback en un runbook o ADR versionado.
 3. Verificar la entrada en `tramalia log`.
 
 ## Guardrails
@@ -22,4 +23,5 @@ al finalizar un bloque de trabajo o cambiar de agente.
 - No modificar archivos fuera del alcance de la tarea.
 
 ## Evidencia esperada
-Evidence pack completo + entrada de handoff en docs/ai/07.
+Paquete formal en `.tramalia/evidencia/` con `metadatos.json`, `traspaso.md` y
+salidas de puertas; proyección visible en `docs/ai/07-traspaso-agentes.md`.

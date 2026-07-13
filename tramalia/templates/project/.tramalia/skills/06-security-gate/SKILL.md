@@ -22,4 +22,5 @@ si el cambio toca auth, datos, APIs o dependencias.
 - No modificar archivos fuera del alcance de la tarea.
 
 ## Evidencia esperada
-security-output.txt en el evidence pack con hallazgos clasificados.
+`security-salida.txt` en el paquete formal, con hallazgos clasificados y hash en
+`metadatos.json`.

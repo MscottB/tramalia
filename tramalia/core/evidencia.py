@@ -448,11 +448,11 @@ def _partes_ruta_interna(nombre: object) -> tuple[str, ...]:
         raise _error_archivo("ruta")
 
     for parte in partes:
-        base_windows = parte.split(".", 1)[0].upper()
+        nombre_base_windows = parte.split(".", 1)[0].upper()
         if (
             not _SEGMENTO_ARCHIVO_SEGURO.fullmatch(parte)
             or parte.endswith(".")
-            or base_windows in _RESERVADOS_WINDOWS
+            or nombre_base_windows in _RESERVADOS_WINDOWS
         ):
             raise _error_archivo("ruta")
     return partes

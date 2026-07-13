@@ -15,6 +15,7 @@ import platform
 import stat
 import warnings
 from collections.abc import Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,8 +23,10 @@ from pathlib import Path
 from tramalia import __version__
 from tramalia.core.errores import (
     ErrorConfiguracionMetricas,
+    ErrorConfiguracionPuertas,
     ErrorExcepcionInvalida,
     ErrorPersistenciaEvidencia,
+    ErrorProyectoNoGobernado,
 )
 from tramalia.core.evidencia import (
     capturar_estado_git,
@@ -46,6 +49,7 @@ from tramalia.core.puertas_calidad import cargar_puertas, ejecutar_puertas
 from tramalia.core.traspaso import construir_traspaso, proyectar_traspaso
 
 _TAMANO_MAXIMO_JSON = 2 * 1024 * 1024
+_TAMANO_MAXIMO_MISE = 2 * 1024 * 1024
 _PROFUNDIDAD_MAXIMA_JSON = 64
 _ATRIBUTO_REPARSE_WINDOWS = 0x0400
 
@@ -57,6 +61,182 @@ class _DocumentoJSON:
     datos: Mapping[str, object]
     presente: bool
     huella_sha256: str | None
+
+
+def construir_excepciones_fallo(
+    *,
+    permitir_fallo: bool,
+    razon: str = "",
+    riesgo_aceptado: str = "",
+    control_afectado: str = "",
+    referencia: str = "",
+    revisor_excepcion: str = "",
+    revisor_predeterminado: str = "",
+    expira_en: str = "",
+    condicion_remediacion: str = "",
+) -> tuple[ExcepcionFallo, ...]:
+    """Construye la excepcion auditable usada por todas las superficies.
+
+    El booleano heredado solo actua como disparador. Cualquier campo explicito
+    tambien activa la validacion para que CLI y MCP no ignoren datos parciales.
+    """
+    campos_explicitos = (
+        razon,
+        riesgo_aceptado,
+        control_afectado,
+        referencia,
+        revisor_excepcion,
+        expira_en,
+        condicion_remediacion,
+    )
+    if not permitir_fallo and not any(campo.strip() for campo in campos_explicitos):
+        return ()
+
+    expiracion_texto = expira_en.strip()
+    try:
+        expiracion = datetime.fromisoformat(expiracion_texto) if expiracion_texto else None
+    except ValueError as error_fecha:
+        raise ErrorExcepcionInvalida(
+            "La expiracion de la excepcion no usa un formato ISO 8601 valido.",
+            "Usa una fecha con zona horaria, por ejemplo 2026-08-01T00:00:00+00:00.",
+            detalles={"campos": ["expira_en"]},
+        ) from error_fecha
+
+    datos = {
+        "razon": razon.strip(),
+        "riesgo_aceptado": riesgo_aceptado.strip(),
+        "control_afectado": control_afectado.strip(),
+        "referencia": referencia.strip(),
+        "revisor": revisor_excepcion.strip() or revisor_predeterminado.strip(),
+    }
+    condicion = condicion_remediacion.strip() or None
+    faltantes = tuple(nombre for nombre, valor in datos.items() if not valor)
+    if faltantes or (expiracion is None and condicion is None):
+        raise ErrorExcepcionInvalida(
+            "La excepcion de fallo esta incompleta.",
+            "Completa razon, riesgo, control, referencia, revisor y expiracion o remediacion.",
+            detalles={
+                "faltantes": faltantes,
+                "requiere_vigencia": expiracion is None and condicion is None,
+            },
+        )
+
+    return (
+        ExcepcionFallo(
+            razon=datos["razon"],
+            riesgo_aceptado=datos["riesgo_aceptado"],
+            control_afectado=datos["control_afectado"],
+            referencia=datos["referencia"],
+            revisor=datos["revisor"],
+            expira_en=expiracion,
+            condicion_remediacion=condicion,
+        ),
+    )
+
+
+def _capturar_identidad_raiz(raiz: Path) -> os.stat_result:
+    """Fija la identidad fisica que debe conservar toda la operacion."""
+    try:
+        identidad = raiz.stat(follow_symlinks=False)
+        if (
+            not stat.S_ISDIR(identidad.st_mode)
+            or _es_enlace_o_reparse(identidad)
+            or raiz.resolve(strict=True) != raiz
+        ):
+            raise OSError("raiz no local o no regular")
+        return identidad
+    except (OSError, RuntimeError, ValueError) as error:
+        raise ErrorProyectoNoGobernado(
+            "La raiz gobernada no tiene una identidad fisica estable.",
+            "Repite la operacion desde un directorio local sin enlaces.",
+            raiz,
+            detalles={"tipo_error": type(error).__name__},
+        ) from error
+
+
+def _exigir_misma_raiz_gobernada(
+    raiz: Path,
+    identidad_esperada: os.stat_result,
+) -> None:
+    """Revalida gobierno, ruta e identidad fisica despues de cada efecto."""
+    estado = exigir_proyecto_gobernado(raiz)
+    try:
+        misma_identidad = os.path.samestat(
+            raiz.stat(follow_symlinks=False),
+            identidad_esperada,
+        )
+    except (OSError, ValueError):
+        misma_identidad = False
+    if estado.raiz != raiz or not misma_identidad:
+        raise ErrorProyectoNoGobernado(
+            "La raiz gobernada fue sustituida durante la operacion.",
+            "Repite el cierre desde una raiz estable.",
+            raiz,
+            detalles={"raiz_actual": estado.raiz, "misma_identidad": misma_identidad},
+        )
+
+
+def _capturar_huella_mise(raiz: Path) -> str:
+    """Lee ``mise.toml`` como archivo local, regular y estable."""
+    ruta = raiz / "mise.toml"
+    descriptor: int | None = None
+    try:
+        estado_raiz = raiz.stat(follow_symlinks=False)
+        estado_archivo = ruta.stat(follow_symlinks=False)
+        if (
+            not stat.S_ISDIR(estado_raiz.st_mode)
+            or _es_enlace_o_reparse(estado_raiz)
+            or raiz.resolve(strict=True) != raiz
+            or not stat.S_ISREG(estado_archivo.st_mode)
+            or _es_enlace_o_reparse(estado_archivo)
+            or ruta.resolve(strict=True).parent != raiz
+            or estado_archivo.st_size > _TAMANO_MAXIMO_MISE
+        ):
+            raise OSError("configuracion de puertas no local o regular")
+
+        banderas = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(ruta, banderas)
+        if not os.path.samestat(os.fstat(descriptor), estado_archivo):
+            raise OSError("mise.toml cambio antes de abrirse")
+
+        fragmentos: list[bytes] = []
+        total = 0
+        while True:
+            fragmento = os.read(descriptor, min(64 * 1024, _TAMANO_MAXIMO_MISE + 1 - total))
+            if not fragmento:
+                break
+            fragmentos.append(fragmento)
+            total += len(fragmento)
+            if total > _TAMANO_MAXIMO_MISE:
+                raise OSError("mise.toml excede el tamano permitido")
+
+        if (
+            not os.path.samestat(ruta.stat(follow_symlinks=False), estado_archivo)
+            or not os.path.samestat(raiz.stat(follow_symlinks=False), estado_raiz)
+            or raiz.resolve(strict=True) != raiz
+        ):
+            raise OSError("mise.toml cambio durante la lectura")
+        return hashlib.sha256(b"".join(fragmentos)).hexdigest()
+    except (OSError, RuntimeError, ValueError) as error:
+        raise ErrorConfiguracionPuertas(
+            "mise.toml no es un archivo local, regular y estable.",
+            "Usa un mise.toml regular dentro de la raiz y repite el cierre sin modificarlo.",
+            ruta,
+            detalles={"tipo_error": type(error).__name__},
+        ) from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _exigir_mise_estable(raiz: Path, huella_esperada: str) -> None:
+    """Rechaza cualquier cambio byte a byte de las puertas durante el cierre."""
+    if _capturar_huella_mise(raiz) != huella_esperada:
+        raise ErrorConfiguracionPuertas(
+            "mise.toml cambio durante la ejecucion de puertas.",
+            "Revierte el cambio y repite el cierre con una configuracion estable.",
+            raiz / "mise.toml",
+        )
 
 
 def _rechazar_constante_json(valor: str) -> None:
@@ -392,11 +572,14 @@ def _publicar(
     try:
         proyectar_traspaso(raiz, paquete)
     except Exception:
-        warnings.warn(
-            "El paquete se publico, pero no se pudo actualizar su proyeccion documental.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
+        # Incluso un filtro ``-Werror`` o un adaptador de warnings defectuoso no
+        # puede convertir una proyeccion derivada en un falso fallo post-commit.
+        with suppress(Exception):
+            warnings.warn(
+                "El paquete se publico, pero no se pudo actualizar su proyeccion documental.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     return paquete
 
 
@@ -428,13 +611,21 @@ def cerrar_proyecto(
     """
     estado_proyecto = exigir_proyecto_gobernado(raiz)
     raiz = estado_proyecto.raiz
+    identidad_raiz = _capturar_identidad_raiz(raiz)
     validar_id_tarea(id_tarea)
     inicio = datetime.now(UTC)
     excepciones_validadas = _validar_excepciones(excepciones, inicio)
 
     # Toda configuracion se valida antes de lanzar procesos. Asi un JSON o TOML
     # corrupto no ejecuta una validacion parcial ni deja una interpretacion ambigua.
+    huella_mise = _capturar_huella_mise(raiz)
     puertas = cargar_puertas(raiz)
+
+    def verificar_mise() -> None:
+        _exigir_misma_raiz_gobernada(raiz, identidad_raiz)
+        _exigir_mise_estable(raiz, huella_mise)
+
+    verificar_mise()
     metricas_iniciales = _leer_json(raiz, "metrics.json")
     umbrales_iniciales = _leer_json(raiz, "thresholds.json")
     # La primera evaluacion valida el esquema completo antes de ejecutar procesos;
@@ -442,7 +633,12 @@ def cerrar_proyecto(
     if umbrales_iniciales.datos:
         evaluar_metricas(metricas_iniciales.datos, umbrales_iniciales.datos)
 
-    ejecucion = ejecutar_puertas(raiz, puertas)
+    ejecucion = ejecutar_puertas(
+        raiz,
+        puertas,
+        verificar_configuracion=verificar_mise,
+    )
+    _exigir_misma_raiz_gobernada(raiz, identidad_raiz)
     metricas_efectivas = _leer_json(raiz, "metrics.json")
     umbrales_efectivos = _leer_json(raiz, "thresholds.json")
     if (
@@ -493,6 +689,10 @@ def cerrar_proyecto(
         bloqueos,
         excepciones_validadas,
     )
+    # Capturar Git ejecuta procesos propios; la guardia final evita publicar si
+    # durante esa ventana desaparecio o se corrompio el contrato de gobierno.
+    _exigir_misma_raiz_gobernada(raiz, identidad_raiz)
+    verificar_mise()
     paquete = _publicar(
         raiz,
         metadatos,
@@ -522,6 +722,7 @@ def _publicar_operacion_independiente(
     """Crea un pack standalone que no afirma haber aprobado un cierre."""
     estado_proyecto = exigir_proyecto_gobernado(raiz)
     raiz = estado_proyecto.raiz
+    identidad_raiz = _capturar_identidad_raiz(raiz)
     validar_id_tarea(id_tarea)
     ahora = datetime.now(UTC)
     ejecucion = EjecucionPuertas(estado=ValorEstadoPuertas.SIN_CONFIGURAR)
@@ -552,6 +753,7 @@ def _publicar_operacion_independiente(
         resultado.bloqueos,
         (),
     )
+    _exigir_misma_raiz_gobernada(raiz, identidad_raiz)
     return _publicar(raiz, metadatos, resultado, agente, revisor)
 
 

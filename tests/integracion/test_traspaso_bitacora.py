@@ -372,21 +372,19 @@ def test_bitacora_ignora_staging_y_una_entrada_corrupta_no_oculta_las_validas(
 
 
 def test_plantilla_y_documentos_usan_nombres_formales(raiz_proyecto: Path) -> None:
-    plantilla = raiz_proyecto / "tramalia" / "templates" / "project" / "docs" / "ai"
+    plantilla_proyecto = raiz_proyecto / "tramalia" / "templates" / "project"
+    plantilla = plantilla_proyecto / "docs" / "ai"
     nombre_anterior = "07-" + "handoff-agentes.md"
     assert (plantilla / "07-traspaso-agentes.md").is_file()
     assert not (plantilla / nombre_anterior).exists()
 
     rutas = [
         raiz_proyecto / "tramalia" / "mcp_server.py",
-        raiz_proyecto / "tramalia" / "templates" / "project" / "specs" / "tasks.md",
-        raiz_proyecto
-        / "tramalia"
-        / "templates"
-        / "project"
-        / "docs"
-        / "ai"
-        / "13-analitica-datos.md",
+        *(
+            ruta
+            for ruta in plantilla_proyecto.rglob("*")
+            if ruta.is_file() and ruta.suffix in {".json", ".md", ".toml"}
+        ),
         raiz_proyecto / "docs" / "flujo-completo.md",
         raiz_proyecto / "docs" / "flujo-completo.en.md",
         raiz_proyecto / "docs" / "comandos.md",
@@ -396,6 +394,17 @@ def test_plantilla_y_documentos_usan_nombres_formales(raiz_proyecto: Path) -> No
         "07-" + "handoff-agentes",
         ".tramalia/" + "evidence",
         "metadata" + ".json",
+        "gates-status.md",
+        "-output.txt",
+        "summary.md",
+        "risks.md",
+        "summary, risks",
+        "next-steps",
+        "next-steps.md",
+        "documenta la validación manual en el evidence pack",
+        "el traspaso referencia",
+        "passed_with_exceptions",
+        "no_gates",
     )
     for ruta in rutas:
         texto = ruta.read_text(encoding="utf-8")

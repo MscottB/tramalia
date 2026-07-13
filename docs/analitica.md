@@ -7,7 +7,7 @@ flowchart LR
     classDef s fill:#5b4bdb,stroke:#8c68d9,color:#ffffff;
     A["databricks.yml · *.ipynb"]:::s -->|tramalia detect| B["stack: databricks · notebooks"]:::s
     B -->|mise.toml| C["gates: bundle · nbstripout · sqlfluff --dialect databricks"]:::s
-    C -->|tramalia close| D["evidence pack<br/><small>bundle-output.txt · database-output.txt</small>"]:::s
+    C -->|tramalia close| D["paquete de evidencia<br/><small>bundle-salida.txt · database-salida.txt</small>"]:::s
 ```
 
 ## Qué detecta
@@ -88,7 +88,10 @@ mise install                  # trae sqlfluff, semgrep… (databricks CLI: insta
 tramalia close TASK-014 --model sonnet
 ```
 
-El evidence pack de un cierre de datos queda con `bundle-output.txt` (la validación cruda del bundle), `database-output.txt` (SQLFluff), `lint-output.txt` (ruff + verificación de notebooks) — **auditoría real para pipelines**, lo que un `git log` nunca te da.
+El paquete de un cierre de datos conserva `bundle-salida.txt` (la validación
+cruda del bundle), `database-salida.txt` (SQLFluff) y `lint-salida.txt` (ruff y
+verificación de notebooks): **auditoría real para pipelines**, algo que un
+`git log` no ofrece.
 
 ## Entorno local vs. Databricks
 

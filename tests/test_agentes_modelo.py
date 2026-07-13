@@ -46,7 +46,10 @@ def test_subagentes_anclados_a_tramalia(tmp_path):
     _init(tmp_path)
     base = tmp_path / ".claude" / "agents"
     assert "tramalia close" in (base / "ejecutor.md").read_text(encoding="utf-8")
-    assert "evidence pack" in (base / "revisor.md").read_text(encoding="utf-8")
+    instrucciones_revisor = (base / "revisor.md").read_text(encoding="utf-8")
+    assert "paquete formal" in instrucciones_revisor
+    assert "metadatos.json" in instrucciones_revisor
+    assert ".tramalia/evidencia" in instrucciones_revisor
 
 
 def test_parser_acepta_model_y_features():

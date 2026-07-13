@@ -7,6 +7,8 @@
 - [ ] Revisado docs/ai/06-intentos-fallidos.md.
 
 ## Después de implementar
-- [ ] `tramalia close --task <ID>` ejecutado (gates + evidencia + handoff).
+- [ ] `tramalia close --task <ID>` ejecutado (puertas + paquete formal + traspaso).
 - [ ] Estado honesto revisado en `tramalia log`.
-- [ ] Riesgos y próximos pasos completados en el evidence pack.
+- [ ] Riesgos y próximos pasos registrados en `specs/tasks.md`.
+- [ ] Rollback documentado en un runbook o ADR versionado cuando corresponda.
+- [ ] `metadatos.json`, `traspaso.md` y salidas revisados en el paquete formal.

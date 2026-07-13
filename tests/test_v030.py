@@ -186,3 +186,69 @@ def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
             assert not (raiz_alterna / ".tramalia" / "evidencia").exists()
 
     asyncio.run(verificar())
+
+
+def test_tui_cierre_positivo_delega_y_renderiza_resultado_tipado(tmp_path, monkeypatch):
+    pytest.importorskip("textual")
+    from textual.widgets import RichLog, TabbedContent
+
+    from tramalia.core import operaciones as operaciones_core
+    from tramalia.core.modelos import (
+        EjecucionPuertas,
+        ResultadoCierre,
+        ValorEstadoCierre,
+        ValorEstadoPuertas,
+    )
+    from tramalia.tui import build_app
+
+    llamadas = []
+    resultado = ResultadoCierre(
+        estado=ValorEstadoCierre.APROBADO,
+        id_tarea="TASK-TUI",
+        id_paquete="paquete-tui",
+        ruta_paquete=tmp_path / ".tramalia" / "evidencia" / "paquete-tui",
+        ruta_traspaso=tmp_path / ".tramalia" / "evidencia" / "paquete-tui" / "traspaso.md",
+        ejecucion=EjecucionPuertas(
+            estado=ValorEstadoPuertas.APROBADO,
+            ejecutadas=("test",),
+        ),
+    )
+
+    def cerrar(raiz, id_tarea, **opciones):
+        llamadas.append((raiz, id_tarea, opciones))
+        return resultado
+
+    monkeypatch.setattr(operaciones_core, "cerrar_proyecto", cerrar)
+    _init(tmp_path)
+    project.set_scaffolded_version(tmp_path, __version__)
+    monkeypatch.chdir(tmp_path)
+    aplicacion = build_app()()
+
+    async def verificar():
+        async with aplicacion.run_test() as piloto:
+            # RichLog difiere el render mientras su pestana no tiene tamano.
+            aplicacion.query_one(TabbedContent).active = "cierre"
+            await piloto.pause()
+            await asyncio.to_thread(
+                aplicacion._run_close,
+                tmp_path,
+                "TASK-TUI",
+                "codex",
+                "ana",
+                "gpt-5",
+            )
+            await piloto.pause()
+
+            assert llamadas == [
+                (
+                    tmp_path,
+                    "TASK-TUI",
+                    {"agente": "codex", "revisor": "ana", "modelo": "gpt-5"},
+                )
+            ]
+            salida = aplicacion.query_one("#salida", RichLog)
+            texto = "\n".join(linea.text for linea in salida.lines)
+            assert "aprobado" in texto
+            assert "paquete-tui" in texto
+
+    asyncio.run(verificar())

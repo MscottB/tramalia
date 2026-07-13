@@ -25,7 +25,8 @@ El análisis de amenazas del cambio: skill `16-threat-modeling`.
 ## Clasificación de hallazgos SAST
 Cada hallazgo se marca en el evidence pack como:
 **real** (se corrige antes del close) · **falso positivo** (se anota por qué) ·
-**requiere análisis** (tarea nueva) · **aceptado con mitigación** (documentada en risks.md).
+**requiere análisis** (tarea nueva) · **aceptado con mitigación** (excepción formal
+en `metadatos.json`, con control, referencia, revisor y vigencia).
 
 ## Cuándo escalar a humano
 Cambios en auth, criptografía, manejo de PII o permisos **siempre** piden revisión

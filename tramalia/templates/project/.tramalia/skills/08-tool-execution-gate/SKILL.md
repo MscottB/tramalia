@@ -14,7 +14,8 @@ al terminar cualquier tarea.
 ## Workflow
 1. Ejecutar `tramalia close --task <ID>` — corre los gates y bloquea si fallan.
 2. Nunca declarar 'funciona' sin salida cruda de los gates.
-3. Usar --allow-fail solo con excepción anotada en risks.md.
+3. Usar `--allow-fail` sólo con razón, riesgo, control, referencia, revisor y
+   expiración o condición de remediación explícitos.
 
 ## Guardrails
 - No ejecutar comandos destructivos sin confirmación.
@@ -22,4 +23,5 @@ al terminar cualquier tarea.
 - No modificar archivos fuera del alcance de la tarea.
 
 ## Evidencia esperada
-Evidence pack con salidas crudas + metadata.json con status honesto.
+Paquete en `.tramalia/evidencia/` con salidas `*-salida.txt`, hashes y
+`metadatos.json` con `estado_cierre` honesto.

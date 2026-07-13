@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -263,6 +264,76 @@ def test_mise_sin_puertas_configuradas_bloquea(
     assert resultado.bloqueos == ("puertas",)
 
 
+def test_puerta_que_invalida_el_gobierno_no_puede_publicar_aprobacion(
+    proyecto_listo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+
+    def invalidar(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+        (proyecto_listo / "AGENTS.md").unlink()
+        return subprocess.CompletedProcess([], 0, "ok", "")
+
+    monkeypatch.setattr(puertas_calidad.proc, "run", invalidar)
+
+    with pytest.raises(ErrorProyectoNoGobernado):
+        operaciones.cerrar_proyecto(proyecto_listo, "TASK-GOBIERNO-MUTADO")
+
+    assert not (proyecto_listo / ".tramalia" / "evidencia").exists()
+
+
+def test_puerta_que_muta_mise_no_puede_publicar_aprobacion(
+    proyecto_listo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ruta_mise = proyecto_listo / "mise.toml"
+    ruta_mise.write_text(
+        "[tasks.build]\nrun = 'real-build'\n[tasks.test]\nrun = 'real-test'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+    ejecuciones = 0
+
+    def mutar(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+        nonlocal ejecuciones
+        ejecuciones += 1
+        if ejecuciones == 1:
+            ruta_mise.write_text(
+                "[tasks.build]\nrun = 'true'\n[tasks.test]\nrun = 'true'\n",
+                encoding="utf-8",
+            )
+        return subprocess.CompletedProcess([], 0, "ok", "")
+
+    monkeypatch.setattr(puertas_calidad.proc, "run", mutar)
+
+    with pytest.raises(ErrorConfiguracionPuertas):
+        operaciones.cerrar_proyecto(proyecto_listo, "TASK-MISE-MUTADO")
+
+    assert ejecuciones == 1
+    assert not (proyecto_listo / ".tramalia" / "evidencia").exists()
+
+
+def test_puerta_que_sustituye_la_raiz_no_publica_en_el_reemplazo(
+    proyecto_listo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raiz_anterior = proyecto_listo.parent / f"{proyecto_listo.name}-anterior"
+    monkeypatch.setattr(puertas_calidad.proc, "which", lambda _: "mise")
+
+    def sustituir(*argumentos: object, **opciones: object) -> subprocess.CompletedProcess[str]:
+        proyecto_listo.rename(raiz_anterior)
+        shutil.copytree(raiz_anterior, proyecto_listo)
+        return subprocess.CompletedProcess([], 0, "ok", "")
+
+    monkeypatch.setattr(puertas_calidad.proc, "run", sustituir)
+
+    with pytest.raises(ErrorProyectoNoGobernado):
+        operaciones.cerrar_proyecto(proyecto_listo, "TASK-RAIZ-SUSTITUIDA")
+
+    assert not (proyecto_listo / ".tramalia" / "evidencia").exists()
+    assert not (raiz_anterior / ".tramalia" / "evidencia").exists()
+
+
 def test_umbral_incumplido_bloquea_y_publica_diagnostico(
     proyecto_listo: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -416,6 +487,29 @@ def test_fallo_inesperado_de_proyeccion_no_oculta_paquete_publicado(
     assert resultado.ruta_paquete is not None
     assert (resultado.ruta_paquete / "metadatos.json").is_file()
     assert len(list((proyecto_listo / ".tramalia" / "evidencia").iterdir())) == 1
+
+
+def test_warning_configurado_como_error_no_revierte_un_paquete_publicado(
+    proyecto_listo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _simular_mise(monkeypatch, codigo=0, salida="ok")
+    monkeypatch.setattr(
+        operaciones,
+        "proyectar_traspaso",
+        lambda *_argumentos: (_ for _ in ()).throw(RuntimeError("proyeccion")),
+    )
+
+    def warning_como_error(*argumentos: object, **opciones: object) -> None:
+        raise RuntimeWarning("warnings configurados como errores")
+
+    monkeypatch.setattr(operaciones.warnings, "warn", warning_como_error)
+
+    resultado = operaciones.cerrar_proyecto(proyecto_listo, "TASK-WERROR")
+
+    assert resultado.estado is ValorEstadoCierre.APROBADO
+    assert resultado.ruta_paquete is not None
+    assert resultado.ruta_paquete.is_dir()
 
 
 @pytest.mark.parametrize(

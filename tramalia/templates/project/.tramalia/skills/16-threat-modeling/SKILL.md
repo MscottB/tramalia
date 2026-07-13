@@ -21,8 +21,9 @@ cualquier superficie expuesta nueva (endpoint, webhook, cola).
    - **D**oS: ¿tumbarlo con volumen/payloads? · **E**levation: ¿ganar permisos que no tengo?
 3. Por cada amenaza real: mitigación concreta aplicando `docs/ai/04-reglas-seguridad.md`,
    o tarea nueva si excede el alcance.
-4. Cerrar con `tramalia close` — la tabla STRIDE va en `risks.md` del evidence pack;
-   el gate `security` (Semgrep/Gitleaks) valida lo escaneable.
+4. Versionar la tabla STRIDE en `docs/ai/05-decisiones-adr.md` o un documento de
+   amenaza referenciado por la tarea y cerrar con `tramalia close`; la puerta
+   `security` (Semgrep/Gitleaks) valida lo escaneable.
 
 ## Guardrails
 - Amenaza sin mitigación ni tarea = cierre bloqueado por el revisor.
@@ -30,4 +31,4 @@ cualquier superficie expuesta nueva (endpoint, webhook, cola).
 - No documentar vectores explotables con detalle público innecesario.
 
 ## Evidencia esperada
-Tabla STRIDE en `risks.md` + `security-output.txt` clasificado en el pack.
+Tabla STRIDE versionada y referenciada + `security-salida.txt` dentro del paquete.

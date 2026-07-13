@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import tomllib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from time import monotonic
@@ -105,12 +105,19 @@ def cargar_puertas(raiz: Path) -> tuple[PuertaCalidad, ...]:
     return tuple(puertas)
 
 
-def ejecutar_puertas(raiz: Path, puertas: Sequence[PuertaCalidad]) -> EjecucionPuertas:
+def ejecutar_puertas(
+    raiz: Path,
+    puertas: Sequence[PuertaCalidad],
+    *,
+    verificar_configuracion: Callable[[], None] | None = None,
+) -> EjecucionPuertas:
     """Execute quality gates and preserve each raw combined output.
 
     Args:
         raiz: Project root used as the process working directory.
         puertas: Gates to attempt in the supplied order.
+        verificar_configuracion: Guardia fail-closed ejecutada antes y despues
+            de cada proceso para impedir que una puerta cambie las siguientes.
 
     Returns:
         A typed aggregate with every attempted gate result.
@@ -128,6 +135,8 @@ def ejecutar_puertas(raiz: Path, puertas: Sequence[PuertaCalidad]) -> EjecucionP
     resultados: list[ResultadoPuerta] = []
     hubo_error = False
     for puerta in puertas:
+        if verificar_configuracion is not None:
+            verificar_configuracion()
         inicio_utc = datetime.now(UTC)
         marca_inicio = monotonic()
         try:
@@ -149,6 +158,9 @@ def ejecutar_puertas(raiz: Path, puertas: Sequence[PuertaCalidad]) -> EjecucionP
             estado = ValorResultadoPuerta.ERROR_EJECUCION
             codigo_salida = None
             hubo_error = True
+        finally:
+            if verificar_configuracion is not None:
+                verificar_configuracion()
         fin_utc = datetime.now(UTC)
         duracion_segundos = monotonic() - marca_inicio
         resultados.append(
