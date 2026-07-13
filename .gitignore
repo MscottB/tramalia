@@ -16,7 +16,7 @@ tramalia-docs-offline.zip
 .worktrees/
 
 # evidencia generada (se versiona aparte si se decide)
-.tramalia/evidence/
+.tramalia/evidencia/
 
 # locales / sistema
 .DS_Store
