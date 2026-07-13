@@ -5,6 +5,11 @@ repository, work on a task, verify it, and publish an auditable close. The CLI
 and `tramalia ui` consume the same core result; the interface does not redefine
 policy or recalculate the outcome.
 
+> **Pre-BETA transition:** the flow below documents the formal core that is
+> already implemented. Public adapters are still being connected to these APIs
+> on this branch and may emit the legacy format until that migration finishes.
+> This warning will be removed before the BETA is published.
+
 ## Overview
 
 ```mermaid

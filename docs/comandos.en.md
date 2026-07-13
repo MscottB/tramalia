@@ -9,6 +9,12 @@ The governance core runs with Python. Integrations transparently invoke external
 tools and return explicit states; they never hide errors or turn an unavailable
 capability into approval.
 
+> **Pre-BETA transition:** this page describes the formal contract already
+> provided by the new core modules. Public CLI, TUI, and MCP adapters are still
+> being migrated on this branch and may emit the legacy format. Do not treat
+> their output as v1 evidence until that unification is complete; this warning
+> will be removed before the BETA is published.
+
 ## Summary
 
 | Command | Purpose | Type |

@@ -70,7 +70,7 @@ def build_server():
 
     @server.tool()
     def record_handoff(task: str, agent: str = "", reviewer: str = "") -> str:
-        """Registra un traspaso canónico y proyecta docs/ai/07-traspaso-agentes.md."""
+        """Registra temporalmente un handoff mediante el adaptador heredado."""
         root = Path.cwd()
         exigir_proyecto_gobernado(root)
         path = handoff_core.new_handoff(root, task, agent, reviewer)

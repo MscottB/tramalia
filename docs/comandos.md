@@ -9,6 +9,12 @@ El núcleo de gobierno funciona con Python. Las integraciones hacen llamadas
 transparentes a herramientas externas y devuelven estados explícitos; no
 ocultan errores ni convierten una ausencia en aprobación.
 
+> **Transición previa a la BETA:** este documento describe el contrato formal
+> que ya ofrecen los módulos nuevos de núcleo. Los adaptadores públicos de CLI,
+> TUI y MCP todavía se están migrando en esta rama y pueden producir el formato
+> heredado. No uses su salida como evidencia v1 hasta que termine esa
+> unificación; esta advertencia se retirará antes de publicar la BETA.
+
 ## Resumen
 
 | Comando | Función | Tipo |

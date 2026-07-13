@@ -664,10 +664,11 @@ def _validar_json_finito(valor: object, nombre: str) -> None:
     if isinstance(valor, float) and not math.isfinite(valor):
         raise ValueError(f"{nombre} debe contener valores finitos")
     if isinstance(valor, Mapping):
-        for clave, elemento in valor.items():
+        for indice, (clave, elemento) in enumerate(valor.items()):
             if not isinstance(clave, str):
                 raise ValueError(f"{nombre} contiene una clave no textual")
-            _validar_json_finito(elemento, f"{nombre}.{clave}")
+            # Las claves son datos no confiables y nunca forman parte del error visible.
+            _validar_json_finito(elemento, f"{nombre}.valor[{indice}]")
     elif isinstance(valor, list):
         for indice, elemento in enumerate(valor):
             _validar_json_finito(elemento, f"{nombre}[{indice}]")
@@ -882,15 +883,51 @@ def _validar_metadatos_bitacora(
     return datos
 
 
-def _validar_archivos_paquete(ruta: Path, datos: Mapping[str, object]) -> None:
-    ruta_resuelta = ruta.resolve(strict=True)
-    traspaso = ruta / "traspaso.md"
+def _misma_identidad(ruta: Path, esperada: os.stat_result) -> bool:
+    try:
+        return os.path.samestat(ruta.stat(follow_symlinks=False), esperada)
+    except (OSError, ValueError):
+        return False
+
+
+def _validar_descriptor_confinado(
+    descriptor: int,
+    ruta: Path,
+    base_resuelta: Path,
+) -> None:
+    identidad_abierta = os.fstat(descriptor)
     if (
-        not traspaso.is_file()
-        or traspaso.is_symlink()
-        or traspaso.resolve(strict=True).parent != ruta_resuelta
+        ruta.is_symlink()
+        or ruta.resolve(strict=True).parent != base_resuelta
+        or not _misma_identidad(ruta, identidad_abierta)
     ):
+        raise ValueError("un archivo queda fuera del paquete")
+
+
+def _leer_bytes_confinados(ruta: Path, base_resuelta: Path) -> bytes:
+    with ruta.open("rb") as archivo:
+        _validar_descriptor_confinado(archivo.fileno(), ruta, base_resuelta)
+        return archivo.read()
+
+
+def _resumen_confinado(ruta: Path, base_resuelta: Path) -> str:
+    resumen = hashlib.sha256()
+    with ruta.open("rb") as archivo:
+        _validar_descriptor_confinado(archivo.fileno(), ruta, base_resuelta)
+        for bloque in iter(lambda: archivo.read(1024 * 1024), b""):
+            resumen.update(bloque)
+    return resumen.hexdigest()
+
+
+def _validar_archivos_paquete(
+    ruta: Path,
+    ruta_resuelta: Path,
+    datos: Mapping[str, object],
+) -> None:
+    traspaso = ruta / "traspaso.md"
+    if not traspaso.is_file():
         raise ValueError("falta traspaso.md canonico")
+    _leer_bytes_confinados(traspaso, ruta_resuelta)
 
     comandos = datos["comandos"]
     if not isinstance(comandos, list):
@@ -901,17 +938,9 @@ def _validar_archivos_paquete(ruta: Path, datos: Mapping[str, object]) -> None:
         if not isinstance(nombre, str):
             raise ValueError(f"archivo de salida {indice} invalido")
         salida = ruta / nombre
-        if (
-            not salida.is_file()
-            or salida.is_symlink()
-            or salida.resolve(strict=True).parent != ruta_resuelta
-        ):
+        if not salida.is_file():
             raise ValueError(f"archivo de salida {indice} ausente o inseguro")
-        resumen = hashlib.sha256()
-        with salida.open("rb") as archivo:
-            for bloque in iter(lambda: archivo.read(1024 * 1024), b""):
-                resumen.update(bloque)
-        if resumen.hexdigest() != comando["hash_salida"]:
+        if _resumen_confinado(salida, ruta_resuelta) != comando["hash_salida"]:
             raise ValueError(f"archivo de salida {indice} no coincide con su hash")
 
 
@@ -967,20 +996,20 @@ def leer_bitacora(raiz: Path) -> list[EntradaBitacora]:
     entradas: list[EntradaBitacora] = []
     for ruta in rutas:
         try:
-            ruta_fuera_de_base = ruta.resolve(strict=True).parent != base
+            ruta_resuelta = ruta.resolve(strict=True)
+            ruta_fuera_de_base = ruta_resuelta.parent != base
         except (OSError, RuntimeError, ValueError):
+            ruta_resuelta = ruta
             ruta_fuera_de_base = True
         if ruta.is_symlink() or ruta_fuera_de_base:
             entradas.append(_entrada_invalida(ruta, "el directorio del paquete es un symlink"))
             continue
         try:
             ruta_metadatos = ruta / "metadatos.json"
-            if ruta_metadatos.is_symlink():
-                raise ValueError("metadatos.json no puede ser un symlink")
-            texto = ruta_metadatos.read_text(encoding="utf-8")
+            texto = _leer_bytes_confinados(ruta_metadatos, ruta_resuelta).decode("utf-8")
             datos_crudos = json.loads(texto, object_pairs_hook=_objeto_sin_claves_duplicadas)
             datos = _validar_metadatos_bitacora(datos_crudos, ruta.name)
-            _validar_archivos_paquete(ruta, datos)
+            _validar_archivos_paquete(ruta, ruta_resuelta, datos)
             agente = datos["agente"] if isinstance(datos["agente"], str) else None
             modelo = datos["modelo"] if isinstance(datos["modelo"], str) else None
             entradas.append(

@@ -5,6 +5,8 @@
 > `.tramalia/evidencia/<id_paquete>/traspaso.md`; si esta proyección no puede
 > actualizarse, el paquete y su resultado siguen siendo válidos.
 
-`tramalia handoff` conserva su nombre público por compatibilidad, pero registra
-un **traspaso**. No edites esta página para cambiar el resultado de un cierre:
+`tramalia handoff` conserva su nombre público por compatibilidad. Mientras la
+migración previa a la BETA siga activa, su adaptador heredado puede no actualizar
+esta proyección; la operación formal compartida será la autoridad al completar
+esa unificación. No edites esta página para cambiar el resultado de un cierre:
 consulta siempre el `traspaso.md` canónico y su `metadatos.json` v1.

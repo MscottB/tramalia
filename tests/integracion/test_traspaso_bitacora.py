@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -425,3 +426,88 @@ def test_proyeccion_no_escribe_fuera_si_docs_es_symlink(
 
     assert destino == tmp_path / "docs" / "ai" / "07-traspaso-agentes.md"
     assert list(externo.rglob("*")) == []
+
+
+def test_proyeccion_revalida_padre_despues_de_escribir_temporal(
+    tmp_path: Path,
+    paquete_v1,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    padre = tmp_path / "docs" / "ai"
+    externo = tmp_path / "externo"
+    externo.mkdir()
+    resolver_real = Path.resolve
+    fsync_real = os.fsync
+    desviado = False
+    replace_invocado = False
+
+    def marcar_desvio(descriptor: int) -> None:
+        nonlocal desviado
+        fsync_real(descriptor)
+        desviado = True
+
+    def resolver(ruta: Path, *args: object, **kwargs: object) -> Path:
+        if desviado and (ruta == padre or padre in ruta.parents):
+            relativo = Path() if ruta == padre else ruta.relative_to(padre)
+            return externo / relativo
+        return resolver_real(ruta, *args, **kwargs)
+
+    def observar_replace(origen: object, destino: object) -> None:
+        nonlocal replace_invocado
+        replace_invocado = True
+
+    monkeypatch.setattr("tramalia.core.traspaso.os.fsync", marcar_desvio)
+    monkeypatch.setattr(Path, "resolve", resolver)
+    monkeypatch.setattr("tramalia.core.traspaso.os.replace", observar_replace)
+
+    proyectar_traspaso(tmp_path, paquete_v1)
+
+    assert replace_invocado is False
+    assert list(externo.rglob("*")) == []
+    assert not list(padre.glob(".*.tmp-*"))
+
+
+def test_bitacora_revalida_metadata_despues_de_abrirla(
+    tmp_path: Path,
+    paquete_v1,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = paquete_v1.ruta / "metadatos.json"
+    abrir_real = Path.open
+    resolver_real = Path.resolve
+    abierta = False
+
+    def abrir(ruta: Path, *args: object, **kwargs: object):
+        nonlocal abierta
+        archivo = abrir_real(ruta, *args, **kwargs)
+        if ruta == metadata:
+            abierta = True
+        return archivo
+
+    def resolver(ruta: Path, *args: object, **kwargs: object) -> Path:
+        if abierta and ruta == metadata:
+            return tmp_path / "fuera" / "metadatos.json"
+        return resolver_real(ruta, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", abrir)
+    monkeypatch.setattr(Path, "resolve", resolver)
+
+    entrada = leer_bitacora(_raiz_paquete(paquete_v1))[0]
+
+    assert entrada.estado is ValorEstadoBitacora.INVALIDA
+    assert "fuera del paquete" in (entrada.error or "")
+
+
+def test_error_de_bitacora_no_incluye_clave_controlada_por_metadata(paquete_v1) -> None:
+    datos = _leer_datos(paquete_v1)
+    clave_secreta = "TOKEN_RUTA_SUPER_SECRETA"
+    datos["metricas"] = {clave_secreta: float("nan")}
+    (paquete_v1.ruta / "metadatos.json").write_text(
+        json.dumps(datos, allow_nan=True),
+        encoding="utf-8",
+    )
+
+    entrada = leer_bitacora(_raiz_paquete(paquete_v1))[0]
+
+    assert entrada.estado is ValorEstadoBitacora.INVALIDA
+    assert clave_secreta not in (entrada.error or "")

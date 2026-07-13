@@ -64,6 +64,13 @@ def _ruta_fisica_local(ruta: Path, raiz: Path) -> bool:
         return False
 
 
+def _misma_identidad(ruta: Path, esperada: os.stat_result) -> bool:
+    try:
+        return os.path.samestat(ruta.stat(follow_symlinks=False), esperada)
+    except (OSError, ValueError):
+        return False
+
+
 def proyectar_traspaso(raiz: Path, paquete: PaqueteEvidencia) -> Path:
     """Atomically project the canonical handoff into project documentation.
 
@@ -80,6 +87,7 @@ def proyectar_traspaso(raiz: Path, paquete: PaqueteEvidencia) -> Path:
     destino = raiz / "docs" / "ai" / "07-traspaso-agentes.md"
     temporal = destino.with_name(f".{destino.name}.tmp-{uuid.uuid4().hex}")
     temporal_creado = False
+    identidad_temporal: os.stat_result | None = None
     try:
         raiz_resuelta = raiz.resolve(strict=True)
         base_evidencia = raiz_resuelta / ".tramalia" / "evidencia"
@@ -106,6 +114,7 @@ def proyectar_traspaso(raiz: Path, paquete: PaqueteEvidencia) -> Path:
         padre.mkdir(parents=True, exist_ok=True)
         if padre.resolve(strict=True) != padre or not _ruta_fisica_local(padre, raiz_resuelta):
             return destino
+        identidad_padre = padre.stat(follow_symlinks=False)
 
         destino_real = padre / destino.name
         temporal = padre / temporal.name
@@ -118,13 +127,47 @@ def proyectar_traspaso(raiz: Path, paquete: PaqueteEvidencia) -> Path:
         ).encode()
         with temporal.open("xb") as archivo:
             temporal_creado = True
+            identidad_temporal = os.fstat(archivo.fileno())
+            if (
+                padre.resolve(strict=True) != padre
+                or not _misma_identidad(padre, identidad_padre)
+                or temporal.resolve(strict=True).parent != padre
+                or not _misma_identidad(temporal, identidad_temporal)
+            ):
+                raise ValueError("la proyeccion cambio de ubicacion")
             archivo.write(contenido)
             archivo.flush()
             os.fsync(archivo.fileno())
+        if (
+            padre.resolve(strict=True) != padre
+            or not _misma_identidad(padre, identidad_padre)
+            or temporal.resolve(strict=True).parent != padre
+            or identidad_temporal is None
+            or not _misma_identidad(temporal, identidad_temporal)
+        ):
+            raise ValueError("la proyeccion cambio de ubicacion")
         os.replace(temporal, destino_real)
         temporal_creado = False
+        if (
+            padre.resolve(strict=True) != padre
+            or not _misma_identidad(padre, identidad_padre)
+            or destino_real.resolve(strict=True).parent != padre
+            or identidad_temporal is None
+            or not _misma_identidad(destino_real, identidad_temporal)
+        ):
+            if identidad_temporal is not None and _misma_identidad(
+                destino_real,
+                identidad_temporal,
+            ):
+                with suppress(OSError):
+                    destino_real.unlink(missing_ok=True)
+            raise ValueError("la proyeccion cambio de ubicacion")
     except (OSError, RuntimeError, ValueError):
-        if temporal_creado:
+        if (
+            temporal_creado
+            and identidad_temporal is not None
+            and _misma_identidad(temporal, identidad_temporal)
+        ):
             with suppress(OSError):
                 temporal.unlink(missing_ok=True)
     return destino
