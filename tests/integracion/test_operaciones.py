@@ -21,6 +21,8 @@ from tramalia.core.evidencia import leer_bitacora
 from tramalia.core.modelos import ExcepcionFallo, ValorEstadoCierre
 from tramalia.core.procesos import ResultadoProceso
 
+pytestmark = pytest.mark.integracion
+
 
 def _resultado_proceso(
     codigo: int,

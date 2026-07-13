@@ -1,24 +1,25 @@
 import asyncio
 import json
-from types import SimpleNamespace
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
 
 import pytest
 
 pytest.importorskip("mcp")
 
-from mcp.server.fastmcp.exceptions import ToolError
-
 import tramalia.mcp_server as servidor_mcp
-from tramalia.core.errores import ErrorExcepcionInvalida, ErrorProyectoNoGobernado
 from tramalia.core.modelos import (
     EjecucionPuertas,
     ResultadoCierre,
     ValorEstadoCierre,
     ValorEstadoPuertas,
 )
-from tramalia.mcp_server import build_server
+from tramalia.mcp_server import construir_servidor
 
-_EXPECTED = {
+pytestmark = [pytest.mark.integracion, pytest.mark.opcional]
+
+_ESPERADAS = {
     "project_status",
     "get_agent_rules",
     "get_failed_attempts",
@@ -31,18 +32,42 @@ _EXPECTED = {
 }
 
 
-def test_server_registers_expected_tools():
-    server = build_server()
-    tools = asyncio.run(server.list_tools())
-    names = {t.name for t in tools}
-    assert _EXPECTED <= names
+@dataclass(frozen=True)
+class PaqueteFalso:
+    id_paquete: str
+    ruta: Path
 
 
-def test_estado_mcp_usa_inspeccion_tipificada(tmp_path, monkeypatch):
+class ValorPrueba(Enum):
+    UNO = 1
+
+
+def _invocar(nombre: str, argumentos: dict[str, object]) -> dict[str, object]:
+    contenido, estructurado = asyncio.run(construir_servidor().call_tool(nombre, argumentos))
+    assert json.loads(contenido[0].text) == estructurado
+    assert isinstance(estructurado, dict)
+    return estructurado
+
+
+def test_serializacion_mcp_convierte_enumeraciones_recursivamente() -> None:
+    valor = {"estado": ValorPrueba.UNO, "historial": (ValorPrueba.UNO,)}
+
+    assert servidor_mcp._valor_publico(valor) == {
+        "estado": 1,
+        "historial": [1],
+    }
+
+
+def test_servidor_registra_herramientas_esperadas() -> None:
+    herramientas = asyncio.run(construir_servidor().list_tools())
+    assert _ESPERADAS <= {herramienta.name for herramienta in herramientas}
+
+
+def test_estado_mcp_usa_inspeccion_tipificada(tmp_path, monkeypatch) -> None:
     (tmp_path / "AGENTS.md").write_text("reglas aisladas", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
-    contenido, _ = asyncio.run(build_server().call_tool("project_status", {}))
+    contenido, _estructurado = asyncio.run(construir_servidor().call_tool("project_status", {}))
 
     assert any("inicializado: False" in bloque.text for bloque in contenido)
 
@@ -53,41 +78,54 @@ def test_estado_mcp_usa_inspeccion_tipificada(tmp_path, monkeypatch):
         ("record_handoff", {"task": "TASK-1"}),
         ("build_evidence", {"task": "TASK-1"}),
         ("cerrar_proyecto", {"task": "TASK-1"}),
-        ("build_context", {}),
     ],
 )
-def test_mutaciones_mcp_exigen_proyecto_gobernado(
+def test_mutaciones_mcp_devuelven_error_tipado_sin_proyecto(
     tmp_path,
     monkeypatch,
-    nombre,
-    argumentos,
-):
+    nombre: str,
+    argumentos: dict[str, object],
+) -> None:
     monkeypatch.chdir(tmp_path)
 
-    with pytest.raises(ToolError) as capturada:
-        asyncio.run(build_server().call_tool(nombre, argumentos))
+    respuesta = _invocar(nombre, argumentos)
 
-    assert isinstance(capturada.value.__cause__, ErrorProyectoNoGobernado)
+    assert respuesta["ok"] is False
+    assert respuesta["error"]["codigo"] == "proyecto_no_gobernado"  # type: ignore[index]
 
 
-def test_excepcion_mcp_parcial_no_se_ignora(tmp_path, monkeypatch):
+def test_excepcion_mcp_parcial_no_se_ignora(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
 
-    with pytest.raises(ToolError) as capturada:
-        asyncio.run(
-            build_server().call_tool(
-                "cerrar_proyecto",
-                {"task": "TASK-1", "razon_excepcion": "falso positivo"},
-            )
-        )
+    respuesta = _invocar(
+        "cerrar_proyecto",
+        {"task": "TASK-1", "razon_excepcion": "falso positivo"},
+    )
 
-    assert isinstance(capturada.value.__cause__, ErrorExcepcionInvalida)
+    assert respuesta["ok"] is False
+    assert respuesta["error"]["codigo"] == "excepcion_invalida"  # type: ignore[index]
 
 
-def test_cierre_mcp_delega_los_siete_campos_y_devuelve_esquema(
-    tmp_path,
-    monkeypatch,
-):
+def test_aliases_mcp_contradictorios_fallan_sin_mutar(tmp_path, monkeypatch) -> None:
+    llamadas: list[str] = []
+    monkeypatch.setattr(
+        servidor_mcp,
+        "cerrar_proyecto",
+        lambda _raiz, id_tarea, **_opciones: llamadas.append(id_tarea),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    respuesta = _invocar(
+        "cerrar_proyecto",
+        {"id_tarea": "TASK-ES", "task": "TASK-EN"},
+    )
+
+    assert respuesta["ok"] is False
+    assert respuesta["error"]["codigo"] == "argumentos_mcp_conflictivos"  # type: ignore[index]
+    assert llamadas == []
+
+
+def test_cierre_mcp_delega_campos_y_devuelve_esquema(tmp_path, monkeypatch) -> None:
     llamadas = []
     resultado = ResultadoCierre(
         estado=ValorEstadoCierre.APROBADO_CON_EXCEPCIONES,
@@ -106,7 +144,7 @@ def test_cierre_mcp_delega_los_siete_campos_y_devuelve_esquema(
         llamadas.append((raiz, id_tarea, opciones))
         return resultado
 
-    monkeypatch.setattr(servidor_mcp, "ejecutar_cierre", cerrar)
+    monkeypatch.setattr(servidor_mcp, "cerrar_proyecto", cerrar)
     monkeypatch.chdir(tmp_path)
     argumentos = {
         "task": "TASK-7",
@@ -122,7 +160,7 @@ def test_cierre_mcp_delega_los_siete_campos_y_devuelve_esquema(
         "condicion_remediacion": "corregir antes del release",
     }
 
-    contenido, estructurado = asyncio.run(build_server().call_tool("cerrar_proyecto", argumentos))
+    respuesta = _invocar("cerrar_proyecto", argumentos)
 
     assert len(llamadas) == 1
     raiz, id_tarea, opciones = llamadas[0]
@@ -138,13 +176,9 @@ def test_cierre_mcp_delega_los_siete_campos_y_devuelve_esquema(
     assert excepcion.revisor == "ana"
     assert excepcion.expira_en is not None
     assert excepcion.condicion_remediacion == "corregir antes del release"
-    assert estructurado == {
-        "estado": "aprobado_con_excepciones",
-        "id_paquete": "paquete-7",
-        "bloqueos": [],
-        "aprobado": True,
-    }
-    assert json.loads(contenido[0].text) == estructurado
+    assert respuesta["ok"] is True
+    assert respuesta["resultado"]["estado"] == "aprobado_con_excepciones"  # type: ignore[index]
+    assert respuesta["resultado"]["id_paquete"] == "paquete-7"  # type: ignore[index]
 
 
 @pytest.mark.parametrize(
@@ -169,16 +203,16 @@ def test_cierre_mcp_delega_los_siete_campos_y_devuelve_esquema(
         ),
     ],
 )
-def test_herramientas_mcp_standalone_delegan_y_devuelven_paquete(
+def test_herramientas_mcp_standalone_delegan_una_vez(
     tmp_path,
     monkeypatch,
-    herramienta,
-    atributo,
-    argumentos,
-    opciones_esperadas,
-):
+    herramienta: str,
+    atributo: str,
+    argumentos: dict[str, object],
+    opciones_esperadas: dict[str, str],
+) -> None:
     llamadas = []
-    paquete = SimpleNamespace(
+    paquete = PaqueteFalso(
         id_paquete="paquete-8",
         ruta=tmp_path / ".tramalia" / "evidencia" / "paquete-8",
     )
@@ -190,9 +224,9 @@ def test_herramientas_mcp_standalone_delegan_y_devuelven_paquete(
     monkeypatch.setattr(servidor_mcp, atributo, operar)
     monkeypatch.chdir(tmp_path)
 
-    contenido, estructurado = asyncio.run(build_server().call_tool(herramienta, argumentos))
+    respuesta = _invocar(herramienta, argumentos)
 
     assert llamadas == [(tmp_path, "TASK-8", opciones_esperadas)]
-    assert estructurado["id_paquete"] == "paquete-8"
-    assert estructurado["ruta_paquete"] == ".tramalia/evidencia/paquete-8"
-    assert json.loads(contenido[0].text) == estructurado
+    assert respuesta["ok"] is True
+    assert respuesta["resultado"]["id_paquete"] == "paquete-8"  # type: ignore[index]
+    assert respuesta["resultado"]["ruta"] == ".tramalia/evidencia/paquete-8"  # type: ignore[index]

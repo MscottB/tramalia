@@ -152,38 +152,51 @@ def test_cli_context_set_invalido_exit_1(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------- TUI
-def test_tui_backend_screen_fija_config(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_proveedor_fija_configuracion(tmp_path, monkeypatch):
     pytest.importorskip("textual")
+    from textual.widgets import OptionList
+
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app = build_app()()
+    app = construir_aplicacion()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app.action_context_backend()  # tecla b
+            await app.workers.wait_for_complete()
+            await pilot.press("b")
             await pilot.pause()
-            app._on_backend_chosen("codegraph")
-            await pilot.pause()
+            opciones = app.screen.query_one(OptionList)
+            opciones.highlighted = 1  # codegraph
+            opciones.focus()
+            await pilot.press("enter")
+            await app.workers.wait_for_complete()
             assert configuracion.proveedor_contexto(tmp_path) == "codegraph"
 
     asyncio.run(run())
 
 
-def test_tui_backend_screen_cancelar_no_cambia_nada(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_proveedor_cancelar_no_cambia_nada(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app = build_app()()
+    app = construir_aplicacion()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app._on_backend_chosen(None)  # cancelar
+            await app.workers.wait_for_complete()
+            await pilot.press("b")
+            await pilot.pause()
+            await pilot.press("escape")
             await pilot.pause()
             assert configuracion.proveedor_contexto(tmp_path) == "serena"
 

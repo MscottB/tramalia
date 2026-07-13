@@ -57,6 +57,20 @@ def _proyecto_con_habilidad(tmp_path, remoto):
     return proyecto
 
 
+def _gobernar_proyecto(proyecto):
+    from tramalia import __version__
+
+    (proyecto / ".tramalia" / "config.json").write_text(
+        json.dumps({"projectName": "demo"}), encoding="utf-8"
+    )
+    (proyecto / ".tramalia" / "version").write_text(f"{__version__}\n", encoding="utf-8")
+    (proyecto / "AGENTS.md").write_text(
+        "<!-- tramalia:gobierno inicio -->\ntramalia close\n<!-- tramalia:gobierno fin -->\n",
+        encoding="utf-8",
+    )
+    (proyecto / "mise.toml").write_text("[tasks.test]\nrun = 'pytest'\n", encoding="utf-8")
+
+
 def _esta_git_disponible():
     return shutil.which("git") is not None
 
@@ -156,12 +170,15 @@ def test_cli_habilidades_desactualizadas_renderiza_fallo_remoto_y_devuelve_uno(
     assert any("mihabilidad" in error and "git_salida_no_cero" in error for error in errores)
 
 
-def test_tui_habilidades_muestra_fallo_remoto_sin_informar_cero_actualizaciones(
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_habilidades_muestra_fallo_remoto_sin_informar_cero_actualizaciones(
     tmp_path, monkeypatch
 ):
     pytest.importorskip("textual")
     remoto = _crear_remoto(tmp_path)
     proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    _gobernar_proyecto(proyecto)
     habilidades.sincronizar_habilidades(proyecto)
     monkeypatch.chdir(proyecto)
     monkeypatch.setattr(
@@ -172,26 +189,32 @@ def test_tui_habilidades_muestra_fallo_remoto_sin_informar_cero_actualizaciones(
             ResultadoProceso(("git", "ls-remote"), 128, "", "remoto inaccesible", False, False),
         ),
     )
-    resolucion = habilidades.consultar_habilidades(proyecto, consultar_remoto=True)[0]
+    from textual.widgets import RichLog, TabbedContent
+
+    from tramalia.core.tablero import ServicioTablero
     from tramalia.i18n import t
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    mensajes: list[str] = []
+    aplicacion = construir_aplicacion(ServicioTablero(proyecto))
 
-    class RegistroMensajes:
-        def write(self, mensaje: str) -> None:
-            mensajes.append(mensaje)
+    async def verificar():
+        async with aplicacion.run_test() as piloto:
+            await piloto.pause()
+            await aplicacion.workers.wait_for_complete()
+            aplicacion.query_one(TabbedContent).active = "skills"
+            await piloto.pause()
+            await piloto.press("u")
+            await aplicacion.workers.wait_for_complete()
+            registro = aplicacion.query_one("#skills-log", RichLog)
+            mensajes = [linea.text for linea in registro.lines]
+            assert any(
+                "mihabilidad" in mensaje and "git_salida_no_cero" in mensaje for mensaje in mensajes
+            )
+            assert t("skills.update.found", n=0) not in mensajes
 
-    aplicacion = build_app()()
-    aplicacion._skill_updates = {}
-    clase_aplicacion = type(aplicacion)
-    monkeypatch.setattr(clase_aplicacion, "_skills_log", lambda _self: RegistroMensajes())
-    monkeypatch.setattr(clase_aplicacion, "_refresh_skills", lambda *_argumentos: None)
+    import asyncio
 
-    aplicacion._after_check_updates((resolucion,))
-
-    assert any("mihabilidad" in mensaje and "git_salida_no_cero" in mensaje for mensaje in mensajes)
-    assert t("skills.update.found", n=0) not in mensajes
+    asyncio.run(verificar())
 
 
 def test_cli_habilidades_desactualizadas_renderiza_git_ausente_y_devuelve_uno(
@@ -222,10 +245,13 @@ def test_cli_habilidades_desactualizadas_renderiza_git_ausente_y_devuelve_uno(
     )
 
 
-def test_tui_habilidades_muestra_git_ausente_con_remediacion(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_habilidades_muestra_git_ausente_con_remediacion(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     remoto = _crear_remoto(tmp_path)
     proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    _gobernar_proyecto(proyecto)
     (proyecto / ".tramalia" / "habilidades" / "mihabilidad").mkdir(parents=True)
     monkeypatch.chdir(proyecto)
     monkeypatch.setattr(habilidades, "git_disponible", lambda: False)
@@ -234,37 +260,46 @@ def test_tui_habilidades_muestra_git_ausente_con_remediacion(tmp_path, monkeypat
         "_ejecutar_git",
         lambda argumentos, **_opciones: ResultadoProceso(tuple(argumentos), 127, "", "git ausente"),
     )
-    resolucion = habilidades.consultar_habilidades(proyecto, consultar_remoto=True)[0]
+    from textual.widgets import RichLog, TabbedContent
+
+    from tramalia.core.tablero import ServicioTablero
     from tramalia.i18n import t
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    mensajes: list[str] = []
+    aplicacion = construir_aplicacion(ServicioTablero(proyecto))
 
-    class RegistroMensajes:
-        def write(self, mensaje: str) -> None:
-            mensajes.append(mensaje)
+    async def verificar():
+        async with aplicacion.run_test() as piloto:
+            await piloto.pause()
+            await aplicacion.workers.wait_for_complete()
+            aplicacion.query_one(TabbedContent).active = "skills"
+            await piloto.pause()
+            await piloto.press("u")
+            await aplicacion.workers.wait_for_complete()
+            registro = aplicacion.query_one("#skills-log", RichLog)
+            mensajes = [linea.text for linea in registro.lines]
+            assert any(
+                "mihabilidad" in mensaje
+                and "git_no_instalado" in mensaje
+                and "Instala Git" in mensaje
+                for mensaje in mensajes
+            )
+            assert t("skills.update.found", n=0) not in mensajes
 
-    aplicacion = build_app()()
-    aplicacion._skill_updates = {}
-    clase_aplicacion = type(aplicacion)
-    monkeypatch.setattr(clase_aplicacion, "_skills_log", lambda _self: RegistroMensajes())
-    monkeypatch.setattr(clase_aplicacion, "_refresh_skills", lambda *_argumentos: None)
+    import asyncio
 
-    aplicacion._after_check_updates((resolucion,))
-
-    assert any(
-        "mihabilidad" in mensaje and "git_no_instalado" in mensaje and "Instala Git" in mensaje
-        for mensaje in mensajes
-    )
-    assert t("skills.update.found", n=0) not in mensajes
+    asyncio.run(verificar())
 
 
-def test_tui_enter_habilidad_team_ausente_autoriza_fijar_y_materializar(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_enter_habilidad_team_ausente_autoriza_fijar_y_materializar(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     remoto = _crear_remoto(tmp_path)
     proyecto = _proyecto_con_habilidad(tmp_path, remoto)
+    _gobernar_proyecto(proyecto)
     (proyecto / ".tramalia" / "config.json").write_text(
-        json.dumps({"mode": "team"}), encoding="utf-8"
+        json.dumps({"projectName": "demo", "mode": "team"}), encoding="utf-8"
     )
     (proyecto / ".tramalia" / "habilidades.lock.json").write_text(
         json.dumps(
@@ -282,33 +317,44 @@ def test_tui_enter_habilidad_team_ausente_autoriza_fijar_y_materializar(tmp_path
         encoding="utf-8",
     )
     monkeypatch.chdir(proyecto)
-    from tramalia.tui import build_app
+    from textual.widgets import DataTable, TabbedContent
 
-    class RegistroMensajes:
-        def write(self, _mensaje: str) -> None:
-            return None
+    from tramalia.core.tablero import ServicioTablero
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    evento = types.SimpleNamespace(
-        data_table=types.SimpleNamespace(get_row=lambda _clave: ["mihabilidad"]),
-        row_key="mihabilidad",
-    )
-    llamadas: list[tuple[str, bool]] = []
-    aplicacion = build_app()()
-    clase_aplicacion = type(aplicacion)
+    class ServicioEspia(ServicioTablero):
+        def __init__(self, raiz):
+            super().__init__(raiz)
+            self.llamadas: list[tuple[str, bool, bool]] = []
 
-    def sincronizar_una(_self, nombre, actualizar=False):
-        llamadas.append((nombre, actualizar))
+        def habilitar_y_sincronizar(self, nombre: str, *, habilitar: bool, actualizar: bool):
+            self.llamadas.append((nombre, habilitar, actualizar))
+            return super().habilitar_y_sincronizar(
+                nombre, habilitar=habilitar, actualizar=actualizar
+            )
 
-    def ejecutar_trabajo(_self, trabajo, **_opciones):
-        trabajo()
+    servicio = ServicioEspia(proyecto)
+    aplicacion = construir_aplicacion(servicio)
 
-    monkeypatch.setattr(clase_aplicacion, "_skills_log", lambda _self: RegistroMensajes())
-    monkeypatch.setattr(clase_aplicacion, "_sync_one_skill", sincronizar_una)
-    monkeypatch.setattr(clase_aplicacion, "run_worker", ejecutar_trabajo)
+    async def verificar():
+        async with aplicacion.run_test() as piloto:
+            await piloto.pause()
+            await aplicacion.workers.wait_for_complete()
+            aplicacion.query_one(TabbedContent).active = "skills"
+            await piloto.pause()
+            tabla = aplicacion.query_one("#tabla-skills", DataTable)
+            assert tabla.row_count == 3
+            tabla.move_cursor(row=2, column=0)
+            assert tabla.cursor_row == 2
+            tabla.focus()
+            await piloto.pause()
+            await piloto.press("enter")
+            await aplicacion.workers.wait_for_complete()
 
-    aplicacion._toggle_skill(evento)
+    import asyncio
 
-    assert llamadas == [("mihabilidad", True)]
+    asyncio.run(verificar())
+    assert servicio.llamadas == [("mihabilidad", True, True)]
 
 
 def test_cli_habilidades_sincroniza_una(tmp_path, monkeypatch):

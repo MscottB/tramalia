@@ -1,5 +1,7 @@
 """v0.23: versión en el UI + prerequisitos de runtime visibles y facilitados."""
 
+import pytest
+
 from tramalia.core import installer
 from tramalia.core.integraciones import REGISTRO
 
@@ -20,14 +22,14 @@ def test_header_muestra_version(capsys):
     renderizado.fijar_plano(False)
 
 
-def test_tui_title_incluye_version():
-    import pytest
-
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_terminal_title_incluye_version():
     pytest.importorskip("textual")
     from tramalia import __version__
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    assert build_app().TITLE == f"Tramalia v{__version__}"
+    assert construir_aplicacion().TITLE == f"Tramalia v{__version__}"
 
 
 # ---------------------------------------------------------------- runtime bloqueante

@@ -100,22 +100,27 @@ def test_sugerir_propagacion_no_revienta(tmp_path):
 
 
 # ---------------------------------------------------------------- TUI: botón init en Resumen
-def test_boton_init_en_resumen(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_boton_inicializar_en_resumen(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     from textual.widgets import Button
 
     monkeypatch.chdir(tmp_path)  # repo VACÍO: sin inicializar
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app = build_app()()
+    app = construir_aplicacion()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
+            await app.workers.wait_for_complete()
             btn = app.query_one("#btn-init-resumen", Button)
             assert btn.display is True  # visible cuando falta init
-            app._run_init(btn)  # inicializa desde Resumen
+            await pilot.click(btn)
+            await app.workers.wait_for_complete()
             await pilot.pause()
+            await app.workers.wait_for_complete()
             assert inspeccionar_estado_proyecto(tmp_path).listo
             assert configuracion.version_andamiaje(tmp_path) == __version__
             assert app.query_one("#btn-init-resumen", Button).display is False  # se oculta
@@ -123,33 +128,37 @@ def test_boton_init_en_resumen(tmp_path, monkeypatch):
     asyncio.run(run())
 
 
-def test_tui_trata_proyecto_parcial_como_no_inicializado(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_trata_proyecto_parcial_como_no_inicializado(tmp_path, monkeypatch):
     pytest.importorskip("textual")
-    from textual.widgets import Button, Input
+    from textual.widgets import Button
 
-    import tramalia.tui as tui
+    from tramalia.interfaz_terminal import construir_aplicacion
 
     (tmp_path / ".tramalia").mkdir()
     monkeypatch.chdir(tmp_path)
-    aplicacion = tui.build_app()()
+    aplicacion = construir_aplicacion()
 
     async def verificar():
         async with aplicacion.run_test() as piloto:
             await piloto.pause()
+            await aplicacion.workers.wait_for_complete()
             assert aplicacion.query_one("#btn-init-resumen", Button).display is True
-            aplicacion.query_one("#in-task", Input).value = "TASK-1"
-            aplicacion._start_close(aplicacion.query_one("#btn-close", Button))
-            await piloto.pause()
+            assert aplicacion.query_one("#cierre-form").display is False
             assert list((tmp_path / ".tramalia").iterdir()) == []
 
     asyncio.run(verificar())
 
 
-def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_cierre_revalida_raiz_del_servicio_en_worker(tmp_path, monkeypatch):
     pytest.importorskip("textual")
-    from textual.widgets import Button, Input
+    from textual.widgets import Button, Input, TabbedContent
 
-    import tramalia.tui as tui
+    from tramalia.core.tablero import ServicioTablero
+    from tramalia.interfaz_terminal import construir_aplicacion
 
     raiz_original = tmp_path / "original"
     raiz_alterna = tmp_path / "alterna"
@@ -160,27 +169,23 @@ def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
     configuracion.fijar_version_andamiaje(raiz_original, __version__)
     configuracion.fijar_version_andamiaje(raiz_alterna, __version__)
 
-    trabajos = []
-
-    def capturar_worker(trabajo, **kwargs):
-        trabajos.append(trabajo)
-        return None
-
     monkeypatch.chdir(raiz_original)
-    aplicacion = tui.build_app()()
+    aplicacion = construir_aplicacion(ServicioTablero(raiz_original))
 
     async def verificar():
         async with aplicacion.run_test() as piloto:
             await piloto.pause()
-            monkeypatch.setattr(aplicacion, "run_worker", capturar_worker)
+            await aplicacion.workers.wait_for_complete()
+            aplicacion.query_one(TabbedContent).active = "cierre"
             aplicacion.query_one("#in-task", Input).value = "TASK-1"
-            aplicacion._start_close(aplicacion.query_one("#btn-close", Button))
-            assert len(trabajos) == 1
-
             (raiz_original / "AGENTS.md").unlink()
             monkeypatch.chdir(raiz_alterna)
-            await asyncio.to_thread(trabajos[0])
+            boton = aplicacion.query_one("#cerrar", Button)
+            boton.scroll_visible(animate=False, force=True, immediate=True)
+            boton.focus()
             await piloto.pause()
+            await piloto.press("enter")
+            await aplicacion.workers.wait_for_complete()
 
             assert not (raiz_original / ".tramalia" / "evidencia").exists()
             assert not (raiz_alterna / ".tramalia" / "evidencia").exists()
@@ -188,18 +193,20 @@ def test_tui_cierre_revalida_raiz_capturada_en_worker(tmp_path, monkeypatch):
     asyncio.run(verificar())
 
 
-def test_tui_cierre_positivo_delega_y_renderiza_resultado_tipado(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_cierre_positivo_delega_y_renderiza_resultado_tipado(tmp_path, monkeypatch):
     pytest.importorskip("textual")
-    from textual.widgets import RichLog, TabbedContent
+    from textual.widgets import Button, Input, RichLog, TabbedContent
 
-    from tramalia.core import operaciones as operaciones_core
     from tramalia.core.modelos import (
         EjecucionPuertas,
         ResultadoCierre,
         ValorEstadoCierre,
         ValorEstadoPuertas,
     )
-    from tramalia.tui import build_app
+    from tramalia.core.tablero import ServicioTablero
+    from tramalia.interfaz_terminal import construir_aplicacion
 
     llamadas = []
     resultado = ResultadoCierre(
@@ -218,32 +225,38 @@ def test_tui_cierre_positivo_delega_y_renderiza_resultado_tipado(tmp_path, monke
         llamadas.append((raiz, id_tarea, opciones))
         return resultado
 
-    monkeypatch.setattr(operaciones_core, "cerrar_proyecto", cerrar)
     _init(tmp_path)
     configuracion.fijar_version_andamiaje(tmp_path, __version__)
     monkeypatch.chdir(tmp_path)
-    aplicacion = build_app()()
+    aplicacion = construir_aplicacion(ServicioTablero(tmp_path, operacion_cerrar=cerrar))
 
     async def verificar():
         async with aplicacion.run_test() as piloto:
             # RichLog difiere el render mientras su pestana no tiene tamano.
+            await aplicacion.workers.wait_for_complete()
             aplicacion.query_one(TabbedContent).active = "cierre"
             await piloto.pause()
-            await asyncio.to_thread(
-                aplicacion._run_close,
-                tmp_path,
-                "TASK-TUI",
-                "codex",
-                "ana",
-                "gpt-5",
-            )
+            aplicacion.query_one("#in-task", Input).value = "TASK-TUI"
+            aplicacion.query_one("#in-agent", Input).value = "codex"
+            aplicacion.query_one("#in-reviewer", Input).value = "ana"
+            aplicacion.query_one("#in-model", Input).value = "gpt-5"
+            boton = aplicacion.query_one("#cerrar", Button)
+            boton.scroll_visible(animate=False, force=True, immediate=True)
+            boton.focus()
             await piloto.pause()
+            await piloto.press("enter")
+            await aplicacion.workers.wait_for_complete()
 
             assert llamadas == [
                 (
                     tmp_path,
                     "TASK-TUI",
-                    {"agente": "codex", "revisor": "ana", "modelo": "gpt-5"},
+                    {
+                        "agente": "codex",
+                        "revisor": "ana",
+                        "modelo": "gpt-5",
+                        "excepciones": (),
+                    },
                 )
             ]
             salida = aplicacion.query_one("#salida", RichLog)

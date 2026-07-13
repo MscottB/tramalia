@@ -26,10 +26,11 @@ def test_graphify_en_registro_como_alternativa_de_contexto():
     assert gf.administrada_por_mise is False
 
 
-def test_tui_construye():
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_interfaz_terminal_construye():
     pytest.importorskip("textual")
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app_cls = build_app()
-    app = app_cls()  # instanciar no levanta la UI
+    app = construir_aplicacion()  # instanciar no levanta la UI
     assert app.TITLE.startswith("Tramalia v")  # muestra la versión en el UI

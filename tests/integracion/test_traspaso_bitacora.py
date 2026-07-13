@@ -23,6 +23,8 @@ from tramalia.core.modelos import (
 )
 from tramalia.core.traspaso import construir_traspaso, proyectar_traspaso
 
+pytestmark = pytest.mark.integracion
+
 
 def _raiz_paquete(paquete_v1) -> Path:
     return paquete_v1.ruta.parents[2]

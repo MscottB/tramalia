@@ -58,20 +58,23 @@ def test_backend_desconocido_no_revienta():
 
 
 # ---------------------------------------------------------------- TUI: ESC
-def test_esc_cierra_panel_backend(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_escape_cierra_panel_proveedor(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     from textual.screen import ModalScreen
 
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app = build_app()()
+    app = construir_aplicacion()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app.action_context_backend()  # tecla b: abre el modal
+            await app.workers.wait_for_complete()
+            await pilot.press("b")
             await pilot.pause()
             assert isinstance(app.screen, ModalScreen)
             await pilot.press("escape")  # debe cerrarlo (antes no)
@@ -83,25 +86,33 @@ def test_esc_cierra_panel_backend(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------- backend no instalado
-def test_elegir_backend_no_instalado_lo_fija_igual(tmp_path, monkeypatch):
+@pytest.mark.interfaz
+@pytest.mark.opcional
+def test_elegir_proveedor_no_instalado_lo_fija_igual(tmp_path, monkeypatch):
     pytest.importorskip("textual")
+    from textual.widgets import OptionList
+
     monkeypatch.chdir(tmp_path)
     _init(tmp_path)
     # simulamos que codegraph NO está instalado
-    import tramalia.core.proveedor_contexto as modulo_proveedor
+    import tramalia.core.tablero as modulo_tablero
 
-    monkeypatch.setattr(
-        modulo_proveedor, "proveedor_disponible", lambda clave: clave != "codegraph"
-    )
-    from tramalia.tui import build_app
+    monkeypatch.setattr(modulo_tablero, "proveedor_disponible", lambda clave: clave != "codegraph")
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app = build_app()()
+    app = construir_aplicacion()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
-            app._on_backend_chosen("codegraph")  # no instalado → se fija con aviso
+            await app.workers.wait_for_complete()
+            await pilot.press("b")
             await pilot.pause()
+            opciones = app.screen.query_one(OptionList)
+            opciones.highlighted = 1
+            opciones.focus()
+            await pilot.press("enter")
+            await app.workers.wait_for_complete()
             # es una preferencia de proyecto: se persiste aunque no esté instalado
             assert configuracion.proveedor_contexto(tmp_path) == "codegraph"
             data = json.loads((tmp_path / ".tramalia" / "config.json").read_text(encoding="utf-8"))

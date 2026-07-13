@@ -21,22 +21,24 @@ def _proyecto(tmp_path):
     )
 
 
+@pytest.mark.interfaz
+@pytest.mark.opcional
 def test_tecla_d_no_abre_el_panel_del_instalador(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("webbrowser.open", lambda url: True)  # no abrir navegador real
     _proyecto(tmp_path)
 
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app = build_app()()
+    app = construir_aplicacion()
 
     async def run():
         async with app.run_test() as pilot:
             await pilot.pause()
             panel = app.query_one("#instalador")
             assert panel.display is False  # estado inicial: oculto
-            app.action_open_docs()  # tecla `d` sobre la fila actual
+            await pilot.press("d")
             await pilot.pause()
             # el bug reportado: `d` ponía display=True y nunca se podía cerrar
             assert panel.display is False
@@ -44,14 +46,16 @@ def test_tecla_d_no_abre_el_panel_del_instalador(tmp_path, monkeypatch):
     asyncio.run(run())
 
 
+@pytest.mark.interfaz
+@pytest.mark.opcional
 def test_escape_cierra_paneles_abiertos(tmp_path, monkeypatch):
     pytest.importorskip("textual")
     monkeypatch.chdir(tmp_path)
     _proyecto(tmp_path)
 
-    from tramalia.tui import build_app
+    from tramalia.interfaz_terminal import construir_aplicacion
 
-    app = build_app()()
+    app = construir_aplicacion()
 
     async def run():
         async with app.run_test() as pilot:
@@ -60,7 +64,7 @@ def test_escape_cierra_paneles_abiertos(tmp_path, monkeypatch):
             skills_log = app.query_one("#skills-log")
             instalador.display = True  # simula una instalación en curso
             skills_log.display = True  # simula un sync en curso
-            app.action_close_panels()  # tecla Escape
+            await pilot.press("escape")
             assert instalador.display is False
             assert skills_log.display is False
 

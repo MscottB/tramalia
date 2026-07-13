@@ -10,6 +10,8 @@ import pytest
 from tramalia.core import habilidades
 from tramalia.core.procesos import ResultadoProceso
 
+pytestmark = pytest.mark.integracion
+
 
 def _ejecutar_git(raiz: Path, *argumentos: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(

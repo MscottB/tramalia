@@ -616,22 +616,25 @@ def comando_habilidades(argumentos) -> int:
         propias = habilidades.habilidades_propias(root)
         if propias:
             renderizado.informar(t("skills.group.own"))
-            for habilidad in propias:
-                renderizado.exito(f"{habilidad['nombre']}  —  {habilidad['descripcion']}")
+            for habilidad_propia in propias:
+                renderizado.exito(
+                    f"{habilidad_propia['nombre']}  —  {habilidad_propia['descripcion']}"
+                )
         externas = habilidades.catalogo_habilidades(root)
         if externas:
             renderizado.informar(t("skills.group.external"))
-            for habilidad in externas:
-                referencia = habilidades.referencia_instalada(root, habilidad.nombre)
+            for habilidad_externa in externas:
+                referencia = habilidades.referencia_instalada(root, habilidad_externa.nombre)
                 sufijo = f"  @{referencia}" if referencia else ""
                 renderizado.exito(
-                    f"{habilidad.nombre:<22}"
-                    f"{_estado_habilidad_catalogo(habilidad)}{sufijo}  ←  {habilidad.fuente}"
+                    f"{habilidad_externa.nombre:<22}"
+                    f"{_estado_habilidad_catalogo(habilidad_externa)}{sufijo}  "
+                    f"←  {habilidad_externa.fuente}"
                 )
             pendientes = [
-                habilidad.nombre
-                for habilidad in externas
-                if habilidad.habilitada and not habilidad.instalada
+                habilidad_externa.nombre
+                for habilidad_externa in externas
+                if habilidad_externa.habilitada and not habilidad_externa.instalada
             ]
             if pendientes:
                 renderizado.informar(t("skills.rehydrate", names=", ".join(pendientes)))
@@ -693,15 +696,15 @@ def comando_habilidades(argumentos) -> int:
         if not url:
             renderizado.error(t("skills.add.needurl"))
             return 1
-        ok, resultado = habilidades.agregar_habilidad(
+        ok, resultado_agregado = habilidades.agregar_habilidad(
             root,
             url,
             getattr(argumentos, "alias", None),
         )
         if ok:
-            renderizado.exito(t("skills.add.ok", name=resultado))
+            renderizado.exito(t("skills.add.ok", name=resultado_agregado))
             return 0
-        renderizado.error(t(f"skills.add.{resultado}"))
+        renderizado.error(t(f"skills.add.{resultado_agregado}"))
         return 1
 
     if action in ("enable", "disable"):
@@ -719,8 +722,10 @@ def comando_habilidades(argumentos) -> int:
 
     # `sync` rehidrata lo fijado; sólo `skills update` mueve el bloqueo Team.
     solo = getattr(argumentos, "name", None)
-    resultado = sincronizar_habilidades(root, solo=solo, actualizar=action == "update")
-    if not resultado.resoluciones:
+    resultado_sincronizacion = sincronizar_habilidades(
+        root, solo=solo, actualizar=action == "update"
+    )
+    if not resultado_sincronizacion.resoluciones:
         if solo:
             renderizado.informar(t("skills.sync.notdeclared", name=solo))
         else:
@@ -729,11 +734,11 @@ def comando_habilidades(argumentos) -> int:
             )
         _avisar_habilidades_externas_rastreadas(habilidades, root)
         return 0
-    for resolucion in resultado.resoluciones:
+    for resolucion in resultado_sincronizacion.resoluciones:
         mostrar = renderizado.exito if resolucion.estado.exitoso else renderizado.advertir
         mostrar(f"{resolucion.accion:>12}  {resolucion.nombre}")
     _avisar_habilidades_externas_rastreadas(habilidades, root)
-    return 0 if resultado.estado.exitoso else 1
+    return 0 if resultado_sincronizacion.estado.exitoso else 1
 
 
 def _avisar_habilidades_externas_rastreadas(habilidades, raiz) -> None:
@@ -818,7 +823,7 @@ def comando_mcp(argumentos) -> int:
     from tramalia import mcp_server as servidor_mcp
 
     renderizado.informar("levantando Tramalia MCP (stdio)… Ctrl+C para detener.")
-    servidor_mcp.run()
+    servidor_mcp.ejecutar()
     return 0
 
 
@@ -827,9 +832,9 @@ def comando_interfaz(argumentos) -> int:
         _ofrecer_instalar("textual", "el dashboard TUI") and _es_importable("textual")
     ):
         return 127
-    from tramalia import tui
+    from tramalia.interfaz_terminal import ejecutar
 
-    tui.run()
+    ejecutar()
     return 0
 
 

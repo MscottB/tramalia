@@ -16,6 +16,7 @@ from tramalia.core.errores import ErrorExcepcionInvalida, ErrorIdentificadorInse
 from tramalia.core.modelos import (
     EjecucionPuertas,
     EstadoIntegracion,
+    ExcepcionFallo,
     ResultadoCierre,
     ValorEstadoCierre,
     ValorEstadoIntegracion,
@@ -111,9 +112,9 @@ def test_firmas_publicas_compartidas() -> None:
     )
 
 
-def test_cli_y_mcp_comparten_el_constructor_de_excepciones_del_nucleo() -> None:
+def test_superficies_comparten_modelo_y_constructor_de_excepciones() -> None:
     assert comandos.construir_excepciones_fallo is operaciones.construir_excepciones_fallo
-    assert servidor_mcp.construir_excepciones_fallo is operaciones.construir_excepciones_fallo
+    assert servidor_mcp.ExcepcionFallo is ExcepcionFallo
     assert str(inspect.signature(crear_evidencia)) == (
         "(raiz: 'Path', id_tarea: 'str', *, agente: 'str' = '', revisor: 'str' = '', "
         "modelo: 'str' = '') -> 'PaqueteEvidencia'"
@@ -517,7 +518,6 @@ def test_superficies_importan_las_operaciones_compartidas() -> None:
             "crear_evidencia",
             "registrar_traspaso",
         },
-        Path("tramalia/tui.py"): {"cerrar_proyecto"},
     }
     for ruta, nombres in esperados.items():
         arbol = ast.parse(ruta.read_text(encoding="utf-8"), filename=str(ruta))
@@ -528,6 +528,17 @@ def test_superficies_importan_las_operaciones_compartidas() -> None:
             for alias in nodo.names
         }
         assert nombres <= importados, ruta
+    arbol_interfaz = ast.parse(
+        Path("tramalia/interfaz_terminal.py").read_text(encoding="utf-8"),
+        filename="tramalia/interfaz_terminal.py",
+    )
+    importados_tablero = {
+        alias.name
+        for nodo in ast.walk(arbol_interfaz)
+        if isinstance(nodo, ast.ImportFrom) and nodo.module == "tramalia.core.tablero"
+        for alias in nodo.names
+    }
+    assert "ServicioTablero" in importados_tablero
 
 
 def test_no_quedan_imports_del_nucleo_historico() -> None:

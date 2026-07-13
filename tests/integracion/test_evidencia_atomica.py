@@ -13,6 +13,8 @@ import pytest
 from tramalia.core.errores import ErrorPersistenciaEvidencia
 from tramalia.core.evidencia import _serializar, crear_id_paquete, publicar_paquete
 
+pytestmark = pytest.mark.integracion
+
 
 def _temporales(base: Path) -> list[Path]:
     if not base.exists():

@@ -4,8 +4,15 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import Protocol, runtime_checkable
 
 from tramalia import __version__
+
+
+@runtime_checkable
+class _FlujoReconfigurable(Protocol):
+    def reconfigure(self, *, encoding: str) -> None:
+        """Update the text encoding exposed by a console stream."""
 
 
 def construir_parser() -> argparse.ArgumentParser:
@@ -216,10 +223,12 @@ def main(argv: list[str] | None = None) -> int:
     """
     # En Windows la consola puede no ser UTF-8; lo forzamos para acentos y símbolos.
     for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8")
-        except Exception:
-            pass
+        if isinstance(stream, _FlujoReconfigurable):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except Exception:
+                # Algunos flujos embebidos anuncian reconfigure, pero no permiten usarlo.
+                pass
 
     argumentos_crudos = list(argv if argv is not None else sys.argv[1:])
     # --plain se acepta en cualquier posición; se extrae antes de parsear

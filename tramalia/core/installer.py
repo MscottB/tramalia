@@ -400,8 +400,12 @@ def run_install_streaming(
 
     threading.Thread(target=_watch, daemon=True).start()
     lines: list[str] = []
+    salida_proceso = p.stdout
+    if salida_proceso is None:
+        p.terminate()
+        return 1, "el instalador no expuso stdout"
     try:
-        for line in iter(p.stdout.readline, ""):
+        for line in iter(salida_proceso.readline, ""):
             lines.append(line)
             on_line(line.rstrip())
         p.wait(timeout=30)

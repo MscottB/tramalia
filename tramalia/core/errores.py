@@ -196,6 +196,12 @@ class ErrorExcepcionInvalida(ErrorTramalia):
     codigo = "excepcion_invalida"
 
 
+class ErrorArgumentosMCPConflictivos(ErrorTramalia):
+    """Report contradictory legacy and Spanish MCP argument aliases."""
+
+    codigo = "argumentos_mcp_conflictivos"
+
+
 class ErrorPersistenciaEvidencia(ErrorTramalia):
     """Report a failure while persisting an evidence package."""
 
