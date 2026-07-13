@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import secrets
+import shutil
 import subprocess
+import uuid
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from tramalia.core.errores import (
     ErrorIdentificadorInseguro,
@@ -17,12 +21,14 @@ from tramalia.core.errores import (
 from tramalia.core.modelos import (
     EstadoGit,
     MetadatosPaqueteEvidencia,
+    PaqueteEvidencia,
 )
 
 _ID_SEGURO = re.compile(r"^[A-Za-z0-9._-]{1,64}$", re.ASCII)
 _ID_PAQUETE = re.compile(r"^\d{8}T\d{6}\.\d{6}Z-[0-9a-f]{8}$", re.ASCII)
 _HASH_SHA256 = re.compile(r"^[0-9a-f]{64}$", re.ASCII)
 _ARCHIVO_SALIDA_SEGURO = re.compile(r"^[A-Za-z0-9._-]{1,128}$", re.ASCII)
+_SEGMENTO_ARCHIVO_SEGURO = re.compile(r"^[A-Za-z0-9._-]{1,128}$", re.ASCII)
 _RESERVADOS_WINDOWS = {
     "CON",
     "PRN",
@@ -394,5 +400,212 @@ def _serializar(metadatos: MetadatosPaqueteEvidencia) -> bytes:
         raise ErrorPersistenciaEvidencia(
             "La metadata contiene un valor que no es JSON formal.",
             "Corrige metricas, umbrales o inventario antes de publicar.",
+            detalles={"tipo_error": type(error).__name__},
+        ) from error
+
+
+def _error_archivo(campo: str, tipo_error: str | None = None) -> ErrorPersistenciaEvidencia:
+    detalles = {"campo": campo}
+    if tipo_error is not None:
+        detalles["tipo_error"] = tipo_error
+    return ErrorPersistenciaEvidencia(
+        "El mapa de archivos del paquete no es seguro o completo.",
+        "Usa rutas relativas portables y contenidos binarios validos.",
+        detalles=detalles,
+    )
+
+
+def _partes_ruta_interna(nombre: object) -> tuple[str, ...]:
+    if not isinstance(nombre, str) or not nombre or "\x00" in nombre:
+        raise _error_archivo("ruta")
+    # Una barra inversa puede cambiar de significado al mover el pack entre sistemas.
+    if "\\" in nombre or "//" in nombre or nombre.endswith("/"):
+        raise _error_archivo("ruta")
+
+    ruta_posix = PurePosixPath(nombre)
+    ruta_windows = PureWindowsPath(nombre)
+    partes = tuple(nombre.split("/"))
+    if (
+        ruta_posix.is_absolute()
+        or ruta_windows.is_absolute()
+        or bool(ruta_windows.drive)
+        or not partes
+        or any(parte in {"", ".", ".."} for parte in partes)
+    ):
+        raise _error_archivo("ruta")
+
+    for parte in partes:
+        base_windows = parte.split(".", 1)[0].upper()
+        if (
+            not _SEGMENTO_ARCHIVO_SEGURO.fullmatch(parte)
+            or parte.endswith(".")
+            or base_windows in _RESERVADOS_WINDOWS
+        ):
+            raise _error_archivo("ruta")
+    return partes
+
+
+def _preparar_archivos(
+    archivos: Mapping[str, bytes],
+    metadata_serializada: bytes,
+) -> tuple[tuple[str, bytes], ...]:
+    if not isinstance(archivos, Mapping):
+        raise _error_archivo("archivos", type(archivos).__name__)
+
+    preparados: dict[tuple[str, ...], bytes] = {}
+    rutas_portables: dict[tuple[str, ...], tuple[str, ...]] = {}
+    try:
+        elementos = tuple(archivos.items())
+    except Exception as error:
+        raise _error_archivo("archivos", type(error).__name__) from error
+
+    for nombre, contenido in elementos:
+        partes = _partes_ruta_interna(nombre)
+        ruta_portable = tuple(parte.casefold() for parte in partes)
+        if ruta_portable == ("metadatos.json",):
+            raise _error_archivo("metadatos.json")
+        if not isinstance(contenido, bytes):
+            raise _error_archivo("contenido", type(contenido).__name__)
+        if ruta_portable in rutas_portables:
+            raise _error_archivo("ruta")
+        preparados[partes] = contenido
+        rutas_portables[ruta_portable] = partes
+
+    traspaso = ("traspaso.md",)
+    if traspaso not in preparados:
+        raise _error_archivo("traspaso.md")
+
+    metadata = ("metadatos.json",)
+    preparados[metadata] = metadata_serializada
+    rutas_portables[metadata] = metadata
+    rutas = tuple(rutas_portables)
+    for indice, ruta in enumerate(rutas):
+        for otra in rutas[indice + 1 :]:
+            limite = min(len(ruta), len(otra))
+            if ruta[:limite] == otra[:limite]:
+                raise _error_archivo("ruta")
+
+    return tuple(
+        ("/".join(partes), contenido)
+        for partes, contenido in sorted(
+            preparados.items(),
+            key=lambda elemento: tuple(parte.casefold() for parte in elemento[0]),
+        )
+    )
+
+
+def _bajo_base(ruta: Path, base: Path) -> bool:
+    try:
+        return ruta.resolve(strict=False).is_relative_to(base.resolve(strict=True))
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
+def _escribir_archivo(ruta: Path, contenido: bytes) -> None:
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    with ruta.open("xb") as archivo:
+        archivo.write(contenido)
+        archivo.flush()
+        os.fsync(archivo.fileno())
+
+
+def publicar_paquete(
+    raiz: Path,
+    metadatos: MetadatosPaqueteEvidencia,
+    archivos: Mapping[str, bytes],
+) -> PaqueteEvidencia:
+    """Publish one complete evidence pack through an atomic directory rename.
+
+    Args:
+        raiz: Governed project root that owns ``.tramalia/evidencia``.
+        metadatos: Formal v1 metadata for the new immutable package.
+        archivos: Relative portable paths and their exact byte contents.
+
+    Returns:
+        The immutable reference to the newly published package.
+
+    Raises:
+        ErrorPersistenciaEvidencia: If validation, containment, writing, or the
+            final atomic rename fails.
+    """
+    temporal: Path | None = None
+    temporal_creado = False
+    final: Path | None = None
+    try:
+        if metadatos.vinculo_traspaso != "traspaso.md":
+            raise ErrorPersistenciaEvidencia(
+                "La metadata no referencia el traspaso canonico.",
+                "Usa vinculo_traspaso igual a traspaso.md.",
+                detalles={"campo": "vinculo_traspaso"},
+            )
+        metadata_serializada = _serializar(metadatos)
+        contenido = _preparar_archivos(archivos, metadata_serializada)
+
+        raiz_resuelta = raiz.resolve(strict=False)
+        directorio_tramalia = raiz_resuelta / ".tramalia"
+        if (directorio_tramalia.exists() or directorio_tramalia.is_symlink()) and (
+            directorio_tramalia.resolve(strict=True) != directorio_tramalia
+        ):
+            raise ErrorPersistenciaEvidencia(
+                "El directorio de gobierno no pertenece fisicamente al proyecto.",
+                "Retira enlaces simbolicos de .tramalia antes de publicar.",
+                directorio_tramalia,
+            )
+
+        base = directorio_tramalia / "evidencia"
+        if (base.exists() or base.is_symlink()) and base.resolve(strict=True) != base:
+            raise ErrorPersistenciaEvidencia(
+                "El directorio de evidencia no pertenece fisicamente al proyecto.",
+                "Retira enlaces simbolicos de .tramalia/evidencia antes de publicar.",
+                base,
+            )
+        base.mkdir(parents=True, exist_ok=True)
+        # Revalidar despues de mkdir reduce la ventana de sustitucion de la base.
+        if base.resolve(strict=True) != base:
+            raise ErrorPersistenciaEvidencia(
+                "El directorio de evidencia no pertenece fisicamente al proyecto.",
+                "Retira enlaces simbolicos de .tramalia/evidencia antes de publicar.",
+                base,
+            )
+
+        final = base / metadatos.id_paquete
+        temporal = base / f".tmp-{uuid.uuid4().hex}"
+        if (
+            not _bajo_base(final, base)
+            or not _bajo_base(temporal, base)
+            or final.exists()
+            or final.is_symlink()
+        ):
+            raise ErrorPersistenciaEvidencia(
+                "La ruta final del paquete no es nueva o segura.",
+                "Reintenta con un ID de paquete nuevo.",
+                final,
+            )
+
+        temporal.mkdir(mode=0o700)
+        temporal_creado = True
+        for nombre, datos in contenido:
+            destino = temporal.joinpath(*nombre.split("/"))
+            if not _bajo_base(destino, temporal):
+                raise _error_archivo("ruta")
+            _escribir_archivo(destino, datos)
+
+        # Leer el JSON desde staging comprueba bytes y persistencia antes del rename.
+        json.loads((temporal / "metadatos.json").read_text(encoding="utf-8"))
+        os.replace(temporal, final)
+        temporal = None
+        temporal_creado = False
+        return PaqueteEvidencia(metadatos.id_paquete, final, metadatos)
+    except ErrorPersistenciaEvidencia:
+        if temporal is not None and temporal_creado:
+            shutil.rmtree(temporal, ignore_errors=True)
+        raise
+    except Exception as error:
+        if temporal is not None and temporal_creado:
+            shutil.rmtree(temporal, ignore_errors=True)
+        raise ErrorPersistenciaEvidencia(
+            "No se pudo publicar el paquete atomico.",
+            "Revisa permisos y soporte de renombrado atomico en el sistema de archivos.",
+            final,
             detalles={"tipo_error": type(error).__name__},
         ) from error
