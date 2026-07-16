@@ -56,6 +56,10 @@ desarrollo = [
     "build>=1.2",
     "twine>=6",
 ]
+seguridad = [
+    "actionlint-py==1.7.12.24",
+    "semgrep==1.169.0",
+]
 
 [build-system]
 requires = ["hatchling==1.31.0"]
