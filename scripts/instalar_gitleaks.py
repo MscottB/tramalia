@@ -29,6 +29,8 @@ MAXIMO_BYTES_DESCARGA = 32 * 1024 * 1024
 MAXIMO_MIEMBROS_ARCHIVO = 64
 MAXIMO_BYTES_MIEMBRO = 128 * 1024 * 1024
 MAXIMO_BYTES_EXTRAIDOS = 160 * 1024 * 1024
+# Un registro TAR estándar ocupa 10 KiB e incluye sus dos bloques de fin.
+MAXIMO_BYTES_RELLENO_FINAL_TAR = 10 * 1024
 
 _TAMANO_BLOQUE = 1024 * 1024
 _TAMANO_BLOQUE_TAR = tarfile.BLOCKSIZE
@@ -348,7 +350,8 @@ def _validar_fin_tar(flujo: gzip.GzipFile) -> None:
         raise ErrorInstalacionGitleaks("fin TAR truncado: falta el segundo bloque nulo")
     if segundo != _BLOQUE_NULO_TAR:
         raise ErrorInstalacionGitleaks("fin TAR inválido: se requieren dos bloques nulos")
-    while True:
+    bytes_relleno_final = 2 * _TAMANO_BLOQUE_TAR
+    while bytes_relleno_final < MAXIMO_BYTES_RELLENO_FINAL_TAR:
         adicional = _leer_hasta_bloque_tar(flujo)
         if not adicional:
             return
@@ -356,6 +359,11 @@ def _validar_fin_tar(flujo: gzip.GzipFile) -> None:
             raise ErrorInstalacionGitleaks("TAR truncado después de su marca de fin")
         if adicional != _BLOQUE_NULO_TAR:
             raise ErrorInstalacionGitleaks("el TAR contiene datos después de su marca de fin")
+        bytes_relleno_final += len(adicional)
+    if flujo.read1(1):
+        raise ErrorInstalacionGitleaks(
+            "el relleno final TAR supera el límite de 10 KiB"
+        )
 
 
 def _prevalidar_tar_crudo(datos: bytes) -> list[_MiembroArchivo]:

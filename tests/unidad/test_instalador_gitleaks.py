@@ -520,6 +520,51 @@ def test_tar_crudo_rechaza_fin_truncado(
     _afirmar_sin_publicacion(tmp_path, "gitleaks")
 
 
+def test_tar_crudo_rechaza_relleno_final_excesivo_sin_expandirlo_completo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maximo_relleno = 10 * 1024
+    datos = _crear_tar_crudo(
+        [("gitleaks", b"bin", tarfile.REGTYPE, 0o755)],
+        bloques_fin=maximo_relleno // tarfile.BLOCKSIZE + 4096,
+    )
+    assert len(datos) < maximo_relleno
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_linux_x64.tar.gz")
+    leer_real = gzip.GzipFile.read1
+    bytes_expandidos = 0
+
+    def leer_contado(flujo: gzip.GzipFile, tamano: int = -1) -> bytes:
+        nonlocal bytes_expandidos
+        bloque = leer_real(flujo, tamano)
+        bytes_expandidos += len(bloque)
+        return bloque
+
+    monkeypatch.setattr(instalador.gzip.GzipFile, "read1", leer_contado)
+
+    with pytest.raises(ErrorInstalacionGitleaks, match="relleno final TAR|10 KiB"):
+        instalar(tmp_path, sistema="linux", arquitectura="x86_64")
+
+    assert bytes_expandidos <= 2 * tarfile.BLOCKSIZE + maximo_relleno + 1
+    _afirmar_sin_publicacion(tmp_path, "gitleaks")
+
+
+def test_tar_crudo_acepta_relleno_final_en_el_limite_exacto(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert instalador.MAXIMO_BYTES_RELLENO_FINAL_TAR == 10 * 1024
+    datos = _crear_tar_crudo(
+        [("gitleaks", b"bin", tarfile.REGTYPE, 0o755)],
+        bloques_fin=(
+            instalador.MAXIMO_BYTES_RELLENO_FINAL_TAR // tarfile.BLOCKSIZE
+        ),
+    )
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_linux_x64.tar.gz")
+
+    publicado = instalar(tmp_path, sistema="linux", arquitectura="x86_64")
+
+    assert publicado.read_bytes() == b"bin"
+
+
 def test_tar_crudo_rechaza_cabecera_con_checksum_invalido(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
