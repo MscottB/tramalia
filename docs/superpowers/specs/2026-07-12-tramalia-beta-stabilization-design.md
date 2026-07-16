@@ -6,6 +6,13 @@
 
 **Rama de trabajo:** `codex/beta-stabilization`
 
+> **Ampliacion vigente (2026-07-16):** el sistema de habilidades gobernadas,
+> los activos visuales, el relanzamiento en el repositorio existente, el corte
+> de licencia y la version objetivo `1.0.0b1` se definen en
+> [`2026-07-16-habilidades-relanzamiento-v1-diseno.md`](2026-07-16-habilidades-relanzamiento-v1-diseno.md).
+> Esa ampliacion reemplaza cualquier instruccion posterior que proponga borrar
+> los tres PNG maestros o publicar `0.34.0b1`.
+
 ## 1. Objetivo
 
 Evolucionar Tramalia desde una BETA funcional pero parcialmente *fail-open* hacia

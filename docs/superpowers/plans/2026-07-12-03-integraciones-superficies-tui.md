@@ -29,6 +29,34 @@
 
 ---
 
+## Estado de ejecución verificado al 14 de julio de 2026
+
+| Tramo | Estado | Evidencia principal |
+|---|---|---|
+| Task 1 — procesos e integraciones | Implementada | `e627ca7 refactor: tipar procesos e integraciones por capacidad` |
+| Task 2 — habilidades/contexto | Implementada y endurecida | `cde4719`, `ee0e5b0`, `782ce2c`, `1fe286e` |
+| Task 3 — CLI sobre operaciones | Implementada | `97e8e38 refactor: delegar cli en operaciones compartidas` |
+| Task 4 — MCP, tablero y TUI pública | Implementada como base | `aefd94f feat: separar superficies y servicio tui` |
+
+Las casillas históricas inferiores se conservan como registro del plan original; esta tabla describe el estado real comprobado en Git. La base de Task 4 todavía tiene deuda deliberadamente asignada al rediseño 03b: coordinación global de mutaciones, generaciones de refresco, cancelación de árboles de procesos, observabilidad de cierre, carga lazy y seguridad de texto. No se considera terminada la experiencia BETA hasta completar los planes complementarios.
+
+## Continuación aprobada
+
+El resto del Plan 03 se ejecuta en este orden y no como ampliaciones mezcladas dentro de Tasks 1–4:
+
+1. [`2026-07-14-03a-seguridad-calidad-superficies.md`](2026-07-14-03a-seguridad-calidad-superficies.md): Semgrep, Gitleaks, Playwright, axe, Lighthouse y puertas reproducibles.
+2. [`2026-07-16-03c-habilidades-gobernadas.md`](2026-07-16-03c-habilidades-gobernadas.md): catalogo tipado, perfiles, resolucion, seguridad, activacion efectiva y contenido metodologico ampliado.
+3. [`2026-07-14-03b-rediseno-cli-tui-interactiva.md`](2026-07-14-03b-rediseno-cli-tui-interactiva.md): catálogo CLI, JSON, temas, TUI adaptable, cancelación y UX completa sobre el servicio de habilidades de 03c.
+4. [`2026-07-12-04-documentacion-lanzamientos.md`](2026-07-12-04-documentacion-lanzamientos.md): corte de licencia, saneamiento, documentación y lanzamiento.
+
+Los perfiles de 03c cubren desde esta BETA combinaciones deterministas de
+habilidades por tipo de proyecto. Los flujos ejecutables que orquestan varias
+herramientas instaladas siguen asignados al Plan 05, despues de la BETA: se
+construiran sobre perfiles, recetas, planificacion y evidencia reales, sin una
+pantalla vacia ni una API provisional.
+
+---
+
 ## Dependencias y contratos consumidos del plan 02
 
 Este plan se ejecuta después de `2026-07-12-02-nucleo-puertas-evidencia.md`. No redefine ni duplica política de cierre, validación de excepciones, escritura de evidencia o lectura de bitácora. Los bloques siguientes son stubs de consumo: las implementaciones y enums exactos son los creados por el plan 02 y no se vuelven a declarar.
@@ -1936,4 +1964,6 @@ git commit -m "feat: separar superficies y servicio tui"
 - [ ] `plataformas` ejecuta integración en Windows/Linux/macOS y `opcionales` ejecuta TUI/MCP en Python 3.11 y 3.14.
 - [ ] Los docstrings públicos nuevos están en inglés, estilo Google; los comentarios internos explican invariantes en español.
 
-Plan complete and saved to `docs/superpowers/plans/2026-07-12-03-integraciones-superficies-tui.md`.
+La aceptación del Plan 03 requiere además completar 03a, 03c y 03b, en ese
+orden. El cierre de Plan 04 y la publicación no pueden adelantarse a esas
+verificaciones.
