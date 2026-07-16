@@ -653,7 +653,7 @@ def _preparar_destino(destino: str | os.PathLike[str]) -> Path:
         return ruta_destino
     except ErrorInstalacionGitleaks:
         raise
-    except OSError as error:
+    except (OSError, RuntimeError) as error:
         raise ErrorInstalacionGitleaks(
             f"no se pudo preparar el destino {destino!s}: {error}"
         ) from error

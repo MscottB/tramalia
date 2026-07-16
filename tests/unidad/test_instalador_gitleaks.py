@@ -808,6 +808,39 @@ def test_destino_que_es_archivo_falla_antes_de_descargar_y_cli_no_filtra_traceba
     assert descargas == []
 
 
+def test_main_normaliza_destino_sin_perfil_antes_de_descargar_o_escribir(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    for variable in ("HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH"):
+        monkeypatch.delenv(variable, raising=False)
+    if os.name != "nt":
+        monkeypatch.setattr(instalador.os.path, "expanduser", lambda ruta: ruta)
+
+    descargas: list[str] = []
+    escrituras: list[Path] = []
+
+    def descargar(url: str) -> bytes:
+        descargas.append(url)
+        return b"no debe descargarse"
+
+    def crear_directorio(ruta: Path, *_argumentos, **_opciones) -> None:
+        escrituras.append(ruta)
+
+    monkeypatch.setattr(instalador, "_descargar", descargar)
+    monkeypatch.setattr(Path, "mkdir", crear_directorio)
+
+    assert instalador.main(["--destino", "~/.local/bin"]) == 1
+
+    captura = capsys.readouterr()
+    assert captura.out == ""
+    assert "error:" in captura.err
+    assert "destino" in captura.err
+    assert "Traceback" not in captura.err
+    assert descargas == []
+    assert escrituras == []
+
+
 def test_error_de_filesystem_al_crear_destino_se_normaliza(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
