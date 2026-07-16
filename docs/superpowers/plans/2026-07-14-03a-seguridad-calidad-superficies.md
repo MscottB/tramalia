@@ -352,6 +352,14 @@ git commit -m "build: fijar herramientas de seguridad"
 - Create: `tramalia/templates/project/.tramalia/configuracion/semgrep/seguridad-python.yml`
 - Create: `tests/recursos/semgrep/inseguro.py`
 - Create: `tests/contratos/test_seguridad_estatica.py`
+- Create: `tests/seguridad/test_ejecucion_procesos.py`
+- Modify: `scripts/build_offline_docs.py`
+- Modify: `tramalia/cli/comandos.py`
+- Modify: `tramalia/core/doctor.py`
+- Modify: `tests/test_instalacion_unificada.py`
+- Modify: `tests/test_doctor.py`
+- Modify: `pyproject.toml`
+- Modify: `uv.lock`
 
 **Interfaces:**
 - Consumes: código Python de `tramalia`, `scripts` y `tests`, excluyendo recursos deliberadamente inseguros.
@@ -364,7 +372,9 @@ El fixture contiene pares `# ruleid:` / `# ok:` para:
 - `eval` y `exec` sobre entrada no literal;
 - `subprocess` con `shell=True`;
 - `os.system` y `os.popen`;
-- `subprocess.run`/`Popen` sin timeout en código de producción;
+- `subprocess.run` sin `timeout` nombrado o con `timeout=None`;
+- `subprocess.Popen` sin evidencia local de `wait(timeout=...)` o
+  `communicate(timeout=...)` sobre el mismo proceso;
 - `pickle.load` / `pickle.loads`;
 - `yaml.load` sin cargador seguro;
 - `tempfile.mktemp`;
@@ -391,39 +401,88 @@ IDS_REQUERIDOS = {
 }
 ```
 
-También debe fallar si aparece `p/python`, `auto`, una URL remota, `metrics: on`
-o una exclusión de `tramalia/`. El contrato compara byte por byte la configuración
-raíz y la copia empaquetada para proyectos generados; cambiar una exige actualizar
-la otra en el mismo commit. Las únicas exclusiones por regla admitidas son tests
-deliberadamente herméticos para `proceso-sin-timeout`; la prueba exige razón
-`tests invocan procesos falsos o efimeros` y prohíbe excluir `tramalia/` o
-`scripts/`.
+El contrato parsea YAML en modo seguro con `ruamel-yaml==0.19.1`, fijado de forma
+directa en el grupo `seguridad`; no busca substrings que puedan aparecer en un
+mensaje o en `metadata.referencia`. Exige una raíz exclusivamente local con la
+clave `rules`, sin `extends`, configuraciones registradas como `p/python`/`auto`,
+URLs de configuración, `metrics: on` ni claves de carga remota. Las URLs oficiales
+de referencia dentro de los metadatos sí son obligatorias. El contrato compara byte
+por byte la configuración raíz y la copia empaquetada para proyectos generados;
+cambiar una exige actualizar la otra en el mismo commit.
+
+Las únicas exclusiones por regla admitidas pertenecen a
+`tramalia.python.proceso-sin-timeout`, exigen la razón exacta
+`tests invocan procesos falsos o efimeros` y enumeran únicamente:
+
+```text
+tests/contratos/test_metadatos_evidencia_v1.py
+tests/integracion/test_habilidades_git.py
+tests/test_v029.py
+tests/test_v031.py
+```
+
+Se prohíbe excluir directorios completos, `tramalia/`, `scripts/` o cualquier otra
+regla. El fixture fija además como `# ok:` falsos positivos conocidos:
+`platform.system()`, `json.loads()`, `tomllib.loads()`,
+`tmp_path_factory.mktemp()`, `.run()` de objetos no subprocess,
+`_consola.print()`, un método propio `.extractall()` y `print()` fuera de una
+tool MCP.
+
+`tests/seguridad/test_ejecucion_procesos.py` añade primero pruebas RED de las tres
+llamadas reales detectadas: build offline, oferta de instalación `pip` y
+`doctor --fix`. Inyecta `subprocess.run`, exige `timeout` finito y comprueba que
+`TimeoutExpired` se convierte respectivamente en código 124/diagnóstico, `False`
+con error visible y `False`, sin traceback ni proceso sin límite. La prueba existente
+de oferta aceptada también conserva el `timeout` recibido.
 
 - [ ] **Step 2: Ejecutar tests y confirmar que faltan las reglas**
 
-Run: `uv run --no-sync pytest tests/contratos/test_seguridad_estatica.py -q`
+Run:
 
-Expected: FAIL por configuración ausente.
+```powershell
+uv run --no-sync pytest tests/contratos/test_seguridad_estatica.py tests/seguridad/test_ejecucion_procesos.py -q
+```
+
+Expected: FAIL por configuración ausente y por las tres llamadas sin timeout.
 
 - [ ] **Step 3: Implementar reglas locales específicas**
 
-Cada regla incluye `message` en español, `severity: ERROR`, `languages: [python]`, metadatos `categoria`, `cwe`, `tecnologia`, `control_tramalia` y `referencia`, y patrones suficientemente estrechos para que los `# ok:` no coincidan. Las reglas de procesos/red exigen el argumento nombrado `timeout`; la de extracción sólo permite el helper propio validado por Task 1/4. La regla MCP se limita a funciones decoradas con `@servidor.tool(...)`. No silenciar usos mediante comentarios Semgrep dentro de código de producción; si un uso es legítimo, refactorizarlo o acotar la regla con evidencia.
+Cada regla incluye `message` en español, `severity: ERROR`, `languages: [python]`, metadatos `categoria`, `cwe`, `tecnologia`, `control_tramalia` y `referencia`, y patrones suficientemente estrechos para que los `# ok:` no coincidan. Las reglas de `subprocess.run` y red exigen un argumento nombrado `timeout` distinto de `None`. Como `subprocess.Popen` no acepta esa keyword, su rama exige, dentro de la misma función, `wait(timeout=...)` o `communicate(timeout=...)` sobre la variable asignada; marca además Popen no asignado, encadenado o esperado sin timeout. La de extracción enlaza un objeto abierto por `tarfile`/`zipfile` y sólo permite el helper propio validado por Task 1/4. La regla MCP se limita a funciones síncronas o asíncronas decoradas con `@servidor.tool(...)`, incluidos decoradores apilados. No silenciar usos mediante comentarios Semgrep dentro de código de producción; si un uso es legítimo, refactorizarlo o acotar la regla con evidencia.
+
+Corregir los tres hallazgos reales con límites explícitos y nombres propios en
+español ASCII:
+
+- build MkDocs offline: 300 segundos; ante timeout informa por stderr, devuelve
+  124 y conserva la limpieza del temporal;
+- instalación `pip` ofrecida por CLI: 600 segundos; ante timeout muestra error y
+  devuelve `False`;
+- `mise install` de doctor: 600 segundos; ante timeout devuelve `False`.
+
+Regenerar el lock con `uv lock --python 3.11` después de declarar
+`ruamel-yaml==0.19.1` en el grupo `seguridad`.
 
 - [ ] **Step 4: Validar reglas y escanear el repositorio**
 
 Run:
 
 ```powershell
-uv run --no-sync semgrep --test --config configuracion/semgrep/seguridad-python.yml tests/recursos/semgrep
+uv run --no-sync semgrep scan --test --config configuracion/semgrep/seguridad-python.yml --metrics=off --disable-version-check tests/recursos/semgrep/inseguro.py
 uv run --no-sync semgrep scan --config configuracion/semgrep/seguridad-python.yml --error --metrics=off --disable-version-check --exclude tests/recursos/semgrep tramalia scripts tests
+uv run --no-sync pytest tests/contratos/test_seguridad_estatica.py tests/seguridad/test_ejecucion_procesos.py tests/test_instalacion_unificada.py tests/test_doctor.py -q
 ```
 
-Expected: las pruebas de reglas pasan y el código real no tiene hallazgos. Un hallazgo real se corrige mediante TDD antes de continuar; no se añade una exclusión general.
+El modo test usa archivo de reglas + archivo fixture porque Semgrep 1.169.0 exige
+un directorio de configuración cuando el objetivo de `--test` también es un
+directorio. No ejecutar `semgrep --validate`: esa ruta descarga
+`p/semgrep-rule-lints` y rompe la puerta sin red. Expected: las pruebas de reglas
+pasan, los tests de timeout quedan verdes y el código real no tiene hallazgos. Un
+hallazgo real se corrige mediante TDD antes de continuar; no se añade una exclusión
+general.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add configuracion/semgrep tramalia/templates/project/.tramalia/configuracion/semgrep tests/recursos/semgrep tests/contratos/test_seguridad_estatica.py
+git add configuracion/semgrep tramalia/templates/project/.tramalia/configuracion/semgrep tests/recursos/semgrep tests/contratos/test_seguridad_estatica.py tests/seguridad/test_ejecucion_procesos.py scripts/build_offline_docs.py tramalia/cli/comandos.py tramalia/core/doctor.py tests/test_instalacion_unificada.py tests/test_doctor.py pyproject.toml uv.lock
 git commit -m "test: incorporar analisis semgrep reproducible"
 ```
 
@@ -950,7 +1009,7 @@ Expected: FAIL por jobs ausentes.
 - run: $RUNNER_TEMP/herramientas/gitleaks dir . --redact --no-banner --config .gitleaks.toml --max-target-megabytes 10 --exit-code 1
 - run: uv sync --locked --group desarrollo --group seguridad
 - run: uv run --no-sync actionlint
-- run: uv run --no-sync semgrep --test --config configuracion/semgrep/seguridad-python.yml tests/recursos/semgrep
+- run: uv run --no-sync semgrep scan --test --config configuracion/semgrep/seguridad-python.yml --metrics=off --disable-version-check tests/recursos/semgrep/inseguro.py
 - run: uv run --no-sync semgrep scan --config configuracion/semgrep/seguridad-python.yml --error --metrics=off --disable-version-check --exclude tests/recursos/semgrep tramalia scripts tests
 - run: uv run --no-sync python scripts/generar_proyecto_prueba_seguridad.py --salida .artefactos/seguridad/proyecto-generado
 - run: uv run --no-sync semgrep scan --config .artefactos/seguridad/proyecto-generado/.tramalia/configuracion/semgrep/seguridad-python.yml --error --metrics=off --disable-version-check .artefactos/seguridad/proyecto-generado
@@ -1016,7 +1075,7 @@ $ruta_gitleaks = Join-Path "$HOME/.local/bin" $nombre_gitleaks
 & $ruta_gitleaks version
 uv run --no-sync pytest
 uv run --no-sync actionlint
-uv run --no-sync semgrep --test --config configuracion/semgrep/seguridad-python.yml tests/recursos/semgrep
+uv run --no-sync semgrep scan --test --config configuracion/semgrep/seguridad-python.yml --metrics=off --disable-version-check tests/recursos/semgrep/inseguro.py
 uv run --no-sync semgrep scan --config configuracion/semgrep/seguridad-python.yml --error --metrics=off --disable-version-check --exclude tests/recursos/semgrep tramalia scripts tests
 & $ruta_gitleaks git --redact --no-banner --config .gitleaks.toml --exit-code 1
 & $ruta_gitleaks dir . --redact --no-banner --config .gitleaks.toml --max-target-megabytes 10 --exit-code 1
