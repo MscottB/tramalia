@@ -209,10 +209,11 @@ def test_grupo_seguridad_no_contamina_dependencias_del_paquete() -> None:
 
     assert configuracion["dependency-groups"]["seguridad"] == [
         "actionlint-py==1.7.12.24",
+        "ruamel-yaml==0.19.1",
         "semgrep==1.169.0",
     ]
     assert all(
-        not dependencia.startswith(("actionlint-py", "semgrep"))
+        not dependencia.startswith(("actionlint-py", "ruamel-yaml", "semgrep"))
         for dependencia in configuracion["project"]["dependencies"]
     )
 

@@ -58,6 +58,7 @@ desarrollo = [
 ]
 seguridad = [
     "actionlint-py==1.7.12.24",
+    "ruamel-yaml==0.19.1",
     "semgrep==1.169.0",
 ]
 

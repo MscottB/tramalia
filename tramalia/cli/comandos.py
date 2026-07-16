@@ -795,7 +795,13 @@ def _ofrecer_instalar(paquete: str, para: str) -> bool:
         renderizado.informar(t("offer.later", paquete=paquete))
         return False
     renderizado.informar(f"→ {sys.executable} -m pip install {paquete}")
-    resultado = subprocess.run([sys.executable, "-m", "pip", "install", paquete])
+    try:
+        resultado = subprocess.run(
+            [sys.executable, "-m", "pip", "install", paquete], timeout=600
+        )
+    except subprocess.TimeoutExpired:
+        renderizado.error("La instalación superó el límite de 600 segundos.")
+        return False
     if resultado.returncode == 0:
         import importlib
 

@@ -1,0 +1,323 @@
+rules:
+  - id: tramalia.python.eval-exec
+    message: Evita evaluar código dinámico; usa un parser o una tabla de operaciones permitidas.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: ejecucion_codigo
+      cwe: CWE-95
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/95.html
+    pattern-either:
+      - patterns:
+          - pattern: eval($ENTRADA)
+          - pattern-not: eval("...")
+          - pattern-not-inside: |
+              def $FUNCION(..., eval, ...):
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(..., eval, ...):
+                ...
+      - patterns:
+          - pattern: exec($ENTRADA)
+          - pattern-not: exec("...")
+          - pattern-not-inside: |
+              def $FUNCION(..., exec, ...):
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(..., exec, ...):
+                ...
+      - patterns:
+          - pattern: builtins.eval($ENTRADA)
+          - pattern-not: builtins.eval("...")
+      - patterns:
+          - pattern: builtins.exec($ENTRADA)
+          - pattern-not: builtins.exec("...")
+
+  - id: tramalia.python.subprocess-shell
+    message: Evita shell=True; ejecuta argumentos separados para impedir inyección de comandos.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: ejecucion_procesos
+      cwe: CWE-78
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/78.html
+    patterns:
+      - pattern: subprocess.$FUNCION(..., shell=True, ...)
+      - metavariable-regex:
+          metavariable: $FUNCION
+          regex: ^(Popen|call|check_call|check_output|run)$
+
+  - id: tramalia.python.sistema-shell
+    message: Evita las funciones de shell de os; usa subprocess con argumentos y límite explícito.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: ejecucion_procesos
+      cwe: CWE-78
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/78.html
+    pattern-either:
+      - pattern: os.system(...)
+      - pattern: os.popen(...)
+
+  - id: tramalia.python.proceso-sin-timeout
+    message: Define un límite finito para el proceso y normaliza TimeoutExpired sin dejarlo bloqueado.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: disponibilidad
+      cwe: CWE-400
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/400.html
+      razon_exclusion: tests invocan procesos falsos o efimeros
+    paths:
+      exclude:
+        - tests/contratos/test_metadatos_evidencia_v1.py
+        - tests/integracion/test_habilidades_git.py
+        - tests/test_v029.py
+        - tests/test_v031.py
+    pattern-either:
+      - patterns:
+          - pattern: subprocess.run(...)
+          - pattern-not: subprocess.run(..., timeout=$TIEMPO, ...)
+      - pattern: subprocess.run(..., timeout=None, ...)
+      - patterns:
+          - pattern: subprocess.Popen(...)
+          - pattern-not-inside: $PROCESO = subprocess.Popen(...)
+      - patterns:
+          - pattern: $PROCESO = subprocess.Popen(...)
+          - pattern-not-inside: |
+              def $FUNCION(...):
+                ...
+                $PROCESO = subprocess.Popen(...)
+                ...
+                $PROCESO.wait(..., timeout=$TIEMPO, ...)
+                ...
+          - pattern-not-inside: |
+              def $FUNCION(...):
+                ...
+                $PROCESO = subprocess.Popen(...)
+                ...
+                $PROCESO.communicate(..., timeout=$TIEMPO, ...)
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(...):
+                ...
+                $PROCESO = subprocess.Popen(...)
+                ...
+                $PROCESO.wait(..., timeout=$TIEMPO, ...)
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(...):
+                ...
+                $PROCESO = subprocess.Popen(...)
+                ...
+                $PROCESO.communicate(..., timeout=$TIEMPO, ...)
+                ...
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  def $FUNCION(...):
+                    ...
+                    $PROCESO = subprocess.Popen(...)
+                    ...
+              - pattern-inside: |
+                  async def $FUNCION(...):
+                    ...
+                    $PROCESO = subprocess.Popen(...)
+                    ...
+          - pattern-either:
+              - pattern: $PROCESO.wait(..., timeout=None, ...)
+              - pattern: $PROCESO.communicate(..., timeout=None, ...)
+
+  - id: tramalia.python.pickle-inseguro
+    message: Evita deserializar Pickle no confiable; usa un formato de datos seguro y validado.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: deserializacion
+      cwe: CWE-502
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/502.html
+    pattern-either:
+      - pattern: pickle.load(...)
+      - pattern: pickle.loads(...)
+
+  - id: tramalia.python.yaml-inseguro
+    message: Usa un cargador YAML seguro para evitar construcción arbitraria de objetos.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: deserializacion
+      cwe: CWE-502
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/502.html
+    patterns:
+      - pattern: yaml.load(...)
+      - pattern-not: yaml.load(..., Loader=yaml.SafeLoader, ...)
+      - pattern-not: yaml.load(..., Loader=yaml.CSafeLoader, ...)
+      - pattern-not: yaml.load(..., Loader=SafeLoader, ...)
+      - pattern-not: yaml.load(..., Loader=CSafeLoader, ...)
+      - pattern-not: yaml.load($DATOS, yaml.SafeLoader)
+      - pattern-not: yaml.load($DATOS, yaml.CSafeLoader)
+      - pattern-not: yaml.load($DATOS, SafeLoader)
+      - pattern-not: yaml.load($DATOS, CSafeLoader)
+
+  - id: tramalia.python.mktemp-inseguro
+    message: Evita mktemp por su condición de carrera; crea el temporal de forma atómica.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: archivos_temporales
+      cwe: CWE-377
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/377.html
+    pattern: tempfile.mktemp(...)
+
+  - id: tramalia.python.tls-sin-verificar
+    message: Mantén la verificación TLS activa; no aceptes certificados sin validar.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: transporte_seguro
+      cwe: CWE-295
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/295.html
+    pattern-either:
+      - patterns:
+          - pattern: requests.$METODO(..., verify=False, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $SESION = requests.Session(...)
+                  ...
+              - pattern-inside: |
+                  $SESION = requests.session(...)
+                  ...
+          - pattern: $SESION.$METODO(..., verify=False, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+
+  - id: tramalia.python.red-sin-timeout
+    message: Define un límite finito para toda solicitud de red y maneja su expiración.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: disponibilidad
+      cwe: CWE-400
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/400.html
+    pattern-either:
+      - patterns:
+          - pattern: requests.$METODO(...)
+          - pattern-not: requests.$METODO(..., timeout=$TIEMPO, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern: requests.$METODO(..., timeout=None, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern: urllib.request.urlopen(...)
+          - pattern-not: urllib.request.urlopen(..., timeout=$TIEMPO, ...)
+      - pattern: urllib.request.urlopen(..., timeout=None, ...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $SESION = requests.Session(...)
+                  ...
+              - pattern-inside: |
+                  $SESION = requests.session(...)
+                  ...
+          - pattern: $SESION.$METODO(...)
+          - pattern-not: $SESION.$METODO(..., timeout=$TIEMPO, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $SESION = requests.Session(...)
+                  ...
+              - pattern-inside: |
+                  $SESION = requests.session(...)
+                  ...
+          - pattern: $SESION.$METODO(..., timeout=None, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+
+  - id: tramalia.python.extraccion-insegura
+    message: Valida miembros y destino antes de extraer un archivo para impedir traversal de rutas.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: archivos_comprimidos
+      cwe: CWE-22
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/22.html
+    pattern-either:
+      - patterns:
+          - pattern-inside: |
+              $ARCHIVO = tarfile.open(...)
+              ...
+          - pattern: $ARCHIVO.extractall(...)
+      - patterns:
+          - pattern-inside: |
+              with tarfile.open(...) as $ARCHIVO:
+                ...
+          - pattern: $ARCHIVO.extractall(...)
+      - patterns:
+          - pattern-inside: |
+              $ARCHIVO = zipfile.ZipFile(...)
+              ...
+          - pattern: $ARCHIVO.extractall(...)
+      - patterns:
+          - pattern-inside: |
+              with zipfile.ZipFile(...) as $ARCHIVO:
+                ...
+          - pattern: $ARCHIVO.extractall(...)
+      - pattern: tarfile.open(...).extractall(...)
+      - pattern: zipfile.ZipFile(...).extractall(...)
+
+  - id: tramalia.python.mcp-stdout-directo
+    message: Evita print directo en una tool MCP; usa logging o una salida estructurada.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      categoria: exposicion_informacion
+      cwe: CWE-200
+      tecnologia: python
+      control_tramalia: analisis_estatico_local
+      referencia: https://cwe.mitre.org/data/definitions/200.html
+    pattern-either:
+      - patterns:
+          - pattern-inside: |
+              @$SERVIDOR.tool(...)
+              def $FUNCION(...):
+                ...
+          - pattern: print(...)
+      - patterns:
+          - pattern-inside: |
+              @$SERVIDOR.tool(...)
+              async def $FUNCION(...):
+                ...
+          - pattern: print(...)

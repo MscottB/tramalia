@@ -51,10 +51,13 @@ def test_oferta_aceptada_instala(monkeypatch):
     monkeypatch.setattr(comandos.menu, "pedir_texto", lambda *a, **k: "s")
     invocaciones = []
 
-    def ejecutar_falso(comando, **_opciones):
-        invocaciones.append(comando)
+    def ejecutar_falso(comando, **opciones):
+        invocaciones.append((comando, opciones))
         return subprocess.CompletedProcess(comando, 0)
 
     monkeypatch.setattr(subprocess, "run", ejecutar_falso)
     assert comandos._ofrecer_instalar("textual", "el dashboard TUI") is True
-    assert invocaciones and invocaciones[0][-2:] == ["install", "textual"]
+    assert invocaciones
+    comando, opciones = invocaciones[0]
+    assert comando[-2:] == ["install", "textual"]
+    assert opciones["timeout"] == 600

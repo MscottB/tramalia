@@ -133,7 +133,9 @@ def fix(report: Report) -> bool:
     if not mise_ok:
         return False  # sin mise no se puede delegar; el caller mostrará el bootstrap
     try:
-        subprocess.run(["mise", "install"], check=False)
+        subprocess.run(["mise", "install"], check=False, timeout=600)
         return True
+    except subprocess.TimeoutExpired:
+        return False
     except Exception:
         return False

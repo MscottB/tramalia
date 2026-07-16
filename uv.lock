@@ -1951,6 +1951,7 @@ desarrollo = [
 ]
 seguridad = [
     { name = "actionlint-py" },
+    { name = "ruamel-yaml" },
     { name = "semgrep" },
 ]
 
@@ -1981,6 +1982,7 @@ desarrollo = [
 ]
 seguridad = [
     { name = "actionlint-py", specifier = "==1.7.12.24" },
+    { name = "ruamel-yaml", specifier = "==0.19.1" },
     { name = "semgrep", specifier = "==1.169.0" },
 ]
 

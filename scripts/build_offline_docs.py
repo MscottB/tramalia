@@ -38,20 +38,25 @@ def main() -> int:
     try:
         with tempfile.TemporaryDirectory() as tmp:
             site_dir = Path(tmp) / "site-offline"
-            cp = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "mkdocs",
-                    "build",
-                    "--strict",
-                    "-f",
-                    str(tmp_config),
-                    "-d",
-                    str(site_dir),
-                ],
-                cwd=ROOT,
-            )
+            try:
+                cp = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "mkdocs",
+                        "build",
+                        "--strict",
+                        "-f",
+                        str(tmp_config),
+                        "-d",
+                        str(site_dir),
+                    ],
+                    cwd=ROOT,
+                    timeout=300,
+                )
+            except subprocess.TimeoutExpired:
+                print("el build offline excedió el límite de 300 segundos", file=sys.stderr)
+                return 124
             if cp.returncode != 0:
                 return cp.returncode
 
