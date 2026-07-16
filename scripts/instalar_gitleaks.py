@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
+import http.client
 import io
+import lzma
 import os
 import platform
 import stat
@@ -14,6 +17,7 @@ import tempfile
 import urllib.error
 import urllib.request
 import zipfile
+import zlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -27,10 +31,30 @@ MAXIMO_BYTES_MIEMBRO = 128 * 1024 * 1024
 MAXIMO_BYTES_EXTRAIDOS = 160 * 1024 * 1024
 
 _TAMANO_BLOQUE = 1024 * 1024
+_TAMANO_BLOQUE_TAR = tarfile.BLOCKSIZE
+_BLOQUE_NULO_TAR = b"\0" * _TAMANO_BLOQUE_TAR
 _URL_PUBLICACION = (
     "https://github.com/gitleaks/gitleaks/releases/download/"
     f"v{VERSION_GITLEAKS}"
 )
+
+_ERRORES_ARCHIVO_ESPERABLES: tuple[type[BaseException], ...] = (
+    EOFError,
+    lzma.LZMAError,
+    NotImplementedError,
+    RuntimeError,
+    tarfile.TarError,
+    zipfile.BadZipFile,
+    zipfile.LargeZipFile,
+    zlib.error,
+)
+
+try:
+    from compression import zstd as _compresion_zstd
+except ImportError:  # Python 3.11-3.13 no incluye compression.zstd.
+    pass
+else:
+    _ERRORES_ARCHIVO_ESPERABLES += (_compresion_zstd.ZstdError,)
 
 
 class ErrorInstalacionGitleaks(RuntimeError):
@@ -186,7 +210,12 @@ def _descargar(url: str) -> bytes:
             return b"".join(bloques)
     except ErrorInstalacionGitleaks:
         raise
-    except (OSError, urllib.error.URLError) as error:
+    except (
+        http.client.IncompleteRead,
+        http.client.HTTPException,
+        OSError,
+        urllib.error.URLError,
+    ) as error:
         raise ErrorInstalacionGitleaks(f"falló la descarga de Gitleaks: {error}") from error
 
 
@@ -234,6 +263,141 @@ def _validar_limites(miembros: list[_MiembroArchivo]) -> None:
     total = 0
     for cantidad, miembro in enumerate(miembros, start=1):
         total = _validar_limite_incremental(miembro, cantidad, total)
+
+
+def _leer_numero_octal_tar(campo: bytes, etiqueta: str) -> int:
+    if campo and campo[0] & 0x80:
+        raise ErrorInstalacionGitleaks(
+            f"la cabecera TAR usa una codificación binaria no permitida en {etiqueta}"
+        )
+    valor = campo.strip(b"\0 ")
+    if not valor:
+        return 0
+    if any(digito not in b"01234567" for digito in valor):
+        raise ErrorInstalacionGitleaks(
+            f"la cabecera TAR contiene un valor octal inválido en {etiqueta}"
+        )
+    return int(valor, 8)
+
+
+def _validar_checksum_tar(cabecera: bytes) -> None:
+    almacenado = _leer_numero_octal_tar(cabecera[148:156], "checksum")
+    normalizada = cabecera[:148] + (b" " * 8) + cabecera[156:]
+    sin_signo = sum(normalizada)
+    con_signo = sum(valor if valor < 128 else valor - 256 for valor in normalizada)
+    if almacenado not in (sin_signo, con_signo):
+        raise ErrorInstalacionGitleaks("la cabecera TAR tiene un checksum inválido")
+
+
+def _decodificar_texto_tar(campo: bytes) -> str:
+    return campo.split(b"\0", 1)[0].decode("utf-8", errors="surrogateescape")
+
+
+def _miembro_desde_cabecera_tar(
+    cabecera: bytes,
+) -> tuple[_MiembroArchivo, bytes]:
+    _validar_checksum_tar(cabecera)
+    nombre = _decodificar_texto_tar(cabecera[0:100])
+    if cabecera[257:263] == b"ustar\0":
+        prefijo = _decodificar_texto_tar(cabecera[345:500])
+        if prefijo:
+            nombre = f"{prefijo}/{nombre}" if nombre else prefijo
+    tipo = cabecera[156:157]
+    miembro = _MiembroArchivo(
+        nombre=nombre,
+        tamano=_leer_numero_octal_tar(cabecera[124:136], "tamaño"),
+        modo=_leer_numero_octal_tar(cabecera[100:108], "modo"),
+        regular=tipo in (tarfile.REGTYPE, tarfile.AREGTYPE),
+        referencia=None,
+    )
+    return miembro, tipo
+
+
+def _leer_hasta_bloque_tar(flujo: gzip.GzipFile) -> bytes:
+    partes: list[bytes] = []
+    restante = _TAMANO_BLOQUE_TAR
+    while restante:
+        parte = flujo.read1(restante)
+        if not parte:
+            break
+        partes.append(parte)
+        restante -= len(parte)
+    return b"".join(partes)
+
+
+def _consumir_exacto_tar(
+    flujo: gzip.GzipFile,
+    cantidad: int,
+    *,
+    exigir_nulos: bool,
+    contexto: str,
+) -> None:
+    restante = cantidad
+    while restante:
+        bloque = flujo.read1(min(restante, _TAMANO_BLOQUE))
+        if not bloque:
+            raise ErrorInstalacionGitleaks(f"TAR truncado al leer {contexto}")
+        if exigir_nulos and any(bloque):
+            raise ErrorInstalacionGitleaks("el padding TAR contiene bytes no nulos")
+        restante -= len(bloque)
+
+
+def _validar_fin_tar(flujo: gzip.GzipFile) -> None:
+    segundo = _leer_hasta_bloque_tar(flujo)
+    if len(segundo) != _TAMANO_BLOQUE_TAR:
+        raise ErrorInstalacionGitleaks("fin TAR truncado: falta el segundo bloque nulo")
+    if segundo != _BLOQUE_NULO_TAR:
+        raise ErrorInstalacionGitleaks("fin TAR inválido: se requieren dos bloques nulos")
+    while True:
+        adicional = _leer_hasta_bloque_tar(flujo)
+        if not adicional:
+            return
+        if len(adicional) != _TAMANO_BLOQUE_TAR:
+            raise ErrorInstalacionGitleaks("TAR truncado después de su marca de fin")
+        if adicional != _BLOQUE_NULO_TAR:
+            raise ErrorInstalacionGitleaks("el TAR contiene datos después de su marca de fin")
+
+
+def _prevalidar_tar_crudo(datos: bytes) -> list[_MiembroArchivo]:
+    miembros: list[_MiembroArchivo] = []
+    total_declarado = 0
+    cantidad_cabeceras = 0
+    with gzip.GzipFile(fileobj=io.BytesIO(datos), mode="rb") as flujo:
+        while True:
+            cabecera = _leer_hasta_bloque_tar(flujo)
+            if len(cabecera) != _TAMANO_BLOQUE_TAR:
+                raise ErrorInstalacionGitleaks("TAR truncado o sin marca de fin")
+            if cabecera == _BLOQUE_NULO_TAR:
+                _validar_fin_tar(flujo)
+                return miembros
+
+            miembro, tipo = _miembro_desde_cabecera_tar(cabecera)
+            cantidad_cabeceras += 1
+            total_declarado = _validar_limite_incremental(
+                miembro,
+                cantidad_cabeceras,
+                total_declarado,
+            )
+            if tipo not in (tarfile.REGTYPE, tarfile.AREGTYPE):
+                raise ErrorInstalacionGitleaks(
+                    f"el miembro TAR {miembro.nombre!r} no es un archivo regular"
+                )
+            _validar_ruta_miembro(miembro.nombre)
+            miembros.append(miembro)
+
+            _consumir_exacto_tar(
+                flujo,
+                miembro.tamano,
+                exigir_nulos=False,
+                contexto=f"el payload de {miembro.nombre!r}",
+            )
+            tamano_padding = (-miembro.tamano) % _TAMANO_BLOQUE_TAR
+            _consumir_exacto_tar(
+                flujo,
+                tamano_padding,
+                exigir_nulos=True,
+                contexto=f"el padding de {miembro.nombre!r}",
+            )
 
 
 def _seleccionar_ejecutable(
@@ -407,29 +571,7 @@ def _publicar_tar(
     nombre_ejecutable: str,
     sistema: str,
 ) -> Path:
-    miembros: list[_MiembroArchivo] = []
-    total_declarado = 0
-    with tarfile.open(fileobj=io.BytesIO(datos), mode="r|gz") as archivo:
-        for cantidad, informacion in enumerate(archivo, start=1):
-            miembro = _MiembroArchivo(
-                nombre=informacion.name,
-                tamano=informacion.size,
-                modo=informacion.mode,
-                regular=informacion.isreg(),
-                referencia=None,
-            )
-            total_declarado = _validar_limite_incremental(
-                miembro,
-                cantidad,
-                total_declarado,
-            )
-            _validar_ruta_miembro(miembro.nombre)
-            if not miembro.regular:
-                raise ErrorInstalacionGitleaks(
-                    f"el miembro {miembro.nombre!r} no es un archivo regular"
-                )
-            miembros.append(miembro)
-
+    miembros = _prevalidar_tar_crudo(datos)
     elegido = _seleccionar_ejecutable(miembros, nombre_ejecutable)
     indice_elegido = next(
         indice for indice, miembro in enumerate(miembros) if miembro is elegido
@@ -568,7 +710,7 @@ def instalar(
         raise ErrorInstalacionGitleaks(
             f"no se pudo publicar Gitleaks: {error}"
         ) from error
-    except (EOFError, tarfile.TarError, zipfile.BadZipFile) as error:
+    except _ERRORES_ARCHIVO_ESPERABLES as error:
         raise ErrorInstalacionGitleaks(
             f"el archivo descargado no es válido: {error}"
         ) from error

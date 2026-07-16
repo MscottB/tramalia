@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import http.client
 import io
 import os
 import stat
@@ -80,6 +81,30 @@ def _ajustar_tamanos_zip(datos: bytes, tamanos: list[int]) -> bytes:
     return bytes(ajustados)
 
 
+def _ajustar_metodo_zip(datos: bytes, metodo: int) -> bytes:
+    ajustados = bytearray(datos)
+    cabecera_local = ajustados.find(b"PK\x03\x04")
+    cabecera_central = ajustados.find(b"PK\x01\x02")
+    assert cabecera_local >= 0
+    assert cabecera_central >= 0
+    struct.pack_into("<H", ajustados, cabecera_local + 8, metodo)
+    struct.pack_into("<H", ajustados, cabecera_central + 10, metodo)
+    return bytes(ajustados)
+
+
+def _marcar_zip_cifrado(datos: bytes) -> bytes:
+    ajustados = bytearray(datos)
+    cabecera_local = ajustados.find(b"PK\x03\x04")
+    cabecera_central = ajustados.find(b"PK\x01\x02")
+    assert cabecera_local >= 0
+    assert cabecera_central >= 0
+    bandera_local = struct.unpack_from("<H", ajustados, cabecera_local + 6)[0]
+    bandera_central = struct.unpack_from("<H", ajustados, cabecera_central + 8)[0]
+    struct.pack_into("<H", ajustados, cabecera_local + 6, bandera_local | 1)
+    struct.pack_into("<H", ajustados, cabecera_central + 8, bandera_central | 1)
+    return bytes(ajustados)
+
+
 def _crear_zip_con_limite(caso: str) -> bytes:
     if caso == "miembro":
         datos = _crear_zip([("grande.bin", b"", stat.S_IFREG | 0o644)])
@@ -134,6 +159,36 @@ def _crear_tar_con_limite(caso: str) -> bytes:
             for indice in range(instalador.MAXIMO_MIEMBROS_ARCHIVO + 1)
         ]
     )
+
+
+def _crear_tar_crudo(
+    miembros: list[tuple[str, bytes, bytes, int]],
+    *,
+    bloques_fin: int = 2,
+    relleno: bytes = b"\0",
+) -> bytes:
+    crudo = io.BytesIO()
+    for nombre, contenido, tipo, modo in miembros:
+        informacion = tarfile.TarInfo(nombre)
+        informacion.type = tipo
+        informacion.mode = modo
+        informacion.size = len(contenido)
+        crudo.write(informacion.tobuf(format=tarfile.GNU_FORMAT))
+        crudo.write(contenido)
+        tamano_relleno = (-len(contenido)) % tarfile.BLOCKSIZE
+        crudo.write(relleno * tamano_relleno)
+    crudo.write(b"\0" * (tarfile.BLOCKSIZE * bloques_fin))
+    return gzip.compress(crudo.getvalue(), mtime=0)
+
+
+def _registro_pax(clave: str, valor: str) -> bytes:
+    cuerpo = f" {clave}={valor}\n".encode()
+    longitud = len(cuerpo) + 1
+    while True:
+        registro = str(longitud).encode() + cuerpo
+        if len(registro) == longitud:
+            return registro
+        longitud = len(registro)
 
 
 def _afirmar_sin_publicacion(destino: Path, nombre: str) -> None:
@@ -328,7 +383,7 @@ def test_aplica_permisos_posix_al_temporal(
     assert modo == 0o755
 
 
-def test_tar_inspecciona_cabeceras_incrementalmente_y_reabre_para_copiar(
+def test_tar_prevalida_crudo_y_abre_tarfile_solo_para_copiar(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     datos = _crear_tar(
@@ -354,7 +409,130 @@ def test_tar_inspecciona_cabeceras_incrementalmente_y_reabre_para_copiar(
     publicado = instalar(tmp_path, sistema="linux", arquitectura="x86_64")
 
     assert publicado.read_bytes() == b"binario"
-    assert modos == ["r|gz", "r|gz"]
+    assert modos == ["r|gz"]
+
+
+@pytest.mark.parametrize(
+    ("tipo", "contenido"),
+    [
+        (tarfile.GNUTYPE_LONGNAME, b"gitleaks\0"),
+        (tarfile.GNUTYPE_LONGLINK, b"objetivo-largo\0"),
+        (tarfile.XHDTYPE, _registro_pax("comment", "pax-local")),
+        (tarfile.XGLTYPE, _registro_pax("comment", "pax-global")),
+    ],
+    ids=["gnu-longname", "gnu-longlink", "pax-local", "pax-global"],
+)
+def test_tar_crudo_rechaza_pseudomiembro_antes_de_consumir_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tipo: bytes,
+    contenido: bytes,
+) -> None:
+    datos = _crear_tar_crudo(
+        [
+            ("extension", contenido, tipo, 0o644),
+            ("gitleaks", b"bin", tarfile.REGTYPE, 0o755),
+        ]
+    )
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_linux_x64.tar.gz")
+    monkeypatch.setattr(instalador, "MAXIMO_BYTES_MIEMBRO", 8)
+
+    with pytest.raises(ErrorInstalacionGitleaks, match="128 MiB"):
+        instalar(tmp_path, sistema="linux", arquitectura="x86_64")
+
+    _afirmar_sin_publicacion(tmp_path, "gitleaks")
+
+
+@pytest.mark.parametrize(
+    ("constante", "limite", "miembros", "mensaje"),
+    [
+        (
+            "MAXIMO_MIEMBROS_ARCHIVO",
+            1,
+            [
+                ("nota", b"", tarfile.REGTYPE, 0o644),
+                ("gitleaks", b"x", tarfile.REGTYPE, 0o755),
+            ],
+            "64 miembros",
+        ),
+        (
+            "MAXIMO_BYTES_MIEMBRO",
+            2,
+            [("gitleaks", b"xxx", tarfile.REGTYPE, 0o755)],
+            "128 MiB",
+        ),
+        (
+            "MAXIMO_BYTES_EXTRAIDOS",
+            3,
+            [
+                ("nota", b"xx", tarfile.REGTYPE, 0o644),
+                ("gitleaks", b"xx", tarfile.REGTYPE, 0o755),
+            ],
+            "160 MiB",
+        ),
+    ],
+)
+def test_tar_crudo_aplica_limites_reducidos_antes_del_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    constante: str,
+    limite: int,
+    miembros: list[tuple[str, bytes, bytes, int]],
+    mensaje: str,
+) -> None:
+    datos = _crear_tar_crudo(miembros)
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_linux_x64.tar.gz")
+    monkeypatch.setattr(instalador, constante, limite)
+
+    with pytest.raises(ErrorInstalacionGitleaks, match=mensaje):
+        instalar(tmp_path, sistema="linux", arquitectura="x86_64")
+
+    _afirmar_sin_publicacion(tmp_path, "gitleaks")
+
+
+def test_tar_crudo_rechaza_padding_no_nulo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    datos = _crear_tar_crudo(
+        [("gitleaks", b"x", tarfile.REGTYPE, 0o755)],
+        relleno=b"x",
+    )
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_linux_x64.tar.gz")
+
+    with pytest.raises(ErrorInstalacionGitleaks, match="padding"):
+        instalar(tmp_path, sistema="linux", arquitectura="x86_64")
+
+    _afirmar_sin_publicacion(tmp_path, "gitleaks")
+
+
+def test_tar_crudo_rechaza_fin_truncado(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    datos = _crear_tar_crudo(
+        [("gitleaks", b"bin", tarfile.REGTYPE, 0o755)],
+        bloques_fin=1,
+    )
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_linux_x64.tar.gz")
+
+    with pytest.raises(ErrorInstalacionGitleaks, match="fin|truncado"):
+        instalar(tmp_path, sistema="linux", arquitectura="x86_64")
+
+    _afirmar_sin_publicacion(tmp_path, "gitleaks")
+
+
+def test_tar_crudo_rechaza_cabecera_con_checksum_invalido(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    valido = _crear_tar_crudo([("gitleaks", b"bin", tarfile.REGTYPE, 0o755)])
+    crudo = bytearray(gzip.decompress(valido))
+    crudo[0] ^= 1
+    datos = gzip.compress(bytes(crudo), mtime=0)
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_linux_x64.tar.gz")
+
+    with pytest.raises(ErrorInstalacionGitleaks, match="cabecera|checksum"):
+        instalar(tmp_path, sistema="linux", arquitectura="x86_64")
+
+    _afirmar_sin_publicacion(tmp_path, "gitleaks")
 
 
 def test_sustituye_version_anterior_con_replace_atomico(
@@ -527,6 +705,40 @@ def test_descarga_sin_content_length_recuenta_hasta_el_limite(
         instalador._descargar("https://ejemplo.invalid/gitleaks.zip")
 
 
+@pytest.mark.parametrize(
+    "error",
+    [
+        http.client.HTTPException("respuesta HTTP inválida"),
+        http.client.IncompleteRead(b"parcial", 20),
+    ],
+    ids=["http-exception", "incomplete-read"],
+)
+def test_descarga_normaliza_errores_http(
+    monkeypatch: pytest.MonkeyPatch,
+    error: http.client.HTTPException,
+) -> None:
+    class Respuesta:
+        headers: dict[str, str] = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_argumentos):
+            return False
+
+        def read(self, _tamano: int = -1) -> bytes:
+            raise error
+
+    monkeypatch.setattr(
+        instalador.urllib.request,
+        "urlopen",
+        lambda _url, timeout: Respuesta(),
+    )
+
+    with pytest.raises(ErrorInstalacionGitleaks, match="descarga"):
+        instalador._descargar("https://ejemplo.invalid/gitleaks.zip")
+
+
 def test_destino_que_es_archivo_falla_antes_de_descargar_y_cli_no_filtra_traceback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -586,6 +798,64 @@ def test_main_imprime_solo_ruta_absoluta(
     captura = capsys.readouterr()
     assert captura.out == f"{publicado}\n"
     assert captura.err == ""
+
+
+def test_main_normaliza_incomplete_read_sin_traceback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    class Respuesta:
+        headers: dict[str, str] = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_argumentos):
+            return False
+
+        def read(self, _tamano: int = -1) -> bytes:
+            raise http.client.IncompleteRead(b"parcial", 20)
+
+    monkeypatch.setattr(
+        instalador.urllib.request,
+        "urlopen",
+        lambda _url, timeout: Respuesta(),
+    )
+
+    assert instalador.main(["--destino", str(tmp_path)]) == 1
+
+    captura = capsys.readouterr()
+    assert captura.out == ""
+    assert "error:" in captura.err
+    assert "Traceback" not in captura.err
+
+
+@pytest.mark.parametrize(
+    "transformar",
+    [
+        lambda datos: _ajustar_metodo_zip(datos, 99),
+        _marcar_zip_cifrado,
+    ],
+    ids=["compresion-no-soportada", "cifrado"],
+)
+def test_main_normaliza_zip_valido_no_extraible_sin_traceback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    transformar,
+) -> None:
+    datos = _crear_zip([("gitleaks.exe", b"binario", stat.S_IFREG | 0o755)])
+    datos = transformar(datos)
+    _inyectar_archivo(monkeypatch, datos, "gitleaks_8.30.1_windows_x64.zip")
+
+    assert instalador.main(["--destino", str(tmp_path)]) == 1
+
+    captura = capsys.readouterr()
+    assert captura.out == ""
+    assert "error:" in captura.err
+    assert "Traceback" not in captura.err
+    _afirmar_sin_publicacion(tmp_path, "gitleaks.exe")
 
 
 def test_docstrings_publicas_estan_en_ingles_google() -> None:
