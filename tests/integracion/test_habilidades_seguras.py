@@ -1,9 +1,11 @@
+import stat
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from tramalia.core import habilidades
-from tramalia.core.errores import ErrorConfiguracionHabilidades
+from tramalia.core.errores import ErrorConfiguracionHabilidades, ErrorEntradaInsegura
 from tramalia.core.habilidades import agregar_habilidad, bloque_gitignore, leer_habilidades
 from tramalia.core.procesos import ResultadoProceso
 
@@ -212,3 +214,96 @@ def test_sincronizacion_rechaza_modo_git_antes_del_checkout(
 
 def test_gitignore_administrado_excluye_cuarentena() -> None:
     assert ".tramalia/.cuarentena-habilidades/" in bloque_gitignore()
+
+
+@pytest.mark.parametrize(
+    "relativa",
+    (
+        Path(".tramalia"),
+        Path(".tramalia/habilidades"),
+        Path(".tramalia/.cuarentena-habilidades"),
+    ),
+    ids=("tramalia", "habilidades", "cuarentena"),
+)
+def test_sincronizacion_rechaza_directorio_reparse_antes_de_git_y_escrituras(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    relativa: Path,
+) -> None:
+    directorio = tmp_path / ".tramalia"
+    directorio.mkdir()
+    (directorio / "habilidades").mkdir()
+    (directorio / ".cuarentena-habilidades").mkdir()
+    (directorio / "config.json").write_text('{"mode": "local-first"}', encoding="utf-8")
+    (directorio / "habilidades.toml").write_text(
+        '[[habilidad]]\nnombre = "demo"\nfuente = "git+https://example.invalid/demo.git"\n'
+        'referencia = "main"\n',
+        encoding="utf-8",
+    )
+    objetivo = tmp_path / relativa
+    lstat_original = Path.lstat
+
+    def lstat_reparse(ruta: Path):
+        informacion = lstat_original(ruta)
+        if ruta == objetivo:
+            return SimpleNamespace(
+                st_mode=informacion.st_mode,
+                st_file_attributes=getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400),
+            )
+        return informacion
+
+    llamadas_git: list[str] = []
+    escrituras: list[Path] = []
+    mkdir_original = Path.mkdir
+
+    def mkdir_controlado(ruta: Path, *argumentos, **opciones) -> None:
+        escrituras.append(ruta)
+        mkdir_original(ruta, *argumentos, **opciones)
+
+    monkeypatch.setattr(Path, "lstat", lstat_reparse)
+    monkeypatch.setattr(Path, "mkdir", mkdir_controlado)
+    monkeypatch.setattr(
+        habilidades,
+        "git_disponible",
+        lambda: llamadas_git.append("disponibilidad") or True,
+    )
+    monkeypatch.setattr(
+        habilidades,
+        "_ejecutar_git",
+        lambda argumentos, **_opciones: (
+            llamadas_git.append("ejecucion")
+            or ResultadoProceso(tuple(argumentos), 1, "", "fallo controlado")
+        ),
+    )
+
+    error: Exception | None = None
+    try:
+        habilidades.sincronizar_habilidades(tmp_path, actualizar=True)
+    except Exception as error_capturado:
+        error = error_capturado
+
+    assert (isinstance(error, ErrorEntradaInsegura), llamadas_git, escrituras) == (
+        True,
+        [],
+        [],
+    )
+
+
+def test_sincronizacion_acepta_directorios_reales_legitimos(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    directorio = tmp_path / ".tramalia"
+    directorio.mkdir()
+    (directorio / "habilidades").mkdir()
+    (directorio / ".cuarentena-habilidades").mkdir()
+    (directorio / "habilidades.toml").write_text(
+        '[[habilidad]]\nnombre = "demo"\nfuente = "git+https://example.invalid/demo.git"\n'
+        'referencia = "main"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(habilidades, "git_disponible", lambda: False)
+
+    resultado = habilidades.sincronizar_habilidades(tmp_path)
+
+    assert resultado.estado.motivo == "git_no_instalado"

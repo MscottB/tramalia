@@ -42,6 +42,47 @@ def test_fuente_https_se_normaliza() -> None:
     assert validar_fuente_git("https://example.com/x.git") == "git+https://example.com/x.git"
 
 
+def test_fuente_malformada_falla_con_error_tipado_sin_filtrar_valor() -> None:
+    fuente = "https://[::1"
+
+    with pytest.raises(ErrorEntradaInsegura) as captura:
+        validar_fuente_git(fuente)
+
+    assert fuente not in str(captura.value)
+
+
+@pytest.mark.parametrize(
+    "fuente",
+    (
+        "https://usuario:clave@example.invalid/x.git",
+        "https://example.invalid/x.git?seleccion=uno",
+        "https://example.invalid/x.git#revision",
+        "https://example.invalid/\nx.git",
+        "https://example.invalid/\tx.git",
+        "https://example.invalid/x y.git",
+    ),
+    ids=("credenciales", "query", "fragmento", "salto", "tab", "espacio"),
+)
+def test_fuente_https_rechaza_componentes_que_pueden_persistir_datos(fuente: str) -> None:
+    with pytest.raises(ErrorEntradaInsegura) as captura:
+        validar_fuente_git(fuente)
+
+    assert fuente not in str(captura.value)
+
+
+@pytest.mark.parametrize(
+    ("fuente", "esperada"),
+    (
+        ("https://example.invalid/x.git", "git+https://example.invalid/x.git"),
+        ("git+https://example.invalid/x.git", "git+https://example.invalid/x.git"),
+        ("https://[2001:db8::1]/x.git", "git+https://[2001:db8::1]/x.git"),
+    ),
+    ids=("https", "git-https", "ipv6"),
+)
+def test_fuente_https_con_forma_legitima_se_conserva(fuente: str, esperada: str) -> None:
+    assert validar_fuente_git(fuente) == esperada
+
+
 def test_nombre_habilidad_valido_se_conserva() -> None:
     assert validar_nombre_habilidad("habilidad-1.0") == "habilidad-1.0"
 
@@ -263,6 +304,7 @@ def test_saneamiento_elimina_ansi_osc_nul_y_controles_c0() -> None:
         "PASSWORD = valor-real",
         "contrasena=valor-real",
         "prefijo_api_key_sufijo: valor-real",
+        "X-API-Key: valor-real",
         "authorization=valor-real",
     ),
 )
@@ -271,6 +313,12 @@ def test_saneamiento_redacta_asignaciones_secretas(asignacion: str) -> None:
 
     assert "valor-real" not in salida
     assert "[REDACTADO]" in salida
+
+
+def test_saneamiento_conserva_asignacion_con_guiones_no_sensible() -> None:
+    entrada = "X-Request-Id: valor-publico"
+
+    assert sanear_texto_externo(entrada) == entrada
 
 
 def test_saneamiento_limita_linea_en_bytes_sin_cortar_utf8() -> None:
@@ -301,6 +349,38 @@ def test_saneamiento_no_invoca_repr_ni_str_arbitrarios() -> None:
 
     assert salida.startswith("<objeto_no_serializable:")
     assert "ObjetoHostil" in salida
+
+
+def test_saneamiento_no_invoca_str_de_subclases_escalares() -> None:
+    llamadas: list[str] = []
+
+    class EnteroHostil(int):
+        def __str__(self) -> str:
+            llamadas.append("entero")
+            raise AssertionError("str no debe invocarse")
+
+    class FlotanteHostil(float):
+        def __str__(self) -> str:
+            llamadas.append("flotante")
+            raise AssertionError("str no debe invocarse")
+
+    salida_entero = sanear_texto_externo(EnteroHostil(7))
+    salida_flotante = sanear_texto_externo(FlotanteHostil(2.5))
+
+    assert llamadas == []
+    assert "EnteroHostil" in salida_entero
+    assert "FlotanteHostil" in salida_flotante
+
+
+@pytest.mark.parametrize(
+    ("valor", "esperada"),
+    ((True, "true"), (False, "false"), (7, "7"), (2.5, "2.5")),
+)
+def test_saneamiento_conserva_escalares_incorporados_exactos(
+    valor: bool | int | float,
+    esperada: str,
+) -> None:
+    assert sanear_texto_externo(valor) == esperada
 
 
 def test_leer_texto_confinado_limita_archivo_grande_en_bytes(tmp_path: Path) -> None:

@@ -147,7 +147,8 @@ class ErrorTramalia(Exception):
         self.mensaje = mensaje
         self.sugerencia = sugerencia
         self.ruta = ruta
-        self.detalles: dict[str, _ValorJSON] = _normalizar_mapeo(detalles or {})
+        self._detalles_originales: dict[str, object] = dict(detalles or {})
+        self.detalles: dict[str, _ValorJSON] = _normalizar_mapeo(self._detalles_originales)
 
     def como_dict(self) -> dict[str, _ValorJSON]:
         """Return deterministic, secret-safe JSON data for CLI, TUI, and MCP.

@@ -24,9 +24,11 @@ from tramalia.core.seguridad_entradas import (
 )
 
 _PRESUPUESTO_HOJAS_MCP = 120 * 1024
+_MAXIMO_BYTES_JSON_MCP = 135_168
 _MAXIMO_NODOS_MCP = 2_048
 _MAXIMA_PROFUNDIDAD_MCP = 64
 _NOMBRES_SECRETOS = ("token", "secret", "password", "contrasena", "api_key", "authorization")
+_MARCA_TRUNCADO_MAPEO = {"truncado": True}
 
 
 def _consumir_texto(valor: object, presupuesto: list[int]) -> str:
@@ -51,6 +53,13 @@ def _clave_publica(clave: object, presupuesto: list[int]) -> str:
     return _consumir_texto(clave, presupuesto)
 
 
+def _es_clave_secreta(clave: str) -> bool:
+    normalizada = "".join(
+        caracter for caracter in clave.casefold() if caracter not in {"-", "_", "."}
+    )
+    return any(nombre.replace("_", "") in normalizada for nombre in _NOMBRES_SECRETOS)
+
+
 def _consumir_escalar(valor: bool | int | float | None, presupuesto: list[int]) -> object:
     try:
         costo = len(json.dumps(valor, ensure_ascii=False).encode("utf-8"))
@@ -62,18 +71,14 @@ def _consumir_escalar(valor: bool | int | float | None, presupuesto: list[int]) 
     return _consumir_texto("[TRUNCADO]", presupuesto)
 
 
-def _valor_publico(
+def _valor_publico_recursivo(
     valor: object,
-    _presupuesto: list[int] | None = None,
-    _nodos: list[int] | None = None,
-    _vistos: set[int] | None = None,
-    _profundidad: int = 0,
+    presupuesto: list[int],
+    nodos: list[int],
+    vistos: set[int],
+    profundidad: int,
 ) -> object:
-    """Convert a domain value into transport-safe public data."""
-    presupuesto = _presupuesto if _presupuesto is not None else [_PRESUPUESTO_HOJAS_MCP]
-    nodos = _nodos if _nodos is not None else [_MAXIMO_NODOS_MCP]
-    vistos = _vistos if _vistos is not None else set()
-    if nodos[0] <= 0 or _profundidad >= _MAXIMA_PROFUNDIDAD_MCP:
+    if nodos[0] <= 0 or profundidad >= _MAXIMA_PROFUNDIDAD_MCP:
         return _consumir_texto("[TRUNCADO]", presupuesto)
     nodos[0] -= 1
 
@@ -86,12 +91,12 @@ def _valor_publico(
         vistos.add(identidad)
 
     def convertir(dato: object) -> object:
-        return _valor_publico(
+        return _valor_publico_recursivo(
             dato,
             presupuesto,
             nodos,
             vistos,
-            _profundidad + 1,
+            profundidad + 1,
         )
 
     try:
@@ -121,7 +126,7 @@ def _valor_publico(
                 if nodos[0] <= 0:
                     break
                 clave_publica = _clave_publica(clave, presupuesto)
-                if any(nombre in clave_publica.casefold() for nombre in _NOMBRES_SECRETOS):
+                if _es_clave_secreta(clave_publica):
                     resultado[clave_publica] = _consumir_texto("[REDACTADO]", presupuesto)
                 else:
                     resultado[clave_publica] = convertir(dato)
@@ -135,12 +140,108 @@ def _valor_publico(
             return resultado_lista
         if isinstance(valor, str | bytes | bytearray):
             return _consumir_texto(valor, presupuesto)
-        if valor is None or isinstance(valor, (bool, int, float)):
-            return _consumir_escalar(valor, presupuesto)
+        if valor is None or type(valor) in {bool, int, float}:
+            return _consumir_escalar(cast(bool | int | float | None, valor), presupuesto)
         return _consumir_texto(valor, presupuesto)
     finally:
         if es_compuesto:
             vistos.discard(identidad)
+
+
+def _tamano_json(valor: object) -> int:
+    return len(json.dumps(valor, ensure_ascii=False).encode("utf-8"))
+
+
+def _acotar_resultado_json(valor: object, limite: int) -> object:
+    if _tamano_json(valor) <= limite:
+        return valor
+    if isinstance(valor, list):
+        resultado: list[object] = []
+        marca = dict(_MARCA_TRUNCADO_MAPEO)
+        for elemento in valor:
+            candidato_lista = [*resultado, elemento, marca]
+            if _tamano_json(candidato_lista) > limite:
+                break
+            resultado.append(elemento)
+        return [*resultado, marca]
+    if isinstance(valor, dict):
+        resultado_mapeo: dict[str, object] = {}
+        for clave, elemento in valor.items():
+            candidato_mapeo = {
+                **resultado_mapeo,
+                clave: elemento,
+                **_MARCA_TRUNCADO_MAPEO,
+            }
+            if _tamano_json(candidato_mapeo) > limite:
+                break
+            resultado_mapeo[clave] = elemento
+        return {**resultado_mapeo, **_MARCA_TRUNCADO_MAPEO}
+    return "[TRUNCADO]"
+
+
+def _valor_publico(
+    valor: object,
+    _presupuesto: list[int] | None = None,
+    _nodos: list[int] | None = None,
+    _vistos: set[int] | None = None,
+    _profundidad: int = 0,
+) -> object:
+    """Convert a domain value into transport-safe public data."""
+    presupuesto = _presupuesto if _presupuesto is not None else [_PRESUPUESTO_HOJAS_MCP]
+    nodos = _nodos if _nodos is not None else [_MAXIMO_NODOS_MCP]
+    vistos = _vistos if _vistos is not None else set()
+    resultado = _valor_publico_recursivo(
+        valor,
+        presupuesto,
+        nodos,
+        vistos,
+        _profundidad,
+    )
+    if _presupuesto is not None:
+        return resultado
+    return _acotar_resultado_json(resultado, _MAXIMO_BYTES_JSON_MCP)
+
+
+def _restaurar_rutas_error(
+    original: object,
+    normalizado: object,
+    vistos: set[int] | None = None,
+) -> object:
+    if isinstance(original, Path):
+        return original
+    if vistos is None:
+        vistos = set()
+    if isinstance(original, Mapping) and isinstance(normalizado, Mapping):
+        identidad = id(original)
+        if identidad in vistos:
+            return normalizado
+        vistos.add(identidad)
+        try:
+            resultado = dict(normalizado)
+            for clave, valor in original.items():
+                if type(clave) is not str or clave not in resultado or _es_clave_secreta(clave):
+                    continue
+                resultado[clave] = _restaurar_rutas_error(
+                    valor,
+                    resultado[clave],
+                    vistos,
+                )
+            return resultado
+        finally:
+            vistos.discard(identidad)
+    if isinstance(original, (tuple, list)) and isinstance(normalizado, list):
+        identidad = id(original)
+        if identidad in vistos:
+            return normalizado
+        vistos.add(identidad)
+        try:
+            return [
+                _restaurar_rutas_error(valor, publico, vistos)
+                for valor, publico in zip(original, normalizado, strict=False)
+            ]
+        finally:
+            vistos.discard(identidad)
+    return normalizado
 
 
 def _respuesta(operacion: Callable[[], object]) -> dict[str, object]:
@@ -148,9 +249,12 @@ def _respuesta(operacion: Callable[[], object]) -> dict[str, object]:
     try:
         return {"ok": True, "resultado": _valor_publico(operacion())}
     except ErrorTramalia as error_dominio:
-        datos_error = error_dominio.como_dict()
-        if error_dominio.ruta is not None:
-            datos_error["ruta"] = _valor_publico(error_dominio.ruta)  # type: ignore[assignment]
+        datos_error: dict[str, object] = dict(error_dominio.como_dict())
+        datos_error["ruta"] = error_dominio.ruta
+        datos_error["detalles"] = _restaurar_rutas_error(
+            error_dominio._detalles_originales,
+            error_dominio.detalles,
+        )
         return {"ok": False, "error": _valor_publico(datos_error)}
     except Exception as error_inesperado:
         return {

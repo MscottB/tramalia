@@ -18,6 +18,7 @@ from tramalia.core.errores import ErrorConfiguracionHabilidades, ErrorEntradaIns
 from tramalia.core.modelos import EstadoIntegracion, ValorEstadoIntegracion
 from tramalia.core.procesos import ResultadoProceso
 from tramalia.core.seguridad_entradas import (
+    resolver_ruta_confinada,
     validar_arbol_habilidad,
     validar_fuente_git,
     validar_nombre_habilidad,
@@ -112,6 +113,39 @@ class ResultadoSincronizacionHabilidades:
 
     estado: EstadoIntegracion
     resoluciones: tuple[ResolucionHabilidad, ...]
+
+
+def _validar_directorio_sin_enlaces(raiz: Path, relativa: Path) -> None:
+    candidata = raiz / relativa
+    try:
+        informacion = candidata.lstat()
+    except FileNotFoundError:
+        resolver_ruta_confinada(raiz, relativa, permitir_ausente=True)
+        return
+    except OSError as error_ruta:
+        raise ErrorEntradaInsegura(
+            "Un directorio interno de habilidades no se puede inspeccionar.",
+            "Verifica la estructura local antes de sincronizar.",
+            ruta=relativa,
+        ) from error_ruta
+    mascara_reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    atributos = getattr(informacion, "st_file_attributes", 0)
+    if (
+        stat.S_ISLNK(informacion.st_mode)
+        or bool(atributos & mascara_reparse)
+        or not stat.S_ISDIR(informacion.st_mode)
+    ):
+        raise ErrorEntradaInsegura(
+            "Un directorio interno de habilidades no es un directorio local seguro.",
+            "Retira el enlace o reparse point antes de sincronizar.",
+            ruta=relativa,
+        )
+    resolver_ruta_confinada(raiz, relativa)
+
+
+def _validar_frontera_directorios(raiz: Path) -> None:
+    for relativa in (Path(".tramalia"), _RUTA_HABILIDADES, _RUTA_CUARENTENA):
+        _validar_directorio_sin_enlaces(raiz, relativa)
 
 
 def _ruta_manifiesto_lectura(raiz: Path) -> tuple[Path | None, bool]:
@@ -1391,6 +1425,7 @@ def sincronizar_habilidades(
         Aggregate state and per-skill resolutions. In Team mode, any manifest
         and lock mismatch aborts the complete request before invoking Git.
     """
+    _validar_frontera_directorios(raiz)
     habilidades_declaradas = leer_habilidades(raiz)
     bloqueos_originales = _leer_bloqueos(raiz)
     from tramalia.core.configuracion import modo_trabajo

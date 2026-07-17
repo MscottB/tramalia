@@ -5,9 +5,11 @@ from pathlib import Path
 
 import pytest
 
+from tramalia.core.errores import ErrorTramalia
+from tramalia.core.modelos import ExcepcionFallo
 from tramalia.core.scaffold import ResultadoMergeMCP, _merge_mcp, build_mcp_json, scaffold
 from tramalia.core.versiones_herramientas import FUENTE_SERENA, SHA_SERENA, VERSION_SERENA
-from tramalia.mcp_server import _valor_publico, construir_servidor
+from tramalia.mcp_server import _respuesta, _valor_publico, construir_servidor
 
 pytestmark = pytest.mark.integracion
 
@@ -45,6 +47,44 @@ def test_merge_mcp_json_invalido_conserva_bytes(original: str) -> None:
     resultado = _merge_mcp(original, {"serena": {"command": "uvx", "args": []}})
 
     assert resultado.estado == "json_invalido"
+    assert resultado.texto == original
+
+
+@pytest.mark.parametrize(
+    "original",
+    (
+        '{"mcpServers":{"propio":{"command":"propio","args":[]}},"mcpServers":{}}',
+        '{"mcpServers":{"propio":{"command":"primero","command":"segundo","args":[]}}}',
+    ),
+    ids=("raiz", "anidado"),
+)
+def test_merge_mcp_rechaza_claves_duplicadas_en_cualquier_profundidad(original: str) -> None:
+    resultado = _merge_mcp(original, {"serena": {"command": "uvx", "args": []}})
+
+    assert resultado.estado == "json_invalido"
+    assert resultado.texto == original
+
+
+@pytest.mark.parametrize(
+    "literal",
+    ("NaN", "Infinity", "-Infinity", "1e999"),
+    ids=("nan", "infinito", "infinito-negativo", "desbordado"),
+)
+def test_merge_mcp_rechaza_numeros_no_finitos_y_conserva_bytes(literal: str) -> None:
+    original = '{"mcpServers":{},"valor":' + literal + "}"
+
+    resultado = _merge_mcp(original, {})
+
+    assert resultado.estado == "json_invalido"
+    assert resultado.texto == original
+
+
+def test_merge_mcp_acepta_numero_finito_y_conserva_json_legitimo() -> None:
+    original = '{"mcpServers":{},"valor":1.25}'
+
+    resultado = _merge_mcp(original, {})
+
+    assert resultado.estado == "sin_cambios"
     assert resultado.texto == original
 
 
@@ -139,6 +179,75 @@ def test_valor_publico_limita_estructura_con_muchas_hojas_numericas() -> None:
     resultado = _valor_publico(list(range(50_000)))
 
     assert len(json.dumps(resultado, ensure_ascii=False).encode("utf-8")) <= 132 * 1024
+
+
+def _excepcion_control(texto: str) -> ExcepcionFallo:
+    return ExcepcionFallo(
+        razon=texto,
+        riesgo_aceptado=texto,
+        control_afectado=texto,
+        referencia=texto,
+        revisor=texto,
+        condicion_remediacion=texto,
+    )
+
+
+def test_valor_publico_limita_bytes_json_reales_de_clases_de_datos() -> None:
+    excepcion = _excepcion_control("x" * 70)
+
+    resultado = _valor_publico([excepcion] * 300)
+    serializado = json.dumps(resultado, ensure_ascii=False).encode("utf-8")
+
+    assert isinstance(resultado, list)
+    assert all(isinstance(elemento, dict) for elemento in resultado)
+    assert resultado[-1] == {"truncado": True}
+    assert len(serializado) <= 135_168
+
+
+def test_valor_publico_preserva_estructura_normal_de_clase_de_datos() -> None:
+    resultado = _valor_publico([_excepcion_control("control")])
+
+    assert isinstance(resultado, list)
+    assert len(resultado) == 1
+    assert isinstance(resultado[0], dict)
+    assert resultado[0]["razon"] == "control"
+    assert resultado[0]["condicion_remediacion"] == "control"
+
+
+def test_respuesta_error_confina_rutas_anidadas_y_preserva_contrato_cli(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raiz = tmp_path / "proyecto"
+    raiz.mkdir()
+    monkeypatch.chdir(raiz)
+    externa = tmp_path / "archivo-externo.txt"
+    relativa = Path("docs/control.md")
+    error = ErrorTramalia(
+        "fallo controlado",
+        "reintenta",
+        detalles={
+            "contexto": {
+                "archivo_externo": externa,
+                "archivo_relativo": relativa,
+            }
+        },
+    )
+
+    def fallar() -> object:
+        raise error
+
+    respuesta = _respuesta(fallar)
+    detalles_mcp = respuesta["error"]["detalles"]["contexto"]
+    detalles_cli = error.como_dict()["detalles"]["contexto"]
+
+    assert (
+        detalles_mcp["archivo_externo"] == "[RUTA_FUERA_DEL_PROYECTO]",
+        detalles_mcp["archivo_relativo"] == relativa.as_posix(),
+        isinstance(detalles_cli["archivo_externo"], str),
+        isinstance(detalles_cli["archivo_relativo"], str),
+    ) == (True, True, True, True)
+    json.dumps(error.como_dict(), ensure_ascii=False, allow_nan=False)
 
 
 def _crear_symlink_o_saltar(enlace: Path, destino: Path) -> None:

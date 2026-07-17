@@ -28,6 +28,9 @@ _PATRON_OSC = re.compile(r"\x1b\].*?(?:\x07|\x1b\\|$)", re.DOTALL)
 _PATRON_ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _PATRON_ASIGNACION = re.compile(r"(?i)(?<![\w.-])(?P<clave>[\"']?(?>[\w.-]+)[\"']?)\s*[:=]\s*")
 _NOMBRES_SECRETOS = ("token", "secret", "password", "contrasena", "api_key", "authorization")
+_NOMBRES_SECRETOS_NORMALIZADOS = tuple(
+    re.sub(r"[-_.]+", "", nombre) for nombre in _NOMBRES_SECRETOS
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,11 +83,28 @@ def validar_fuente_git(fuente: str) -> str:
     """
     valor = fuente.strip()
     url = valor.removeprefix("git+")
-    partes = urlsplit(url)
-    if partes.scheme != "https" or not partes.netloc or valor not in {url, f"git+{url}"}:
+    try:
+        partes = urlsplit(url)
+        partes.port
+    except ValueError as error_url:
         raise ErrorEntradaInsegura(
-            "La fuente Git debe usar HTTPS.",
-            "Declara una URL https:// o git+https:// valida.",
+            "La fuente Git debe usar una URL HTTPS valida.",
+            "Declara una URL https:// o git+https:// sin datos embebidos.",
+        ) from error_url
+    if (
+        partes.scheme != "https"
+        or not partes.netloc
+        or partes.hostname is None
+        or partes.username is not None
+        or partes.password is not None
+        or "?" in url
+        or "#" in url
+        or any(ord(caracter) <= 32 or ord(caracter) == 127 for caracter in url)
+        or valor not in {url, f"git+{url}"}
+    ):
+        raise ErrorEntradaInsegura(
+            "La fuente Git debe usar una URL HTTPS valida.",
+            "Declara una URL https:// o git+https:// sin datos embebidos.",
         )
     return f"git+{url}"
 
@@ -245,9 +265,9 @@ def _texto_seguro_basico(valor: object) -> str:
         return bytes(valor).decode("utf-8", errors="replace")
     if valor is None:
         return ""
-    if isinstance(valor, bool):
+    if type(valor) is bool:
         return "true" if valor else "false"
-    if isinstance(valor, (int, float)):
+    if type(valor) in {int, float}:
         return str(valor)
     tipo = type(valor)
     return f"<objeto_no_serializable:{tipo.__module__}.{tipo.__qualname__}>"
@@ -266,7 +286,8 @@ def _redactar_asignacion(linea: str) -> str:
     posicion = 0
     while coincidencia := _PATRON_ASIGNACION.search(linea, posicion):
         clave = coincidencia.group("clave").strip("\"'").casefold()
-        if any(nombre in clave for nombre in _NOMBRES_SECRETOS):
+        clave_normalizada = re.sub(r"[-_.]+", "", clave)
+        if any(nombre in clave_normalizada for nombre in _NOMBRES_SECRETOS_NORMALIZADOS):
             return linea[: coincidencia.end()] + "[REDACTADO]"
         posicion = coincidencia.end()
     return linea

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -145,10 +146,35 @@ class ResultadoMergeMCP:
     estado: Literal["sin_cambios", "fusionado", "json_invalido", "conflicto"]
 
 
+def _objeto_json_sin_duplicados(pares: list[tuple[str, object]]) -> dict[str, object]:
+    resultado: dict[str, object] = {}
+    for clave, valor in pares:
+        if clave in resultado:
+            raise ValueError("clave JSON duplicada")
+        resultado[clave] = valor
+    return resultado
+
+
+def _numero_json_finito(valor: str) -> float:
+    numero = float(valor)
+    if not math.isfinite(numero):
+        raise ValueError("numero JSON no finito")
+    return numero
+
+
+def _rechazar_constante_json(_valor: str) -> object:
+    raise ValueError("constante JSON no formal")
+
+
 def _merge_mcp(existing_text: str, servers: dict) -> ResultadoMergeMCP:
     try:
-        data = json.loads(existing_text)
-    except json.JSONDecodeError:
+        data = json.loads(
+            existing_text,
+            object_pairs_hook=_objeto_json_sin_duplicados,
+            parse_constant=_rechazar_constante_json,
+            parse_float=_numero_json_finito,
+        )
+    except (json.JSONDecodeError, RecursionError, ValueError):
         return ResultadoMergeMCP(existing_text, "json_invalido")
     if not isinstance(data, dict):
         return ResultadoMergeMCP(existing_text, "json_invalido")
