@@ -7,6 +7,7 @@ from collections.abc import Iterator, Mapping
 from pathlib import Path
 from urllib.parse import urlparse
 
+import pytest
 from ruamel.yaml import YAML
 
 RAIZ = Path(__file__).resolve().parents[2]
@@ -97,7 +98,10 @@ def test_configuracion_es_local_y_parseable_con_ruamel() -> None:
 def test_reglas_tienen_ids_y_metadatos_exactos() -> None:
     reglas = _cargar_configuracion()["rules"]
     assert isinstance(reglas, list)
-    assert {regla["id"] for regla in reglas} == IDS_REQUERIDOS
+    ids = [regla["id"] for regla in reglas]
+    assert len(reglas) == len(IDS_REQUERIDOS)
+    assert len(ids) == len(set(ids))
+    assert set(ids) == IDS_REQUERIDOS
 
     for regla in reglas:
         assert regla["severity"] == "ERROR"
@@ -112,6 +116,19 @@ def test_reglas_tienen_ids_y_metadatos_exactos() -> None:
         referencia = urlparse(metadatos["referencia"])
         assert referencia.scheme == "https"
         assert referencia.hostname in DOMINIOS_REFERENCIA_OFICIAL
+
+
+def test_ids_duplicados_se_rechazan(monkeypatch: pytest.MonkeyPatch) -> None:
+    configuracion = _cargar_configuracion()
+    reglas = configuracion["rules"]
+    assert isinstance(reglas, list)
+    configuracion_duplicada = {"rules": [*reglas, reglas[0]]}
+    monkeypatch.setitem(
+        globals(), "_cargar_configuracion", lambda: configuracion_duplicada
+    )
+
+    with pytest.raises(AssertionError):
+        test_reglas_tienen_ids_y_metadatos_exactos()
 
 
 def test_exclusiones_solo_pertenecen_a_proceso_sin_timeout() -> None:

@@ -146,19 +146,19 @@ rules:
           - pattern: |
               $PROCESO = subprocess.Popen(...)
               ...
-              $PROCESO = subprocess.Popen(...)
+              $PROCESO = $REEMPLAZO
           - pattern-not: |
               $PROCESO = subprocess.Popen(...)
               ...
               $PROCESO.wait(..., timeout=$TIEMPO, ...)
               ...
-              $PROCESO = subprocess.Popen(...)
+              $PROCESO = $REEMPLAZO
           - pattern-not: |
               $PROCESO = subprocess.Popen(...)
               ...
               $PROCESO.communicate(..., timeout=$TIEMPO, ...)
               ...
-              $PROCESO = subprocess.Popen(...)
+              $PROCESO = $REEMPLAZO
       - patterns:
           - pattern: $PROCESO = subprocess.Popen(...)
           - pattern-not-inside: |
@@ -233,12 +233,8 @@ rules:
       - pattern: yaml.load(...)
       - pattern-not: yaml.load(..., Loader=yaml.SafeLoader, ...)
       - pattern-not: yaml.load(..., Loader=yaml.CSafeLoader, ...)
-      - pattern-not: yaml.load(..., Loader=SafeLoader, ...)
-      - pattern-not: yaml.load(..., Loader=CSafeLoader, ...)
       - pattern-not: yaml.load($DATOS, yaml.SafeLoader)
       - pattern-not: yaml.load($DATOS, yaml.CSafeLoader)
-      - pattern-not: yaml.load($DATOS, SafeLoader)
-      - pattern-not: yaml.load($DATOS, CSafeLoader)
 
   - id: tramalia.python.mktemp-inseguro
     message: Evita mktemp por su condición de carrera; crea el temporal de forma atómica.

@@ -199,6 +199,13 @@ def popen_sobrescrito_antes_de_esperar(comando):
     proceso.wait(timeout=5)
 
 
+def popen_reasignado_a_objeto_ajeno(comando, proceso_ajeno):
+    # ruleid: tramalia.python.proceso-sin-timeout
+    proceso = subprocess.Popen(comando)
+    proceso = proceso_ajeno
+    proceso.wait(timeout=5)
+
+
 def popen_reutilizado_con_espera_para_cada_proceso(comando):
     # ok: tramalia.python.proceso-sin-timeout
     proceso = subprocess.Popen([comando, "primero"])
@@ -238,6 +245,15 @@ def casos_yaml(datos):
     yaml.load(datos, yaml.CSafeLoader)
     # ok: tramalia.python.yaml-inseguro
     yaml.safe_load(datos)
+
+
+def casos_yaml_loaders_sombreados(datos):
+    SafeLoader = yaml.Loader
+    CSafeLoader = yaml.Loader
+    # ruleid: tramalia.python.yaml-inseguro
+    yaml.load(datos, Loader=SafeLoader)
+    # ruleid: tramalia.python.yaml-inseguro
+    yaml.load(datos, CSafeLoader)
 
 
 def casos_mktemp(tmp_path_factory):
