@@ -220,6 +220,10 @@ def _from_hint(herramienta: Herramienta) -> list[InstallOption]:
             )
         elif spec.startswith("pipx:"):
             pkg = spec.removeprefix("pipx:")
+            # mise separa version con `@`; uv/pip esperan un requisito PEP 440.
+            if "@" in pkg:
+                nombre, version = pkg.rsplit("@", 1)
+                pkg = f"{nombre}=={version}"
             opts.append(
                 InstallOption(
                     "uv", ("uv", "tool", "install", pkg), f"uv tool install {pkg}", requires="uv"

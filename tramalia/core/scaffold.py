@@ -15,7 +15,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from tramalia.core.versiones_herramientas import FUENTE_SERENA
+from tramalia.core.versiones_herramientas import (
+    FUENTE_SERENA,
+    VERSION_GITLEAKS,
+    VERSION_LIGHTHOUSE_CI,
+    VERSION_PLAYWRIGHT,
+    VERSION_REPOMIX,
+    VERSION_RULESYNC,
+    VERSION_SEMGREP,
+    VERSION_SQLFLUFF,
+)
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "project"
 
@@ -95,7 +104,7 @@ def _variables(answers: dict) -> dict:
         "stack": " · ".join(stacks) if stacks else "—",
         "primary_agent": answers.get("primary_agent", "codex"),
         "reviewer_agent": answers.get("reviewer_agent", "claude"),
-        "date": datetime.date.today().isoformat(),
+        "date": answers.get("fecha", datetime.date.today().isoformat()),
         **_reglas_stack(stacks),
     }
 
@@ -248,10 +257,12 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
             results.append((rel, state))
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        content = src.read_text(encoding="utf-8")
         if src.suffix == ".jinja":
-            content = _render(content, variables)
-        dest.write_text(content, encoding="utf-8")
+            content = _render(src.read_text(encoding="utf-8"), variables)
+            dest.write_text(content, encoding="utf-8", newline="\n")
+        else:
+            # Las plantillas estaticas auditadas conservan exactamente sus bytes.
+            dest.write_bytes(src.read_bytes())
         results.append((rel, "creado"))
 
     # 2. archivos generados según stack (`.sqlfluff` solo aplica si hay SQL: builder→None)
@@ -297,15 +308,21 @@ def build_mise_toml(answers: dict) -> str:
     if any(s in stacks for s in _FRONTEND):
         tools.append('node = "22"')
     if "context" in features:
-        tools.append('"npm:repomix" = "latest"')
+        tools.append(f'"npm:repomix" = "{VERSION_REPOMIX}"')
     if "security" in features:
-        tools += ['"pipx:semgrep" = "latest"', '"aqua:gitleaks" = "latest"']
+        tools += [
+            f'"pipx:semgrep" = "{VERSION_SEMGREP}"',
+            f'"aqua:gitleaks/gitleaks" = "{VERSION_GITLEAKS}"',
+        ]
     if "database" in features:
-        tools.append('"pipx:sqlfluff" = "latest"')
+        tools.append(f'"pipx:sqlfluff" = "{VERSION_SQLFLUFF}"')
     if "sync" in features:
-        tools.append('"npm:rulesync" = "latest"')
+        tools.append(f'"npm:rulesync" = "{VERSION_RULESYNC}"')
     if "ux" in features:
-        tools += ['"npm:@lhci/cli" = "latest"', '"npm:playwright" = "latest"']
+        tools += [
+            f'"npm:@lhci/cli" = "{VERSION_LIGHTHOUSE_CI}"',
+            f'"npm:playwright" = "{VERSION_PLAYWRIGHT}"',
+        ]
 
     comandos_construccion: list[str] = []
     comandos_prueba: list[str] = []
@@ -342,7 +359,7 @@ def build_mise_toml(answers: dict) -> str:
         comandos_lint.append("uvx nbstripout --verify .")
 
     lines: list[str] = [
-        "# Generado por tramalia init. tools = auto-update; tasks = quality gates.",
+        "# Generado por tramalia init. Herramientas fijadas; tasks = puertas de calidad.",
         "",
     ]
     lines.append("[tools]")
@@ -368,7 +385,18 @@ def build_mise_toml(answers: dict) -> str:
     emit("test", comandos_prueba)
     emit("lint", comandos_lint)
     if "security" in features:
-        emit("security", ["gitleaks detect --no-banner", "semgrep scan --error --quiet"])
+        emit(
+            "security",
+            [
+                "gitleaks git --redact --no-banner",
+                "gitleaks dir . --redact --no-banner --max-target-megabytes 10",
+                (
+                    "semgrep scan --config "
+                    ".tramalia/configuracion/semgrep/seguridad-python.yml "
+                    "--error --metrics=off --disable-version-check"
+                ),
+            ],
+        )
     if "database" in features:
         # el dialecto vive en .sqlfluff (soporta multi-motor por ruta), no en la CLI.
         emit("database", ["sqlfluff lint ."])

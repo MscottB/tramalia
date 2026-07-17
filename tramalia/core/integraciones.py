@@ -19,6 +19,15 @@ from dataclasses import dataclass
 from tramalia.core import procesos
 from tramalia.core.modelos import EstadoIntegracion, ValorEstadoIntegracion
 from tramalia.core.procesos import ResultadoProceso
+from tramalia.core.versiones_herramientas import (
+    ESPECIFICACION_GITLEAKS_MISE,
+    ESPECIFICACION_LIGHTHOUSE_MISE,
+    ESPECIFICACION_PLAYWRIGHT_MISE,
+    ESPECIFICACION_REPOMIX_MISE,
+    ESPECIFICACION_RULESYNC_MISE,
+    ESPECIFICACION_SEMGREP_MISE,
+    ESPECIFICACION_SQLFLUFF_MISE,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -274,7 +283,7 @@ REGISTRO: list[Herramienta] = [
         "feature",
         capacidad="context",
         entorno_ejecucion="node",
-        sugerencia_instalacion="mise use npm:repomix",
+        sugerencia_instalacion=f"mise use {ESPECIFICACION_REPOMIX_MISE}",
     ),
     Herramienta(
         "serena",
@@ -292,7 +301,7 @@ REGISTRO: list[Herramienta] = [
         "SAST (gate seguridad)",
         "feature",
         capacidad="security",
-        sugerencia_instalacion="mise use pipx:semgrep",
+        sugerencia_instalacion=f"mise use {ESPECIFICACION_SEMGREP_MISE}",
     ),
     Herramienta(
         "gitleaks",
@@ -300,7 +309,7 @@ REGISTRO: list[Herramienta] = [
         "secret scanning (gate seguridad)",
         "feature",
         capacidad="security",
-        sugerencia_instalacion="mise use aqua:gitleaks",
+        sugerencia_instalacion=f"mise use {ESPECIFICACION_GITLEAKS_MISE}",
     ),
     Herramienta(
         "sqlfluff",
@@ -308,7 +317,7 @@ REGISTRO: list[Herramienta] = [
         "lint SQL (gate base de datos)",
         "feature",
         capacidad="database",
-        sugerencia_instalacion="mise use pipx:sqlfluff",
+        sugerencia_instalacion=f"mise use {ESPECIFICACION_SQLFLUFF_MISE}",
     ),
     Herramienta(
         "rulesync",
@@ -317,7 +326,7 @@ REGISTRO: list[Herramienta] = [
         "feature",
         capacidad="sync",
         entorno_ejecucion="node",
-        sugerencia_instalacion="mise use npm:rulesync",
+        sugerencia_instalacion=f"mise use {ESPECIFICACION_RULESYNC_MISE}",
     ),
     Herramienta(
         "lhci",
@@ -326,7 +335,7 @@ REGISTRO: list[Herramienta] = [
         "feature",
         capacidad="ux",
         entorno_ejecucion="node",
-        sugerencia_instalacion="mise use npm:@lhci/cli",
+        sugerencia_instalacion=f"mise use {ESPECIFICACION_LIGHTHOUSE_MISE}",
     ),
     Herramienta(
         "playwright",
@@ -335,7 +344,7 @@ REGISTRO: list[Herramienta] = [
         "feature",
         capacidad="ux",
         entorno_ejecucion="node",
-        sugerencia_instalacion="mise use npm:playwright",
+        sugerencia_instalacion=f"mise use {ESPECIFICACION_PLAYWRIGHT_MISE}",
     ),
     # memoria persistente opcional (nivel N2). Tramalia no la construye: la delega.
     Herramienta(

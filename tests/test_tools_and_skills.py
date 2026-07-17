@@ -7,6 +7,15 @@ from tramalia.core.habilidades import (
     sincronizar_habilidades,
 )
 from tramalia.core.integraciones import herramientas_relevantes
+from tramalia.core.versiones_herramientas import (
+    ESPECIFICACION_GITLEAKS_MISE,
+    ESPECIFICACION_LIGHTHOUSE_MISE,
+    ESPECIFICACION_PLAYWRIGHT_MISE,
+    ESPECIFICACION_REPOMIX_MISE,
+    ESPECIFICACION_RULESYNC_MISE,
+    ESPECIFICACION_SEMGREP_MISE,
+    ESPECIFICACION_SQLFLUFF_MISE,
+)
 
 
 def test_herramientas_de_arranque_siempre_presentes():
@@ -19,6 +28,28 @@ def test_filtrado_por_stack_y_capacidad():
     assert "node" in claves
     assert {"semgrep", "gitleaks"} <= claves
     assert "sqlfluff" not in claves
+
+
+def test_herramientas_de_puertas_publican_sugerencias_fijadas():
+    herramientas = {
+        herramienta.clave: herramienta
+        for herramienta in herramientas_relevantes(
+            ["react", "postgres"],
+            ("context", "security", "database", "sync", "ux"),
+        )
+    }
+    esperadas = {
+        "repomix": ESPECIFICACION_REPOMIX_MISE,
+        "semgrep": ESPECIFICACION_SEMGREP_MISE,
+        "gitleaks": ESPECIFICACION_GITLEAKS_MISE,
+        "sqlfluff": ESPECIFICACION_SQLFLUFF_MISE,
+        "rulesync": ESPECIFICACION_RULESYNC_MISE,
+        "lhci": ESPECIFICACION_LIGHTHOUSE_MISE,
+        "playwright": ESPECIFICACION_PLAYWRIGHT_MISE,
+    }
+
+    for clave, especificacion in esperadas.items():
+        assert herramientas[clave].sugerencia_instalacion == f"mise use {especificacion}"
 
 
 def test_leer_habilidades_vacio(tmp_path):

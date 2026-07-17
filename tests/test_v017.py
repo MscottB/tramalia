@@ -2,6 +2,11 @@
 
 from tramalia.core import installer
 from tramalia.core.integraciones import REGISTRO
+from tramalia.core.versiones_herramientas import (
+    VERSION_LIGHTHOUSE_CI,
+    VERSION_REPOMIX,
+    VERSION_SEMGREP,
+)
 
 
 def _herramienta(clave):
@@ -34,13 +39,19 @@ def test_repomix_mise_y_npm():
     assert metodos[0] == "mise"  # preferencia: mise
     npm = next(o for o in opts if o.method == "npm")
     assert npm.requires == "npm"  # verificador Node/npm
-    assert npm.args == ("npm", "install", "-g", "repomix")
+    assert npm.args == ("npm", "install", "-g", f"repomix@{VERSION_REPOMIX}")
 
 
 def test_semgrep_pipx_gana_opcion_uv():
     opts = installer.options_for(_herramienta("semgrep"))
     uv = next(o for o in opts if o.method == "uv")
-    assert uv.args == ("uv", "tool", "install", "semgrep")
+    assert uv.args == ("uv", "tool", "install", f"semgrep=={VERSION_SEMGREP}")
+
+
+def test_lighthouse_conserva_version_en_opcion_npm():
+    opts = installer.options_for(_herramienta("lhci"))
+    npm = next(o for o in opts if o.method == "npm")
+    assert npm.args == ("npm", "install", "-g", f"@lhci/cli@{VERSION_LIGHTHOUSE_CI}")
 
 
 def test_markitdown_pip_deriva_uv_y_pip():
