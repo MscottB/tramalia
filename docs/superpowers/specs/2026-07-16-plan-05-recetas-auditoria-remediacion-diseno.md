@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-07-16
 
-**Estado:** aprobado conceptualmente; pendiente de revision escrita
+**Estado:** aprobado; 05a cuenta con plan ejecutable y conserva su puerta de entrada
 
 **Dependencias:** Plan 03a, Plan 03c, Plan 03b, Plan 04 y base estabilizada con
 `v1.0.0b1` publicada
