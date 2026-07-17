@@ -11,29 +11,81 @@ rules:
       referencia: https://cwe.mitre.org/data/definitions/95.html
     pattern-either:
       - patterns:
-          - pattern: eval($ENTRADA)
-          - pattern-not: eval("...")
+          - pattern: eval($ENTRADA, ...)
+          - pattern-not: eval("...", ...)
           - pattern-not-inside: |
               def $FUNCION(..., eval, ...):
                 ...
           - pattern-not-inside: |
               async def $FUNCION(..., eval, ...):
                 ...
+          - pattern-not-inside: |
+              def $FUNCION(...):
+                ...
+                eval = $EVALUADOR
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(...):
+                ...
+                eval = $EVALUADOR
+                ...
       - patterns:
-          - pattern: exec($ENTRADA)
-          - pattern-not: exec("...")
+          - pattern: exec($ENTRADA, ...)
+          - pattern-not: exec("...", ...)
           - pattern-not-inside: |
               def $FUNCION(..., exec, ...):
                 ...
           - pattern-not-inside: |
               async def $FUNCION(..., exec, ...):
                 ...
+          - pattern-not-inside: |
+              def $FUNCION(...):
+                ...
+                exec = $EJECUTOR
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(...):
+                ...
+                exec = $EJECUTOR
+                ...
       - patterns:
-          - pattern: builtins.eval($ENTRADA)
-          - pattern-not: builtins.eval("...")
+          - pattern: builtins.eval($ENTRADA, ...)
+          - pattern-not: builtins.eval("...", ...)
+          - pattern-not-inside: |
+              def $FUNCION(..., builtins, ...):
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(..., builtins, ...):
+                ...
+          - pattern-not-inside: |
+              def $FUNCION(...):
+                ...
+                builtins = $PROVEEDOR
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(...):
+                ...
+                builtins = $PROVEEDOR
+                ...
       - patterns:
-          - pattern: builtins.exec($ENTRADA)
-          - pattern-not: builtins.exec("...")
+          - pattern: builtins.exec($ENTRADA, ...)
+          - pattern-not: builtins.exec("...", ...)
+          - pattern-not-inside: |
+              def $FUNCION(..., builtins, ...):
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(..., builtins, ...):
+                ...
+          - pattern-not-inside: |
+              def $FUNCION(...):
+                ...
+                builtins = $PROVEEDOR
+                ...
+          - pattern-not-inside: |
+              async def $FUNCION(...):
+                ...
+                builtins = $PROVEEDOR
+                ...
 
   - id: tramalia.python.subprocess-shell
     message: Evita shell=True; ejecuta argumentos separados para impedir inyección de comandos.
@@ -90,6 +142,23 @@ rules:
       - patterns:
           - pattern: subprocess.Popen(...)
           - pattern-not-inside: $PROCESO = subprocess.Popen(...)
+      - patterns:
+          - pattern: |
+              $PROCESO = subprocess.Popen(...)
+              ...
+              $PROCESO = subprocess.Popen(...)
+          - pattern-not: |
+              $PROCESO = subprocess.Popen(...)
+              ...
+              $PROCESO.wait(..., timeout=$TIEMPO, ...)
+              ...
+              $PROCESO = subprocess.Popen(...)
+          - pattern-not: |
+              $PROCESO = subprocess.Popen(...)
+              ...
+              $PROCESO.communicate(..., timeout=$TIEMPO, ...)
+              ...
+              $PROCESO = subprocess.Popen(...)
       - patterns:
           - pattern: $PROCESO = subprocess.Popen(...)
           - pattern-not-inside: |
@@ -200,17 +269,69 @@ rules:
               metavariable: $METODO
               regex: ^(delete|get|head|options|patch|post|put|request)$
       - patterns:
-          - pattern-either:
-              - pattern-inside: |
-                  $SESION = requests.Session(...)
-                  ...
-              - pattern-inside: |
-                  $SESION = requests.session(...)
-                  ...
-          - pattern: $SESION.$METODO(..., verify=False, ...)
+          - pattern: requests.$CONSTRUCTOR(...).$METODO(..., verify=False, ...)
+          - metavariable-regex:
+              metavariable: $CONSTRUCTOR
+              regex: ^(Session|session)$
           - metavariable-regex:
               metavariable: $METODO
               regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern: requests.$CONSTRUCTOR(...).verify = False
+          - metavariable-regex:
+              metavariable: $CONSTRUCTOR
+              regex: ^(Session|session)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $SESION = requests.$CONSTRUCTOR(...)
+                  ...
+              - pattern-inside: |
+                  with requests.$CONSTRUCTOR(...) as $SESION:
+                    ...
+          - metavariable-regex:
+              metavariable: $CONSTRUCTOR
+              regex: ^(Session|session)$
+          - pattern-either:
+              - patterns:
+                  - pattern: $SESION.$METODO(..., verify=False, ...)
+                  - metavariable-regex:
+                      metavariable: $METODO
+                      regex: ^(delete|get|head|options|patch|post|put|request)$
+              - pattern: $SESION.verify = False
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  def $FUNCION(..., $SESION: requests.Session, ...):
+                    ...
+              - pattern-inside: |
+                  async def $FUNCION(..., $SESION: requests.Session, ...):
+                    ...
+          - pattern-either:
+              - patterns:
+                  - pattern: $SESION.$METODO(..., verify=False, ...)
+                  - metavariable-regex:
+                      metavariable: $METODO
+                      regex: ^(delete|get|head|options|patch|post|put|request)$
+              - pattern: $SESION.verify = False
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  def $FUNCION(..., $SESION, ...):
+                    ...
+              - pattern-inside: |
+                  async def $FUNCION(..., $SESION, ...):
+                    ...
+          - metavariable-regex:
+              metavariable: $SESION
+              regex: ^_?(sesion|session)(_(http|requests))?$
+          - pattern-either:
+              - patterns:
+                  - pattern: $SESION.$METODO(..., verify=False, ...)
+                  - metavariable-regex:
+                      metavariable: $METODO
+                      regex: ^(delete|get|head|options|patch|post|put|request)$
+              - pattern: $SESION.verify = False
 
   - id: tramalia.python.red-sin-timeout
     message: Define un límite finito para toda solicitud de red y maneja su expiración.
@@ -241,11 +362,14 @@ rules:
       - patterns:
           - pattern-either:
               - pattern-inside: |
-                  $SESION = requests.Session(...)
+                  $SESION = requests.$CONSTRUCTOR(...)
                   ...
               - pattern-inside: |
-                  $SESION = requests.session(...)
-                  ...
+                  with requests.$CONSTRUCTOR(...) as $SESION:
+                    ...
+          - metavariable-regex:
+              metavariable: $CONSTRUCTOR
+              regex: ^(Session|session)$
           - pattern: $SESION.$METODO(...)
           - pattern-not: $SESION.$METODO(..., timeout=$TIEMPO, ...)
           - metavariable-regex:
@@ -254,11 +378,87 @@ rules:
       - patterns:
           - pattern-either:
               - pattern-inside: |
-                  $SESION = requests.Session(...)
+                  $SESION = requests.$CONSTRUCTOR(...)
                   ...
               - pattern-inside: |
-                  $SESION = requests.session(...)
-                  ...
+                  with requests.$CONSTRUCTOR(...) as $SESION:
+                    ...
+          - metavariable-regex:
+              metavariable: $CONSTRUCTOR
+              regex: ^(Session|session)$
+          - pattern: $SESION.$METODO(..., timeout=None, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern: requests.$CONSTRUCTOR(...).$METODO(...)
+          - pattern-not: requests.$CONSTRUCTOR(...).$METODO(..., timeout=$TIEMPO, ...)
+          - metavariable-regex:
+              metavariable: $CONSTRUCTOR
+              regex: ^(Session|session)$
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern: requests.$CONSTRUCTOR(...).$METODO(..., timeout=None, ...)
+          - metavariable-regex:
+              metavariable: $CONSTRUCTOR
+              regex: ^(Session|session)$
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  def $FUNCION(..., $SESION: requests.Session, ...):
+                    ...
+              - pattern-inside: |
+                  async def $FUNCION(..., $SESION: requests.Session, ...):
+                    ...
+          - pattern: $SESION.$METODO(...)
+          - pattern-not: $SESION.$METODO(..., timeout=$TIEMPO, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  def $FUNCION(..., $SESION: requests.Session, ...):
+                    ...
+              - pattern-inside: |
+                  async def $FUNCION(..., $SESION: requests.Session, ...):
+                    ...
+          - pattern: $SESION.$METODO(..., timeout=None, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  def $FUNCION(..., $SESION, ...):
+                    ...
+              - pattern-inside: |
+                  async def $FUNCION(..., $SESION, ...):
+                    ...
+          - metavariable-regex:
+              metavariable: $SESION
+              regex: ^_?(sesion|session)(_(http|requests))?$
+          - pattern: $SESION.$METODO(...)
+          - pattern-not: $SESION.$METODO(..., timeout=$TIEMPO, ...)
+          - metavariable-regex:
+              metavariable: $METODO
+              regex: ^(delete|get|head|options|patch|post|put|request)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  def $FUNCION(..., $SESION, ...):
+                    ...
+              - pattern-inside: |
+                  async def $FUNCION(..., $SESION, ...):
+                    ...
+          - metavariable-regex:
+              metavariable: $SESION
+              regex: ^_?(sesion|session)(_(http|requests))?$
           - pattern: $SESION.$METODO(..., timeout=None, ...)
           - metavariable-regex:
               metavariable: $METODO
@@ -274,29 +474,14 @@ rules:
       tecnologia: python
       control_tramalia: analisis_estatico_local
       referencia: https://cwe.mitre.org/data/definitions/22.html
-    pattern-either:
-      - patterns:
-          - pattern-inside: |
-              $ARCHIVO = tarfile.open(...)
-              ...
-          - pattern: $ARCHIVO.extractall(...)
-      - patterns:
-          - pattern-inside: |
-              with tarfile.open(...) as $ARCHIVO:
-                ...
-          - pattern: $ARCHIVO.extractall(...)
-      - patterns:
-          - pattern-inside: |
-              $ARCHIVO = zipfile.ZipFile(...)
-              ...
-          - pattern: $ARCHIVO.extractall(...)
-      - patterns:
-          - pattern-inside: |
-              with zipfile.ZipFile(...) as $ARCHIVO:
-                ...
-          - pattern: $ARCHIVO.extractall(...)
-      - pattern: tarfile.open(...).extractall(...)
-      - pattern: zipfile.ZipFile(...).extractall(...)
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: tarfile.open(...)
+          - pattern: tarfile.TarFile.open(...)
+          - pattern: zipfile.ZipFile(...)
+    pattern-sinks:
+      - pattern: $ARCHIVO.extractall(...)
 
   - id: tramalia.python.mcp-stdout-directo
     message: Evita print directo en una tool MCP; usa logging o una salida estructurada.
@@ -311,12 +496,16 @@ rules:
     pattern-either:
       - patterns:
           - pattern-inside: |
+              $SERVIDOR = FastMCP(...)
+              ...
               @$SERVIDOR.tool(...)
               def $FUNCION(...):
                 ...
           - pattern: print(...)
       - patterns:
           - pattern-inside: |
+              $SERVIDOR = FastMCP(...)
+              ...
               @$SERVIDOR.tool(...)
               async def $FUNCION(...):
                 ...
