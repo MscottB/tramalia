@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from tramalia.core.detect import PATTERNS, enabled_features
 from tramalia.core.errores import ErrorEntradaInsegura
 from tramalia.core.scaffold import scaffold
 from tramalia.core.seguridad_entradas import resolver_ruta_confinada
@@ -12,28 +13,21 @@ from tramalia.core.seguridad_entradas import resolver_ruta_confinada
 _FECHA_CANONICA = "2000-01-01"
 
 
-def _respuestas_canonicas() -> dict[str, object]:
-    # La matriz maxima hace visible todo drift entre herramientas y puertas.
+def respuestas_canonicas() -> dict[str, object]:
+    """Build answers that exercise every recognized stack and capability.
+
+    Returns:
+        Deterministic scaffold answers for the canonical generated project.
+    """
+    pilas = [*PATTERNS, "react", "sqlserver"]
+    capacidades = enabled_features(pilas)
     return {
         "project_name": "proyecto-prueba-seguridad",
-        "stacks": [
-            "python",
-            "node",
-            "angular",
-            "react",
-            "dotnet",
-            "maven",
-            "gradle",
-            "go",
-            "rust",
-            "notebooks",
-            "postgres",
-            "sqlserver",
-            "databricks",
-            "tailwind",
-        ],
-        "features": ["context", "security", "database", "sync", "ux", "databricks"],
+        "stacks": pilas,
+        "features": capacidades,
         "with_notebook_exec": True,
+        "matriz_completa": True,
+        "incluir_engram": True,
         "primary_agent": "codex",
         "reviewer_agent": "claude",
         "fecha": _FECHA_CANONICA,
@@ -68,7 +62,7 @@ def generar_proyecto(raiz: Path, salida: Path) -> Path:
             ruta=destino,
         )
     destino.mkdir(parents=True, exist_ok=True)
-    scaffold(destino, _respuestas_canonicas())
+    scaffold(destino, respuestas_canonicas())
     return destino
 
 

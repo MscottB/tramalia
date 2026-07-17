@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import tomllib
@@ -72,14 +73,17 @@ def test_seguridad_generada_conserva_orden_fail_closed() -> None:
     ]
 
 
-def test_ux_generada_fija_lighthouse_y_playwright_sin_instalar() -> None:
+def test_ux_generada_fija_herramientas_e_informa_preparacion_sin_instalar() -> None:
     contenido = build_mise_toml({"stacks": ["react"], "features": ["ux"]})
-    comandos = tomllib.loads(contenido)["tasks"]["ux"]["run"]
+    tarea = tomllib.loads(contenido)["tasks"]["ux"]
+    comandos = tarea["run"]
 
     assert f'"npm:@lhci/cli" = "{VERSION_LIGHTHOUSE_CI}"' in contenido
     assert f'"npm:playwright" = "{VERSION_PLAYWRIGHT}"' in contenido
     assert comandos == ["lhci autorun", "playwright test"]
-    assert " install " not in f" {contenido.lower()} "
+    assert " install " not in f" {' '.join(comandos).lower()} "
+    assert "mise install" in tarea["description"]
+    assert "playwright install chromium" in tarea["description"]
     assert '"latest"' not in contenido
 
 
@@ -132,10 +136,47 @@ def test_registro_instalador_y_scaffold_comparten_especificaciones() -> None:
     )
 
 
-def test_generador_real_es_confinado_determinista_y_empaqueta_semgrep(tmp_path: Path) -> None:
+def test_respuestas_canonicas_cubren_superficie_y_ramas_mutuamente_excluyentes() -> None:
+    from scripts.generar_proyecto_prueba_seguridad import respuestas_canonicas
+    from tramalia.core.detect import PATTERNS, enabled_features
+
+    respuestas = respuestas_canonicas()
+    stacks = respuestas["stacks"]
+    features = respuestas["features"]
+
+    assert set(stacks) == {*PATTERNS, "react", "sqlserver"}
+    assert tuple(features) == enabled_features(list(stacks))
+    assert {"init", "memory", "specs"} <= set(features)
+    assert respuestas["matriz_completa"] is True
+    assert respuestas["incluir_engram"] is True
+    contenido = build_mise_toml(respuestas)
+    for comando in ("ng build", "npm run build", "mvn -B compile", "gradle build -x test"):
+        assert comando in contenido
+    assert tomllib.loads(contenido)["tasks"]["gates"]["depends"] == [
+        "build",
+        "test",
+        "lint",
+        "security",
+        "database",
+        "bundle",
+        "notebooks",
+        "ux",
+    ]
+
+
+def test_generador_real_es_confinado_determinista_y_empaqueta_semgrep(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from scripts.generar_proyecto_prueba_seguridad import generar_proyecto
 
+    monkeypatch.setattr(shutil, "which", lambda _nombre: None)
     primera = generar_proyecto(tmp_path, Path("primera"))
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda nombre: "C:/herramientas/engram.exe" if nombre == "engram" else None,
+    )
     segunda = generar_proyecto(tmp_path, Path("segunda"))
 
     assert primera == (tmp_path / "primera").resolve()
@@ -149,6 +190,12 @@ def test_generador_real_es_confinado_determinista_y_empaqueta_semgrep(tmp_path: 
     )
     assert configuracion_generada.read_bytes() == configuracion_auditada.read_bytes()
     assert '"latest"' not in (primera / "mise.toml").read_text(encoding="utf-8")
+    configuracion_mcp = json.loads((primera / ".mcp.json").read_text(encoding="utf-8"))
+    assert "engram" in configuracion_mcp["mcpServers"]
+    assert "incluido explicitamente" in configuracion_mcp["_note"]
+    assert "detectado" not in configuracion_mcp["_note"]
+    for relativa in ("mise.toml", ".mcp.json", ".sqlfluff", ".gitignore"):
+        assert b"\r\n" not in (primera / relativa).read_bytes()
 
 
 def test_generador_rechaza_escape_y_destino_con_contenido(tmp_path: Path) -> None:

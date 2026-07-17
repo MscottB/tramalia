@@ -546,7 +546,7 @@ def asegurar_gitignore_habilidades(raiz: Path) -> str:
     ruta = raiz / ".gitignore"
     bloque = bloque_gitignore()
     if not ruta.exists():
-        ruta.write_text(bloque, encoding="utf-8")
+        ruta.write_text(bloque, encoding="utf-8", newline="\n")
         return "creado"
     texto = ruta.read_text(encoding="utf-8")
     if _INICIO_GITIGNORE in texto and _FIN_GITIGNORE in texto:
@@ -554,11 +554,11 @@ def asegurar_gitignore_habilidades(raiz: Path) -> str:
         sufijo = texto[texto.index(_FIN_GITIGNORE) + len(_FIN_GITIGNORE) :]
         nuevo = prefijo + bloque.rstrip("\n") + sufijo
         if nuevo != texto:
-            ruta.write_text(nuevo, encoding="utf-8")
+            ruta.write_text(nuevo, encoding="utf-8", newline="\n")
             return "adaptado"
         return "existe"
     separador = "" if texto.endswith("\n\n") else ("\n" if texto.endswith("\n") else "\n\n")
-    ruta.write_text(texto + separador + bloque, encoding="utf-8")
+    ruta.write_text(texto + separador + bloque, encoding="utf-8", newline="\n")
     return "adaptado"
 
 

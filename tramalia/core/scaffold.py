@@ -287,7 +287,7 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
                     state = "adaptado"
             results.append((name, state))
             continue
-        dest.write_text(content, encoding="utf-8")
+        dest.write_text(content, encoding="utf-8", newline="\n")
         results.append((name, "creado"))
 
     # 3. .gitignore: excluir habilidades externas sin perder las propias NN-*.
@@ -301,6 +301,7 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
 def build_mise_toml(answers: dict) -> str:
     stacks = answers.get("stacks", [])
     features = answers.get("features", ())
+    matriz_completa = bool(answers.get("matriz_completa"))
 
     tools: list[str] = []
     if "python" in stacks:
@@ -331,7 +332,9 @@ def build_mise_toml(answers: dict) -> str:
         comandos_construccion.append("ng build")
         comandos_prueba.append("ng test --watch=false")
         comandos_lint.append("ng lint")
-    elif any(tecnologia in stacks for tecnologia in ("node", "react", "next", "vue", "svelte")):
+    if (matriz_completa or "angular" not in stacks) and any(
+        tecnologia in stacks for tecnologia in ("node", "react", "next", "vue", "svelte")
+    ):
         # Nest y otras API Node usan los scripts declarados por el proyecto.
         comandos_construccion.append("npm run build")
         comandos_prueba.append("npm test")
@@ -342,7 +345,7 @@ def build_mise_toml(answers: dict) -> str:
     if "maven" in stacks:
         comandos_construccion.append("mvn -B compile")
         comandos_prueba.append("mvn -B test")
-    elif "gradle" in stacks:
+    if "gradle" in stacks and (matriz_completa or "maven" not in stacks):
         comandos_construccion.append("gradle build -x test")
         comandos_prueba.append("gradle test")
     if "go" in stacks:
@@ -368,10 +371,12 @@ def build_mise_toml(answers: dict) -> str:
 
     gate_tasks: list[str] = []
 
-    def emit(name: str, cmds: list[str]) -> None:
+    def emit(name: str, cmds: list[str], *, descripcion: str | None = None) -> None:
         if not cmds:
             return
         lines.append(f"[tasks.{name}]")
+        if descripcion is not None:
+            lines.append(f"description = {json.dumps(descripcion, ensure_ascii=False)}")
         if len(cmds) == 1:
             lines.append(f'run = "{cmds[0]}"')
         else:
@@ -407,7 +412,14 @@ def build_mise_toml(answers: dict) -> str:
         # requiere datos/entorno; ajusta la ruta si tus notebooks no están en notebooks/.
         emit("notebooks", ["jupyter execute notebooks/*.ipynb"])
     if "ux" in features:
-        emit("ux", ["lhci autorun", "playwright test"])
+        emit(
+            "ux",
+            ["lhci autorun", "playwright test"],
+            descripcion=(
+                "Valida UX sin instalar durante la puerta. Preparacion: ejecuta "
+                "`mise install` y luego `playwright install chromium`."
+            ),
+        )
 
     if gate_tasks:
         deps = ", ".join(f'"{t}"' for t in gate_tasks)
@@ -462,8 +474,9 @@ def _mcp_servers(answers: dict) -> dict:
             ],
         }
     }
-    # Engram (memoria local, seguro) se auto-cablea si está instalado.
-    if shutil.which("engram"):
+    # La decision explicita permite fixtures reproducibles; None conserva la autodeteccion.
+    incluir_engram = answers.get("incluir_engram")
+    if incluir_engram is True or (incluir_engram is None and shutil.which("engram")):
         servers["engram"] = {"command": "engram", "args": ["mcp"]}
     # Headroom (compresión; puede ser proxy) NUNCA por defecto: solo con --with-headroom.
     if answers.get("with_headroom"):
@@ -486,7 +499,10 @@ def build_mcp_json(answers: dict) -> str:
         "Engram (`engram mcp`) o basic-memory."
     )
     if "engram" in servers:
-        note += " Engram detectado y añadido."
+        if answers.get("incluir_engram") is True:
+            note += " Engram incluido explicitamente."
+        else:
+            note += " Engram detectado y añadido."
     if "headroom" in servers:
         note += (
             " Headroom añadido por --with-headroom; si tu versión difiere, "
