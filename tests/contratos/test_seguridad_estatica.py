@@ -172,7 +172,8 @@ def _extraer_comandos_gitleaks_dir(archivo: Path) -> Iterator[str]:
         if linea_activa.startswith(("#", "//", "<!--")):
             continue
         if archivo.suffix == ".md" and not re.match(
-            r"^(?:&\s+)?[^\s\"'`]*gitleaks(?:\.exe)?[\"']?\s+dir\b",
+            r"^(?:&\s+)?(?:(?P<comilla>[\"'])[^\"'\r\n]*gitleaks(?:\.exe)?"
+            r"(?P=comilla)|[^\s\"'`]*gitleaks(?:\.exe)?)\s+dir\b",
             linea_activa,
             re.IGNORECASE,
         ):
@@ -370,6 +371,35 @@ def test_lineas_que_solo_son_comentarios_no_cuentan_como_comandos(
         )
     )
     _usar_archivo_comandos_temporal(monkeypatch, tmp_path / "comentarios.md", contenido)
+
+    test_todos_los_comandos_dir_limitan_archivos_a_diez_megabytes()
+
+
+def test_comando_powershell_citado_sin_limite_se_rechaza(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    contenido = "\n".join(
+        (
+            "gitleaks dir . --max-target-megabytes 10",
+            r'& "C:\Program Files\gitleaks.exe" dir .',
+        )
+    )
+    _usar_archivo_comandos_temporal(monkeypatch, tmp_path / "citado.md", contenido)
+
+    with pytest.raises(AssertionError):
+        test_todos_los_comandos_dir_limitan_archivos_a_diez_megabytes()
+
+
+def test_comando_powershell_citado_con_limite_diez_se_admite(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    contenido = (
+        r'& "C:\Program Files\gitleaks.exe" dir . '
+        "--max-target-megabytes 10 --exit-code 1"
+    )
+    _usar_archivo_comandos_temporal(monkeypatch, tmp_path / "citado.md", contenido)
 
     test_todos_los_comandos_dir_limitan_archivos_a_diez_megabytes()
 
