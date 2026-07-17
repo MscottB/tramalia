@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Directorios generados y dependencias; el código fuente no se excluye"
+paths = [
+  '''(^|/)(\.git|\.venv|node_modules|site|\.artefactos|dist|build|\.pytest_cache|\.mypy_cache|\.ruff_cache|__pycache__)(/|$)''',
+]
