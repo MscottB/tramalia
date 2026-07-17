@@ -70,12 +70,12 @@ REFERENCIAS = {
 }
 
 ESTADOS_INICIALES = {
-    "TRM-SEC-001": "pendiente_bloqueante",
+    "TRM-SEC-001": "cubierto_por_prueba",
     "TRM-SEC-002": "parcial",
     "TRM-SEC-003": "pendiente_bloqueante",
     "TRM-SEC-004": "pendiente_bloqueante",
-    "TRM-SEC-005": "pendiente_bloqueante",
-    "TRM-SEC-006": "pendiente_bloqueante",
+    "TRM-SEC-005": "cubierto_por_prueba",
+    "TRM-SEC-006": "cubierto_por_prueba",
     "TRM-SEC-007": "parcial",
     "TRM-SEC-008": "pendiente_bloqueante",
     "TRM-SEC-009": "pendiente_bloqueante",
@@ -83,12 +83,12 @@ ESTADOS_INICIALES = {
 }
 
 LIMITACIONES_INICIALES = {
-    "TRM-SEC-001": ("Task 4",),
+    "TRM-SEC-001": ("fronteras locales", "TOCTOU"),
     "TRM-SEC-002": ("Task 2", "Task 4"),
     "TRM-SEC-003": ("Task 3",),
     "TRM-SEC-004": ("Task 1", "Task 5", "Task 7"),
-    "TRM-SEC-005": ("Task 4",),
-    "TRM-SEC-006": ("Task 4",),
+    "TRM-SEC-005": ("semantica", "Plan 03c"),
+    "TRM-SEC-006": ("stdio", "autoridad", "usuario", "HTTP/SSE"),
     "TRM-SEC-007": ("Task 4", "Plan 03c"),
     "TRM-SEC-008": ("Task 5",),
     "TRM-SEC-009": ("Task 6",),
@@ -133,9 +133,7 @@ def _extraer_filas_control(contenido: str) -> list[list[str]]:
 
 def test_existen_modelo_y_matriz_de_seguridad() -> None:
     faltantes = [
-        str(ruta.relative_to(RAIZ))
-        for ruta in (RUTA_MODELO, RUTA_MATRIZ)
-        if not ruta.is_file()
+        str(ruta.relative_to(RAIZ)) for ruta in (RUTA_MODELO, RUTA_MATRIZ) if not ruta.is_file()
     ]
 
     assert not faltantes, f"Faltan documentos de seguridad: {', '.join(faltantes)}"

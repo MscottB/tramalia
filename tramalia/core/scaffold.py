@@ -9,7 +9,12 @@
 from __future__ import annotations
 
 import datetime
+import json
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
+
+from tramalia.core.versiones_herramientas import FUENTE_SERENA
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "project"
 
@@ -127,25 +132,52 @@ def _inject_block(existing: str, marker: str, body: str) -> str:
     return existing + sep + block + "\n"
 
 
-def _merge_mcp(existing_text: str, servers: dict) -> tuple[str, bool]:
-    """Fusiona servidores en un .mcp.json existente sin pisar los del usuario.
+@dataclass(frozen=True, slots=True)
+class ResultadoMergeMCP:
+    """Describe a non-destructive MCP configuration merge.
 
-    Devuelve (texto, ok). ok=False si el JSON está malformado (no se toca).
+    Attributes:
+        texto: Original or safely merged JSON text.
+        estado: Stable merge outcome for callers.
     """
-    import json
 
+    texto: str
+    estado: Literal["sin_cambios", "fusionado", "json_invalido", "conflicto"]
+
+
+def _merge_mcp(existing_text: str, servers: dict) -> ResultadoMergeMCP:
     try:
         data = json.loads(existing_text)
-    except Exception:
-        return existing_text, False
+    except json.JSONDecodeError:
+        return ResultadoMergeMCP(existing_text, "json_invalido")
     if not isinstance(data, dict):
-        return existing_text, False
-    bag = data.setdefault("mcpServers", {})
-    if not isinstance(bag, dict):
-        return existing_text, False
-    for name, cfg in servers.items():
-        bag.setdefault(name, cfg)  # respeta cualquier servidor tuyo con el mismo nombre
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n", True
+        return ResultadoMergeMCP(existing_text, "json_invalido")
+    servidores_existentes = data.get("mcpServers", {})
+    if not isinstance(servidores_existentes, dict):
+        return ResultadoMergeMCP(existing_text, "json_invalido")
+    for nombre, configuracion in servers.items():
+        if nombre not in servidores_existentes:
+            continue
+        existente = servidores_existentes[nombre]
+        if not isinstance(existente, dict) or not isinstance(configuracion, dict):
+            return ResultadoMergeMCP(existing_text, "conflicto")
+        if existente.get("command") != configuracion.get("command") or existente.get(
+            "args"
+        ) != configuracion.get("args"):
+            return ResultadoMergeMCP(existing_text, "conflicto")
+    faltantes = {
+        nombre: configuracion
+        for nombre, configuracion in servers.items()
+        if nombre not in servidores_existentes
+    }
+    if not faltantes:
+        return ResultadoMergeMCP(existing_text, "sin_cambios")
+    servidores_existentes.update(faltantes)
+    data["mcpServers"] = servidores_existentes
+    return ResultadoMergeMCP(
+        json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+        "fusionado",
+    )
 
 
 def _adopt_text(rel: str, dest: Path) -> str:
@@ -209,11 +241,12 @@ def scaffold(root: Path, answers: dict) -> list[tuple[str, str]]:
         if dest.exists():
             state = "existe"
             if adopt and name == ".mcp.json":
-                merged, ok = _merge_mcp(dest.read_text(encoding="utf-8"), _mcp_servers(answers))
-                if not ok:
-                    state = "existe (JSON inválido, sin tocar)"
-                elif merged != dest.read_text(encoding="utf-8"):
-                    dest.write_text(merged, encoding="utf-8")
+                resultado_merge = _merge_mcp(
+                    dest.read_text(encoding="utf-8"),
+                    _mcp_servers(answers),
+                )
+                if resultado_merge.estado == "fusionado":
+                    dest.write_text(resultado_merge.texto, encoding="utf-8")
                     state = "adaptado"
             results.append((name, state))
             continue
@@ -369,7 +402,7 @@ def _mcp_servers(answers: dict) -> dict:
             "command": "uvx",
             "args": [
                 "--from",
-                "git+https://github.com/oraios/serena",
+                FUENTE_SERENA,
                 "serena",
                 "start-mcp-server",
             ],

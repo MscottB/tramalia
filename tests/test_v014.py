@@ -44,17 +44,19 @@ def test_inject_reemplaza_bloque_al_cambiar():
 # ---------------------------------------------------------------- merge mcp
 def test_merge_mcp_respeta_servidores_del_usuario():
     existing = json.dumps({"mcpServers": {"mio": {"command": "x"}}})
-    merged, ok = _merge_mcp(existing, {"serena": {"command": "uvx"}, "mio": {"command": "NO"}})
-    assert ok
-    data = json.loads(merged)
-    assert data["mcpServers"]["mio"]["command"] == "x"  # no lo pisa
-    assert "serena" in data["mcpServers"]  # agrega el nuevo
+    resultado = _merge_mcp(
+        existing,
+        {"serena": {"command": "uvx"}, "mio": {"command": "NO"}},
+    )
+    assert resultado.estado == "conflicto"
+    assert resultado.texto == existing
 
 
 def test_merge_mcp_json_malformado_no_se_toca():
     bad = "{ esto no es json"
-    merged, ok = _merge_mcp(bad, {"serena": {}})
-    assert ok is False and merged == bad
+    resultado = _merge_mcp(bad, {"serena": {}})
+    assert resultado.estado == "json_invalido"
+    assert resultado.texto == bad
 
 
 # ---------------------------------------------------------------- scaffold adopt

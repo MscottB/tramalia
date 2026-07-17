@@ -202,6 +202,18 @@ class ErrorArgumentosMCPConflictivos(ErrorTramalia):
     codigo = "argumentos_mcp_conflictivos"
 
 
+class ErrorEntradaInsegura(ErrorTramalia):
+    """Report an input that cannot cross a security boundary safely."""
+
+    codigo = "entrada_insegura"
+
+
+class ErrorConfiguracionHabilidades(ErrorTramalia):
+    """Report a skill manifest or lock that fails closed validation."""
+
+    codigo = "configuracion_habilidades_invalida"
+
+
 class ErrorPersistenciaEvidencia(ErrorTramalia):
     """Report a failure while persisting an evidence package."""
 

@@ -10,6 +10,8 @@ import pytest
 from tramalia.core import habilidades
 from tramalia.core.procesos import ResultadoProceso
 
+_FUENTE_HTTPS = "git+https://git.tramalia.test/habilidad-remota.git"
+
 
 def _ejecutar_git(raiz, *argumentos):
     return subprocess.run(
@@ -50,8 +52,7 @@ def _proyecto_con_habilidad(tmp_path, remoto):
     proyecto = tmp_path / "proyecto"
     (proyecto / ".tramalia").mkdir(parents=True)
     (proyecto / ".tramalia" / "habilidades.toml").write_text(
-        f'[[habilidad]]\nnombre = "mihabilidad"\nfuente = "{remoto.as_uri()}"\n'
-        'referencia = "main"\n',
+        f'[[habilidad]]\nnombre = "mihabilidad"\nfuente = "{_FUENTE_HTTPS}"\nreferencia = "main"\n',
         encoding="utf-8",
     )
     return proyecto
@@ -76,6 +77,19 @@ def _esta_git_disponible():
 
 
 pytestmark = pytest.mark.skipif(not _esta_git_disponible(), reason="requiere git")
+
+
+@pytest.fixture(autouse=True)
+def _mapear_https_local(tmp_path, monkeypatch):
+    ejecutar_real = habilidades._ejecutar_git
+    url_git = _FUENTE_HTTPS.removeprefix("git+")
+    remoto = tmp_path / "habilidad-remota"
+
+    def ejecutar(argumentos, **opciones):
+        mapeados = [str(remoto) if argumento == url_git else argumento for argumento in argumentos]
+        return ejecutar_real(mapeados, **opciones)
+
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
 
 
 def test_sincronizar_solo_inexistente_no_hace_nada(tmp_path):

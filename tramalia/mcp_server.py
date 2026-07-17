@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Mapping
 from dataclasses import fields, is_dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Any, cast
 
 from tramalia.core.errores import (
     ErrorArgumentosMCPConflictivos,
@@ -15,26 +17,130 @@ from tramalia.core.errores import (
 )
 from tramalia.core.modelos import ExcepcionFallo, ResultadoCierre
 from tramalia.core.operaciones import cerrar_proyecto, crear_evidencia, registrar_traspaso
+from tramalia.core.seguridad_entradas import (
+    leer_texto_confinado,
+    resolver_ruta_confinada,
+    sanear_texto_externo,
+)
+
+_PRESUPUESTO_HOJAS_MCP = 120 * 1024
+_MAXIMO_NODOS_MCP = 2_048
+_MAXIMA_PROFUNDIDAD_MCP = 64
+_NOMBRES_SECRETOS = ("token", "secret", "password", "contrasena", "api_key", "authorization")
 
 
-def _valor_publico(valor: object) -> object:
+def _consumir_texto(valor: object, presupuesto: list[int]) -> str:
+    if presupuesto[0] <= 2:
+        return ""
+    limite = min(131_072, presupuesto[0] - 2)
+    for _intento in range(10):
+        texto = sanear_texto_externo(valor, maximo_bytes=max(1, limite))
+        costo = len(json.dumps(texto, ensure_ascii=False).encode("utf-8"))
+        if costo <= presupuesto[0]:
+            presupuesto[0] -= costo
+            return texto
+        limite_nuevo = max(1, limite - (costo - presupuesto[0]))
+        if limite_nuevo >= limite:
+            break
+        limite = limite_nuevo
+    presupuesto[0] = 0
+    return ""
+
+
+def _clave_publica(clave: object, presupuesto: list[int]) -> str:
+    return _consumir_texto(clave, presupuesto)
+
+
+def _consumir_escalar(valor: bool | int | float | None, presupuesto: list[int]) -> object:
+    try:
+        costo = len(json.dumps(valor, ensure_ascii=False).encode("utf-8"))
+    except (OverflowError, ValueError):
+        return _consumir_texto("<escalar_no_serializable>", presupuesto)
+    if costo <= presupuesto[0]:
+        presupuesto[0] -= costo
+        return valor
+    return _consumir_texto("[TRUNCADO]", presupuesto)
+
+
+def _valor_publico(
+    valor: object,
+    _presupuesto: list[int] | None = None,
+    _nodos: list[int] | None = None,
+    _vistos: set[int] | None = None,
+    _profundidad: int = 0,
+) -> object:
     """Convert a domain value into transport-safe public data."""
-    if is_dataclass(valor) and not isinstance(valor, type):
-        return {campo.name: _valor_publico(getattr(valor, campo.name)) for campo in fields(valor)}
-    if isinstance(valor, Enum):
-        return _valor_publico(valor.value)
-    if isinstance(valor, Path):
-        try:
-            return valor.relative_to(Path.cwd()).as_posix()
-        except ValueError:
-            return str(valor)
-    if isinstance(valor, datetime):
-        return valor.isoformat()
-    if isinstance(valor, Mapping):
-        return {str(clave): _valor_publico(dato) for clave, dato in valor.items()}
-    if isinstance(valor, (tuple, list)):
-        return [_valor_publico(dato) for dato in valor]
-    return valor
+    presupuesto = _presupuesto if _presupuesto is not None else [_PRESUPUESTO_HOJAS_MCP]
+    nodos = _nodos if _nodos is not None else [_MAXIMO_NODOS_MCP]
+    vistos = _vistos if _vistos is not None else set()
+    if nodos[0] <= 0 or _profundidad >= _MAXIMA_PROFUNDIDAD_MCP:
+        return _consumir_texto("[TRUNCADO]", presupuesto)
+    nodos[0] -= 1
+
+    es_dataclass = is_dataclass(valor) and not isinstance(valor, type)
+    es_compuesto = es_dataclass or isinstance(valor, (Mapping, tuple, list))
+    identidad = id(valor)
+    if es_compuesto and identidad in vistos:
+        return _consumir_texto("[REFERENCIA_CICLICA]", presupuesto)
+    if es_compuesto:
+        vistos.add(identidad)
+
+    def convertir(dato: object) -> object:
+        return _valor_publico(
+            dato,
+            presupuesto,
+            nodos,
+            vistos,
+            _profundidad + 1,
+        )
+
+    try:
+        if es_dataclass:
+            resultado_dataclass: dict[str, object] = {}
+            for campo in fields(cast(Any, valor)):
+                if nodos[0] <= 0:
+                    break
+                resultado_dataclass[campo.name] = convertir(getattr(valor, campo.name))
+            return resultado_dataclass
+        if isinstance(valor, Enum):
+            return convertir(valor.value)
+        if isinstance(valor, Path):
+            raiz = Path.cwd().resolve()
+            try:
+                candidata = (valor if valor.is_absolute() else raiz / valor).resolve(strict=False)
+            except OSError:
+                return _consumir_texto("[RUTA_FUERA_DEL_PROYECTO]", presupuesto)
+            if not candidata.is_relative_to(raiz):
+                return _consumir_texto("[RUTA_FUERA_DEL_PROYECTO]", presupuesto)
+            return _consumir_texto(candidata.relative_to(raiz).as_posix(), presupuesto)
+        if isinstance(valor, datetime):
+            return _consumir_texto(valor.isoformat(), presupuesto)
+        if isinstance(valor, Mapping):
+            resultado: dict[str, object] = {}
+            for clave, dato in valor.items():
+                if nodos[0] <= 0:
+                    break
+                clave_publica = _clave_publica(clave, presupuesto)
+                if any(nombre in clave_publica.casefold() for nombre in _NOMBRES_SECRETOS):
+                    resultado[clave_publica] = _consumir_texto("[REDACTADO]", presupuesto)
+                else:
+                    resultado[clave_publica] = convertir(dato)
+            return resultado
+        if isinstance(valor, (tuple, list)):
+            resultado_lista: list[object] = []
+            for dato in valor:
+                if nodos[0] <= 0:
+                    break
+                resultado_lista.append(convertir(dato))
+            return resultado_lista
+        if isinstance(valor, str | bytes | bytearray):
+            return _consumir_texto(valor, presupuesto)
+        if valor is None or isinstance(valor, (bool, int, float)):
+            return _consumir_escalar(valor, presupuesto)
+        return _consumir_texto(valor, presupuesto)
+    finally:
+        if es_compuesto:
+            vistos.discard(identidad)
 
 
 def _respuesta(operacion: Callable[[], object]) -> dict[str, object]:
@@ -42,7 +148,18 @@ def _respuesta(operacion: Callable[[], object]) -> dict[str, object]:
     try:
         return {"ok": True, "resultado": _valor_publico(operacion())}
     except ErrorTramalia as error_dominio:
-        return {"ok": False, "error": _valor_publico(error_dominio.como_dict())}
+        datos_error = error_dominio.como_dict()
+        if error_dominio.ruta is not None:
+            datos_error["ruta"] = _valor_publico(error_dominio.ruta)  # type: ignore[assignment]
+        return {"ok": False, "error": _valor_publico(datos_error)}
+    except Exception as error_inesperado:
+        return {
+            "ok": False,
+            "error": {
+                "codigo": "error_interno",
+                "mensaje": sanear_texto_externo(error_inesperado),
+            },
+        }
 
 
 def _resolver_alias(
@@ -75,8 +192,14 @@ def construir_servidor():
     servidor = FastMCP("tramalia")
 
     def _leer(relativa: str, ausente: str) -> str:
-        ruta = Path.cwd() / relativa
-        return ruta.read_text(encoding="utf-8") if ruta.exists() else ausente
+        raiz = Path.cwd()
+        try:
+            ruta = resolver_ruta_confinada(raiz, Path(relativa), permitir_ausente=True)
+            if not ruta.exists():
+                return sanear_texto_externo(ausente)
+            return leer_texto_confinado(raiz, Path(relativa))
+        except ErrorTramalia:
+            return "[LECTURA_RECHAZADA]"
 
     @servidor.tool(name="project_status")
     def estado_proyecto_mcp() -> str:
@@ -85,7 +208,7 @@ def construir_servidor():
         tecnologias = detect.detect_stack(raiz)
         capacidades = detect.enabled_features(tecnologias)
         inicializado = inspeccionar_estado_proyecto(raiz).listo
-        return (
+        return sanear_texto_externo(
             f"stack: {', '.join(tecnologias) or '—'}\n"
             f"gates aplicables: {', '.join(capacidades)}\n"
             f"inicializado: {inicializado}"
@@ -127,7 +250,7 @@ def construir_servidor():
                 f"({estado.herramienta.categoria}) — "
                 f"{estado.version or estado.herramienta.sugerencia_instalacion}"
             )
-        return "\n".join(lineas)
+        return sanear_texto_externo("\n".join(lineas))
 
     @servidor.tool(name="record_handoff")
     def registrar_traspaso_mcp(
@@ -231,7 +354,9 @@ def construir_servidor():
         raiz = Path.cwd()
         exigir_proyecto_gobernado(raiz)
         resultado = contexto.construir_contexto(raiz)
-        return "generado: " + ", ".join(ruta.name for ruta in resultado.archivos)
+        return sanear_texto_externo(
+            "generado: " + ", ".join(ruta.name for ruta in resultado.archivos)
+        )
 
     return servidor
 

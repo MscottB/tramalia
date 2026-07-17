@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
+import stat
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,13 +14,20 @@ from typing import Literal
 from uuid import uuid4
 
 from tramalia.core import procesos
+from tramalia.core.errores import ErrorConfiguracionHabilidades, ErrorEntradaInsegura
 from tramalia.core.modelos import EstadoIntegracion, ValorEstadoIntegracion
 from tramalia.core.procesos import ResultadoProceso
+from tramalia.core.seguridad_entradas import (
+    validar_arbol_habilidad,
+    validar_fuente_git,
+    validar_nombre_habilidad,
+)
 
 _RUTA_MANIFIESTO = Path(".tramalia/habilidades.toml")
 _RUTA_MANIFIESTO_HEREDADO = Path(".tramalia/skills.toml")
 _RUTA_BLOQUEO = Path(".tramalia/habilidades.lock.json")
 _RUTA_HABILIDADES = Path(".tramalia/habilidades")
+_RUTA_CUARENTENA = Path(".tramalia/.cuarentena-habilidades")
 _SHA_COMPLETO = re.compile(r"[0-9a-fA-F]{40}")
 _BLOQUE_NUEVO = re.compile(r"^(#\s*)?\[\[habilidad\]\]\s*$")
 _CLAVE_NUEVA = re.compile(r'^(#\s*)?(nombre|fuente|referencia)\s*=\s*"([^"]*)"\s*$')
@@ -31,6 +40,7 @@ _FIN_GITIGNORE = "# <<< tramalia:skills-externas <<<"
 _CUERPO_GITIGNORE = (
     "# Habilidades EXTERNAS: referencias reproducibles, no se suben al repo.\n"
     "# Las habilidades propias NN-* (numeradas) si se versionan.\n"
+    ".tramalia/.cuarentena-habilidades/\n"
     ".tramalia/habilidades/*/\n"
     "!.tramalia/habilidades/[0-9][0-9]-*/\n"
 )
@@ -115,10 +125,84 @@ def _ruta_manifiesto_lectura(raiz: Path) -> tuple[Path | None, bool]:
 def _datos_manifiesto(ruta: Path, heredado: bool) -> list[dict[str, object]]:
     try:
         datos = tomllib.loads(ruta.read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError):
-        return []
+    except tomllib.TOMLDecodeError as error_toml:
+        ruta_publica = Path(ruta.parent.name) / ruta.name
+        raise ErrorConfiguracionHabilidades(
+            "El manifiesto de habilidades contiene TOML invalido.",
+            "Corrige la sintaxis del manifiesto y vuelve a intentarlo.",
+            ruta=ruta_publica,
+        ) from error_toml
+    except OSError as error_lectura:
+        ruta_publica = Path(ruta.parent.name) / ruta.name
+        raise ErrorConfiguracionHabilidades(
+            "No se pudo leer el manifiesto de habilidades.",
+            "Verifica la ruta y los permisos del manifiesto.",
+            ruta=ruta_publica,
+        ) from error_lectura
     entradas = datos.get("skill" if heredado else "habilidad", [])
-    return [entrada for entrada in entradas if isinstance(entrada, dict)]
+    if not isinstance(entradas, list) or not all(isinstance(entrada, dict) for entrada in entradas):
+        raise ErrorConfiguracionHabilidades(
+            "El manifiesto no contiene una lista valida de habilidades.",
+            "Declara cada habilidad mediante un bloque de tabla valido.",
+            ruta=Path(ruta.parent.name) / ruta.name,
+        )
+    return entradas
+
+
+def _declaracion_validada(
+    raiz: Path,
+    entrada: dict[str, object],
+    *,
+    heredado: bool,
+    ruta: Path,
+    habilitada: bool = True,
+) -> HabilidadDeclarada:
+    claves = ("name", "source", "ref") if heredado else ("nombre", "fuente", "referencia")
+    nombre_bruto = entrada.get(claves[0])
+    fuente_bruta = entrada.get(claves[1])
+    referencia_bruta = entrada.get(claves[2], "main")
+    if not all(isinstance(valor, str) for valor in (nombre_bruto, fuente_bruta, referencia_bruta)):
+        raise ErrorConfiguracionHabilidades(
+            "Una declaracion de habilidad contiene tipos invalidos.",
+            "Usa textos para nombre, fuente y referencia.",
+            ruta=ruta,
+        )
+    assert isinstance(nombre_bruto, str)
+    assert isinstance(fuente_bruta, str)
+    assert isinstance(referencia_bruta, str)
+    try:
+        nombre = validar_nombre_habilidad(nombre_bruto)
+        fuente = validar_fuente_git(fuente_bruta)
+    except ErrorEntradaInsegura as error_entrada:
+        raise ErrorConfiguracionHabilidades(
+            "Una declaracion del manifiesto de habilidades es insegura.",
+            "Corrige el nombre o usa una fuente HTTPS valida.",
+            ruta=ruta,
+        ) from error_entrada
+    referencia = referencia_bruta.strip() or "main"
+    return HabilidadDeclarada(
+        nombre=nombre,
+        fuente=fuente,
+        referencia=referencia,
+        habilitada=habilitada,
+        instalada=(raiz / _RUTA_HABILIDADES / nombre).is_dir(),
+    )
+
+
+def _rechazar_duplicados(
+    declaraciones: list[HabilidadDeclarada],
+    *,
+    ruta: Path,
+) -> None:
+    nombres: set[str] = set()
+    for declaracion in declaraciones:
+        if declaracion.nombre in nombres:
+            raise ErrorConfiguracionHabilidades(
+                "El manifiesto contiene un nombre de habilidad duplicado.",
+                "Conserva una sola declaracion por nombre.",
+                ruta=ruta,
+            )
+        nombres.add(declaracion.nombre)
 
 
 def leer_habilidades(raiz: Path) -> tuple[HabilidadDeclarada, ...]:
@@ -133,21 +217,18 @@ def leer_habilidades(raiz: Path) -> tuple[HabilidadDeclarada, ...]:
     ruta, heredado = _ruta_manifiesto_lectura(raiz)
     if ruta is None:
         return ()
-    claves = ("name", "source", "ref") if heredado else ("nombre", "fuente", "referencia")
     resultado: list[HabilidadDeclarada] = []
+    ruta_publica = Path(ruta.parent.name) / ruta.name
     for entrada in _datos_manifiesto(ruta, heredado):
-        nombre = str(entrada.get(claves[0]) or "").strip()
-        if not nombre:
-            continue
         resultado.append(
-            HabilidadDeclarada(
-                nombre=nombre,
-                fuente=str(entrada.get(claves[1]) or "").strip(),
-                referencia=str(entrada.get(claves[2]) or "main").strip() or "main",
-                habilitada=True,
-                instalada=(raiz / _RUTA_HABILIDADES / nombre).is_dir(),
+            _declaracion_validada(
+                raiz,
+                entrada,
+                heredado=heredado,
+                ruta=ruta_publica,
             )
         )
+    _rechazar_duplicados(resultado, ruta=ruta_publica)
     return tuple(resultado)
 
 
@@ -206,9 +287,31 @@ def catalogo_habilidades(raiz: Path) -> tuple[HabilidadDeclarada, ...]:
         return ()
     try:
         texto = ruta.read_text(encoding="utf-8")
-    except OSError:
-        return ()
-    return _catalogo_desde_texto(raiz, texto, heredado=heredado)
+    except OSError as error_lectura:
+        raise ErrorConfiguracionHabilidades(
+            "No se pudo leer el manifiesto de habilidades.",
+            "Verifica la ruta y los permisos del manifiesto.",
+            ruta=Path(ruta.parent.name) / ruta.name,
+        ) from error_lectura
+    _datos_manifiesto(ruta, heredado)
+    catalogo = list(_catalogo_desde_texto(raiz, texto, heredado=heredado))
+    ruta_publica = Path(ruta.parent.name) / ruta.name
+    validadas = [
+        _declaracion_validada(
+            raiz,
+            {
+                ("name" if heredado else "nombre"): declaracion.nombre,
+                ("source" if heredado else "fuente"): declaracion.fuente,
+                ("ref" if heredado else "referencia"): declaracion.referencia,
+            },
+            heredado=heredado,
+            ruta=ruta_publica,
+            habilitada=declaracion.habilitada,
+        )
+        for declaracion in catalogo
+    ]
+    _rechazar_duplicados(validadas, ruta=ruta_publica)
+    return tuple(validadas)
 
 
 def _validar_manifiesto(ruta: Path) -> None:
@@ -335,15 +438,14 @@ def agregar_habilidad(raiz: Path, fuente: str, nombre: str | None = None) -> tup
     ruta = _preparar_manifiesto_escritura(raiz)
     if ruta is None:
         return False, "sin-manifiesto"
-    fuente_canonica = fuente.strip()
-    if not fuente_canonica.startswith(("http://", "https://", "git+")):
+    try:
+        fuente_canonica = validar_fuente_git(fuente)
+    except ErrorEntradaInsegura:
         return False, "url-invalida"
-    if not fuente_canonica.startswith("git+"):
-        fuente_canonica = "git+" + fuente_canonica
-    nombre_resuelto = (
-        nombre or fuente_canonica.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1]
-    ).strip()
-    if not nombre_resuelto or any(caracter in nombre_resuelto for caracter in ('"', "\r", "\n")):
+    nombre_resuelto = nombre or fuente_canonica.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1]
+    try:
+        nombre_resuelto = validar_nombre_habilidad(nombre_resuelto)
+    except ErrorEntradaInsegura:
         return False, "url-invalida"
     if any(habilidad.nombre == nombre_resuelto for habilidad in catalogo_habilidades(raiz)):
         return False, "duplicada"
@@ -531,21 +633,76 @@ def _leer_bloqueos(raiz: Path) -> dict[str, BloqueoHabilidad]:
     ruta = raiz / _RUTA_BLOQUEO
     if not ruta.exists():
         return {}
+
+    def construir_objeto(pares: list[tuple[str, object]]) -> dict[str, object]:
+        objeto: dict[str, object] = {}
+        for clave, valor in pares:
+            if clave in objeto:
+                raise ValueError("clave JSON duplicada")
+            objeto[clave] = valor
+        return objeto
+
     try:
-        datos = json.loads(ruta.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if datos.get("version_esquema") != 1 or not isinstance(datos.get("habilidades"), dict):
-        return {}
+        datos = json.loads(
+            ruta.read_text(encoding="utf-8"),
+            object_pairs_hook=construir_objeto,
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as error_bloqueo:
+        raise ErrorConfiguracionHabilidades(
+            "El lock de habilidades contiene JSON invalido o ambiguo.",
+            "Regenera el lock desde un manifiesto valido.",
+            ruta=_RUTA_BLOQUEO,
+        ) from error_bloqueo
+    if (
+        not isinstance(datos, dict)
+        or datos.get("version_esquema") != 1
+        or not isinstance(datos.get("habilidades"), dict)
+    ):
+        raise ErrorConfiguracionHabilidades(
+            "El lock de habilidades no cumple el esquema esperado.",
+            "Regenera el lock con la version actual de Tramalia.",
+            ruta=_RUTA_BLOQUEO,
+        )
     resultado: dict[str, BloqueoHabilidad] = {}
     for nombre, entrada in datos["habilidades"].items():
         if not isinstance(nombre, str) or not isinstance(entrada, dict):
-            continue
-        fuente = str(entrada.get("fuente") or "")
-        referencia = str(entrada.get("referencia") or "")
-        sha = str(entrada.get("sha_resuelto") or "")
-        if fuente and referencia and _SHA_COMPLETO.fullmatch(sha):
-            resultado[nombre] = BloqueoHabilidad(fuente, referencia, sha)
+            raise ErrorConfiguracionHabilidades(
+                "El lock contiene una entrada de habilidad invalida.",
+                "Regenera el lock desde un manifiesto valido.",
+                ruta=_RUTA_BLOQUEO,
+            )
+        fuente = entrada.get("fuente")
+        referencia = entrada.get("referencia")
+        sha = entrada.get("sha_resuelto")
+        if not all(isinstance(valor, str) for valor in (fuente, referencia, sha)):
+            raise ErrorConfiguracionHabilidades(
+                "El lock contiene tipos de datos invalidos.",
+                "Regenera el lock desde un manifiesto valido.",
+                ruta=_RUTA_BLOQUEO,
+            )
+        assert isinstance(fuente, str)
+        assert isinstance(referencia, str)
+        assert isinstance(sha, str)
+        try:
+            nombre_validado = validar_nombre_habilidad(nombre)
+            fuente_validada = validar_fuente_git(fuente)
+        except ErrorEntradaInsegura as error_entrada:
+            raise ErrorConfiguracionHabilidades(
+                "El lock contiene una entrada insegura.",
+                "Regenera el lock usando nombres seguros y fuentes HTTPS.",
+                ruta=_RUTA_BLOQUEO,
+            ) from error_entrada
+        if not referencia.strip() or _SHA_COMPLETO.fullmatch(sha) is None:
+            raise ErrorConfiguracionHabilidades(
+                "El lock contiene una referencia o SHA invalido.",
+                "Regenera el lock con referencias y SHA completos verificables.",
+                ruta=_RUTA_BLOQUEO,
+            )
+        resultado[nombre_validado] = BloqueoHabilidad(
+            fuente_validada,
+            referencia.strip(),
+            sha,
+        )
     return resultado
 
 
@@ -863,6 +1020,329 @@ def _sincronizar_local(
     )
 
 
+@dataclass(slots=True)
+class _PreparacionHabilidad:
+    habilidad: HabilidadDeclarada
+    resolucion: ResolucionHabilidad
+    bloqueo: BloqueoHabilidad | None
+    staging: Path | None
+    destino: Path
+
+
+@dataclass(slots=True)
+class _CambioPublicacion:
+    destino: Path
+    respaldo: Path | None
+    publicado: bool = False
+
+
+def _resolucion_seguridad_fallida(
+    habilidad: HabilidadDeclarada,
+    *,
+    motivo: str = "entrada_insegura",
+    impacto: str = "La habilidad no supero la validacion previa a su publicacion.",
+) -> ResolucionHabilidad:
+    return ResolucionHabilidad(
+        habilidad.nombre,
+        habilidad.fuente,
+        habilidad.referencia,
+        None,
+        "fallida",
+        _estado_habilidad(
+            ValorEstadoIntegracion.FALLIDO,
+            solicitado="git",
+            utilizado="git",
+            motivo=motivo,
+            impacto=impacto,
+            remediacion="Corrige la habilidad y repite la sincronizacion.",
+        ),
+    )
+
+
+def _eliminar_ruta(ruta: Path) -> None:
+    if ruta.is_symlink() or ruta.is_file():
+        ruta.unlink(missing_ok=True)
+        return
+    if not ruta.exists():
+        return
+
+    def habilitar_escritura(funcion, objetivo, _informacion) -> None:
+        os.chmod(objetivo, stat.S_IWRITE)
+        funcion(objetivo)
+
+    shutil.rmtree(ruta, onerror=habilitar_escritura)
+
+
+def _limpiar_cuarentena(ruta_transaccion: Path) -> None:
+    _eliminar_ruta(ruta_transaccion)
+    base = ruta_transaccion.parent
+    try:
+        base.rmdir()
+    except OSError:
+        pass
+
+
+def _preparar_habilidad_transaccional(
+    raiz: Path,
+    habilidad: HabilidadDeclarada,
+    bloqueo: BloqueoHabilidad | None,
+    *,
+    modo: str,
+    actualizar: bool,
+    ruta_transaccion: Path,
+) -> _PreparacionHabilidad:
+    destino = raiz / _RUTA_HABILIDADES / habilidad.nombre
+    existia = destino.exists()
+    if existia and not (destino / ".git").exists():
+        resultado = ResultadoProceso(
+            ("git", "rev-parse"),
+            1,
+            "",
+            "el destino no es un repositorio Git",
+        )
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_fallida(habilidad, resultado),
+            None,
+            None,
+            destino,
+        )
+    if habilidad.referencia == "latest":
+        _sha, resultado = _resolver_sha(habilidad.fuente, habilidad.referencia, raiz)
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_fallida(habilidad, resultado, resolviendo=True),
+            None,
+            None,
+            destino,
+        )
+
+    usa_bloqueo = modo == "team" and _bloqueo_alineado(habilidad, bloqueo) and not actualizar
+    sha_objetivo: str | None
+    if usa_bloqueo:
+        assert bloqueo is not None
+        sha_objetivo = bloqueo.sha_resuelto
+    elif modo != "team" and existia and not actualizar:
+        sha_objetivo, resultado_local = _sha_instalado_completo(raiz, habilidad.nombre)
+        if sha_objetivo is None:
+            return _PreparacionHabilidad(
+                habilidad,
+                _resolucion_fallida(habilidad, resultado_local),
+                None,
+                None,
+                destino,
+            )
+    else:
+        sha_objetivo, resultado_resolucion = _resolver_sha(
+            habilidad.fuente,
+            habilidad.referencia,
+            raiz,
+        )
+        if sha_objetivo is None:
+            return _PreparacionHabilidad(
+                habilidad,
+                _resolucion_fallida(habilidad, resultado_resolucion, resolviendo=True),
+                None,
+                None,
+                destino,
+            )
+    assert sha_objetivo is not None
+
+    staging = ruta_transaccion / habilidad.nombre
+    resultado_clon = _ejecutar_git(
+        [
+            "git",
+            "clone",
+            "--no-checkout",
+            "--no-recurse-submodules",
+            _fuente_para_git(habilidad.fuente),
+            str(staging),
+        ],
+        raiz=raiz,
+        limite_segundos=180,
+    )
+    if not resultado_clon.exitoso:
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_fallida(habilidad, resultado_clon),
+            None,
+            None,
+            destino,
+        )
+    resultado_fetch = _ejecutar_git(
+        ["git", "-C", str(staging), "fetch", "origin", sha_objetivo],
+        raiz=raiz,
+        limite_segundos=120,
+    )
+    if not resultado_fetch.exitoso:
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_fallida(habilidad, resultado_fetch),
+            None,
+            None,
+            destino,
+        )
+    resultado_arbol = _ejecutar_git(
+        ["git", "-C", str(staging), "ls-tree", "-r", sha_objetivo],
+        raiz=raiz,
+        limite_segundos=30,
+    )
+    if not resultado_arbol.exitoso:
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_fallida(habilidad, resultado_arbol),
+            None,
+            None,
+            destino,
+        )
+    for linea in resultado_arbol.salida.splitlines():
+        modo_git = linea.split(maxsplit=1)[0] if linea else ""
+        if modo_git in {"120000", "160000"}:
+            return _PreparacionHabilidad(
+                habilidad,
+                _resolucion_seguridad_fallida(
+                    habilidad,
+                    motivo=f"modo_git_{modo_git}",
+                    impacto=f"La habilidad contiene una entrada Git modo {modo_git}.",
+                ),
+                None,
+                None,
+                destino,
+            )
+    resultado_checkout = _ejecutar_git(
+        ["git", "-C", str(staging), "checkout", "--detach", sha_objetivo],
+        raiz=raiz,
+        limite_segundos=120,
+    )
+    if not resultado_checkout.exitoso:
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_fallida(habilidad, resultado_checkout),
+            None,
+            None,
+            destino,
+        )
+    try:
+        validar_arbol_habilidad(staging)
+    except ErrorEntradaInsegura:
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_seguridad_fallida(habilidad),
+            None,
+            None,
+            destino,
+        )
+    resultado_verificacion = _ejecutar_git(
+        ["git", "-C", str(staging), "rev-parse", "HEAD"],
+        raiz=raiz,
+        limite_segundos=10,
+    )
+    sha_verificado = resultado_verificacion.salida.strip()
+    if (
+        not resultado_verificacion.exitoso
+        or _SHA_COMPLETO.fullmatch(sha_verificado) is None
+        or sha_verificado.lower() != sha_objetivo.lower()
+    ):
+        return _PreparacionHabilidad(
+            habilidad,
+            _resolucion_fallida(habilidad, resultado_verificacion),
+            None,
+            None,
+            destino,
+        )
+
+    accion: Literal["clonada", "rehidratada", "actualizada", "sin_cambios"]
+    if not existia:
+        accion = "rehidratada" if usa_bloqueo else "clonada"
+    elif actualizar:
+        accion = "actualizada"
+    elif usa_bloqueo:
+        accion = "rehidratada"
+    else:
+        accion = "sin_cambios"
+    nuevo_bloqueo = BloqueoHabilidad(
+        habilidad.fuente,
+        habilidad.referencia,
+        sha_verificado,
+    )
+    resolucion = ResolucionHabilidad(
+        habilidad.nombre,
+        habilidad.fuente,
+        habilidad.referencia,
+        sha_verificado,
+        accion,
+        _estado_habilidad(
+            ValorEstadoIntegracion.COMPLETO,
+            solicitado="git",
+            utilizado="git",
+            motivo="sha_verificado",
+            impacto="sin impacto",
+            remediacion="ninguna",
+        ),
+    )
+    return _PreparacionHabilidad(
+        habilidad,
+        resolucion,
+        nuevo_bloqueo,
+        staging,
+        destino,
+    )
+
+
+def _restaurar_bloqueo(raiz: Path, contenido_anterior: bytes | None) -> None:
+    ruta = raiz / _RUTA_BLOQUEO
+    if contenido_anterior is None:
+        ruta.unlink(missing_ok=True)
+        return
+    if ruta.exists() and ruta.read_bytes() == contenido_anterior:
+        return
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    temporal = ruta.with_name(f"{ruta.name}.rollback-{uuid4().hex}")
+    try:
+        temporal.write_bytes(contenido_anterior)
+        temporal.replace(ruta)
+    finally:
+        temporal.unlink(missing_ok=True)
+
+
+def _publicar_transaccion_habilidades(
+    raiz: Path,
+    preparaciones: list[_PreparacionHabilidad],
+    bloqueos_originales: dict[str, BloqueoHabilidad],
+    bloqueos_nuevos: dict[str, BloqueoHabilidad],
+    contenido_bloqueo_anterior: bytes | None,
+    id_transaccion: str,
+) -> None:
+    cambios: list[_CambioPublicacion] = []
+    try:
+        for preparacion in preparaciones:
+            if preparacion.staging is None:
+                continue
+            destino = preparacion.destino
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            respaldo = None
+            if destino.exists() or destino.is_symlink():
+                respaldo = destino.with_name(f"{destino.name}.respaldo-{id_transaccion}")
+                destino.replace(respaldo)
+            cambio = _CambioPublicacion(destino, respaldo)
+            cambios.append(cambio)
+            preparacion.staging.replace(destino)
+            cambio.publicado = True
+        if bloqueos_nuevos != bloqueos_originales:
+            _publicar_bloqueos(raiz, bloqueos_nuevos)
+    except OSError:
+        for cambio in reversed(cambios):
+            if cambio.publicado:
+                _eliminar_ruta(cambio.destino)
+            if cambio.respaldo is not None and cambio.respaldo.exists():
+                cambio.respaldo.replace(cambio.destino)
+        _restaurar_bloqueo(raiz, contenido_bloqueo_anterior)
+        raise
+    for cambio in cambios:
+        if cambio.respaldo is not None:
+            _eliminar_ruta(cambio.respaldo)
+
+
 def _estado_agregado(
     resoluciones: tuple[ResolucionHabilidad, ...],
 ) -> EstadoIntegracion:
@@ -911,9 +1391,16 @@ def sincronizar_habilidades(
         Aggregate state and per-skill resolutions. In Team mode, any manifest
         and lock mismatch aborts the complete request before invoking Git.
     """
-    habilidades = leer_habilidades(raiz)
-    if solo is not None:
-        habilidades = tuple(h for h in habilidades if h.nombre == solo)
+    habilidades_declaradas = leer_habilidades(raiz)
+    bloqueos_originales = _leer_bloqueos(raiz)
+    from tramalia.core.configuracion import modo_trabajo
+
+    modo = modo_trabajo(raiz)
+    habilidades = (
+        tuple(habilidad for habilidad in habilidades_declaradas if habilidad.nombre == solo)
+        if solo is not None
+        else habilidades_declaradas
+    )
     if not habilidades:
         return ResultadoSincronizacionHabilidades(
             _estado_habilidad(
@@ -926,10 +1413,6 @@ def sincronizar_habilidades(
             ),
             (),
         )
-    from tramalia.core.configuracion import modo_trabajo
-
-    modo = modo_trabajo(raiz)
-    bloqueos_originales = _leer_bloqueos(raiz)
     if modo == "team" and not actualizar and (raiz / _RUTA_BLOQUEO).exists():
         desalineadas = tuple(
             _resolucion_bloqueo_desalineado(habilidad, bloqueos_originales.get(habilidad.nombre))
@@ -963,30 +1446,52 @@ def sincronizar_habilidades(
             ),
         )
 
+    ruta_bloqueo = raiz / _RUTA_BLOQUEO
+    contenido_bloqueo_anterior = ruta_bloqueo.read_bytes() if ruta_bloqueo.exists() else None
     bloqueos_nuevos = dict(bloqueos_originales)
-    resoluciones: list[ResolucionHabilidad] = []
-    for habilidad in habilidades:
-        if not habilidad.fuente:
-            resultado = ResultadoProceso(("git", "clone"), 1, "", "fuente no declarada")
-            resolucion, bloqueo = _resolucion_fallida(habilidad, resultado), None
-        elif modo == "team":
-            resolucion, bloqueo = _sincronizar_equipo(
+    id_transaccion = uuid4().hex
+    ruta_transaccion = raiz / _RUTA_CUARENTENA / id_transaccion
+    ruta_transaccion.mkdir(parents=True, exist_ok=False)
+    preparaciones: list[_PreparacionHabilidad] = []
+    try:
+        for habilidad in habilidades:
+            preparacion = _preparar_habilidad_transaccional(
                 raiz,
                 habilidad,
                 bloqueos_originales.get(habilidad.nombre),
+                modo=modo,
                 actualizar=actualizar,
+                ruta_transaccion=ruta_transaccion,
             )
-        else:
-            resolucion, bloqueo = _sincronizar_local(raiz, habilidad, actualizar=actualizar)
-        resoluciones.append(resolucion)
-        if bloqueo is not None:
-            bloqueos_nuevos[habilidad.nombre] = bloqueo
-
-    resoluciones_finales = tuple(resoluciones)
-    estado = _estado_agregado(resoluciones_finales)
-    if estado.exitoso and bloqueos_nuevos != bloqueos_originales:
-        _publicar_bloqueos(raiz, bloqueos_nuevos)
-    return ResultadoSincronizacionHabilidades(estado, resoluciones_finales)
+            preparaciones.append(preparacion)
+            if preparacion.bloqueo is not None:
+                bloqueos_nuevos[habilidad.nombre] = preparacion.bloqueo
+        resoluciones = tuple(preparacion.resolucion for preparacion in preparaciones)
+        estado = _estado_agregado(resoluciones)
+        if not estado.exitoso:
+            return ResultadoSincronizacionHabilidades(estado, resoluciones)
+        try:
+            _publicar_transaccion_habilidades(
+                raiz,
+                preparaciones,
+                bloqueos_originales,
+                bloqueos_nuevos,
+                contenido_bloqueo_anterior,
+                id_transaccion,
+            )
+        except OSError:
+            fallidas = tuple(
+                _resolucion_seguridad_fallida(
+                    preparacion.habilidad,
+                    motivo="publicacion_transaccional_fallida",
+                    impacto="La publicacion fallo y se restauro el estado anterior.",
+                )
+                for preparacion in preparaciones
+            )
+            return ResultadoSincronizacionHabilidades(_estado_agregado(fallidas), fallidas)
+        return ResultadoSincronizacionHabilidades(estado, resoluciones)
+    finally:
+        _limpiar_cuarentena(ruta_transaccion)
 
 
 def consultar_habilidades(

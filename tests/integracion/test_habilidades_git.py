@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from tramalia.core import habilidades
+from tramalia.core.errores import ErrorEntradaInsegura
 from tramalia.core.procesos import ResultadoProceso
 
 pytestmark = pytest.mark.integracion
@@ -22,8 +23,32 @@ def _ejecutar_git(raiz: Path, *argumentos: str) -> subprocess.CompletedProcess[s
     )
 
 
-def _remoto(tmp_path: Path) -> Path:
-    remoto = tmp_path / "remoto"
+_PREFIJO_HTTPS_PRUEBA = "https://git.tramalia.test/"
+
+
+def _fuente_remoto(remoto: Path) -> str:
+    return f"git+{_PREFIJO_HTTPS_PRUEBA}{remoto.name}.git"
+
+
+@pytest.fixture(autouse=True)
+def _mapear_https_local(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ejecutar_real = habilidades._ejecutar_git
+
+    def ejecutar(argumentos, **opciones):
+        mapeados = []
+        for argumento in argumentos:
+            if isinstance(argumento, str) and argumento.startswith(_PREFIJO_HTTPS_PRUEBA):
+                nombre = argumento.removeprefix(_PREFIJO_HTTPS_PRUEBA).removesuffix(".git")
+                mapeados.append(str(tmp_path / nombre))
+            else:
+                mapeados.append(argumento)
+        return ejecutar_real(mapeados, **opciones)
+
+    monkeypatch.setattr(habilidades, "_ejecutar_git", ejecutar)
+
+
+def _remoto(tmp_path: Path, nombre: str = "remoto") -> Path:
+    remoto = tmp_path / nombre
     remoto.mkdir()
     if _ejecutar_git(remoto, "init", "-b", "main").returncode != 0:
         assert _ejecutar_git(remoto, "init").returncode == 0
@@ -51,10 +76,44 @@ def _proyecto(tmp_path: Path, remoto: Path, *, modo: str = "team") -> Path:
     (raiz / ".tramalia").mkdir(parents=True)
     (raiz / ".tramalia" / "config.json").write_text(json.dumps({"mode": modo}), encoding="utf-8")
     (raiz / ".tramalia" / "habilidades.toml").write_text(
-        f'[[habilidad]]\nnombre = "demo"\nfuente = "{remoto.as_uri()}"\nreferencia = "main"\n',
+        f'[[habilidad]]\nnombre = "demo"\nfuente = "{_fuente_remoto(remoto)}"\n'
+        'referencia = "main"\n',
         encoding="utf-8",
     )
     return raiz
+
+
+def _proyecto_dos_habilidades(tmp_path: Path, primera: Path, segunda: Path) -> Path:
+    raiz = tmp_path / "proyecto"
+    directorio = raiz / ".tramalia"
+    directorio.mkdir(parents=True)
+    (directorio / "config.json").write_text(json.dumps({"mode": "team"}), encoding="utf-8")
+    (directorio / "habilidades.toml").write_text(
+        f'[[habilidad]]\nnombre = "primera"\nfuente = "{_fuente_remoto(primera)}"\n'
+        'referencia = "main"\n\n'
+        f'[[habilidad]]\nnombre = "segunda"\nfuente = "{_fuente_remoto(segunda)}"\n'
+        'referencia = "main"\n',
+        encoding="utf-8",
+    )
+    return raiz
+
+
+def _confirmar_version(remoto: Path, version: str) -> None:
+    (remoto / "SKILL.md").write_text(f"{version}\n", encoding="utf-8")
+    assert _ejecutar_git(remoto, "add", "SKILL.md").returncode == 0
+    assert (
+        _ejecutar_git(
+            remoto,
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=Test",
+            "commit",
+            "-m",
+            version,
+        ).returncode
+        == 0
+    )
 
 
 def _eliminar_checkout(ruta: Path) -> None:
@@ -199,10 +258,90 @@ def test_actualizacion_explicita_mueve_el_bloqueo(tmp_path: Path) -> None:
     bloqueo = json.loads((raiz / ".tramalia" / "habilidades.lock.json").read_text(encoding="utf-8"))
     assert nuevo != anterior
     assert bloqueo["habilidades"]["demo"] == {
-        "fuente": remoto.as_uri(),
+        "fuente": _fuente_remoto(remoto),
         "referencia": "main",
         "sha_resuelto": nuevo,
     }
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_fallo_segunda_publicacion_revierte_habilidades_y_lock_byte_a_byte(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    primera = _remoto(tmp_path, "remoto-primera")
+    segunda = _remoto(tmp_path, "remoto-segunda")
+    raiz = _proyecto_dos_habilidades(tmp_path, primera, segunda)
+    inicial = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+    assert inicial.estado.estado == "completo"
+    destinos = {
+        nombre: raiz / ".tramalia" / "habilidades" / nombre for nombre in ("primera", "segunda")
+    }
+    shas_anteriores = {
+        nombre: _ejecutar_git(destino, "rev-parse", "HEAD").stdout.strip()
+        for nombre, destino in destinos.items()
+    }
+    contenidos_anteriores = {
+        nombre: (destino / "SKILL.md").read_bytes() for nombre, destino in destinos.items()
+    }
+    ruta_bloqueo = raiz / ".tramalia" / "habilidades.lock.json"
+    bloqueo_anterior = ruta_bloqueo.read_bytes()
+    _confirmar_version(primera, "v2")
+    _confirmar_version(segunda, "v2")
+
+    reemplazar_real = Path.replace
+    publicaciones = 0
+
+    def reemplazar(origen: Path, destino: Path) -> Path:
+        nonlocal publicaciones
+        origen = Path(origen)
+        destino = Path(destino)
+        if ".cuarentena-habilidades" in origen.parts and destino.parent.name == "habilidades":
+            publicaciones += 1
+            if publicaciones == 2:
+                raise OSError("fallo Windows simulado al publicar segunda habilidad")
+        return reemplazar_real(origen, destino)
+
+    monkeypatch.setattr(Path, "replace", reemplazar)
+
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+
+    assert resultado.estado.estado == "fallido"
+    assert publicaciones == 2
+    for nombre, destino in destinos.items():
+        assert _ejecutar_git(destino, "rev-parse", "HEAD").stdout.strip() == shas_anteriores[nombre]
+        assert (destino / "SKILL.md").read_bytes() == contenidos_anteriores[nombre]
+    assert ruta_bloqueo.read_bytes() == bloqueo_anterior
+    assert not (raiz / ".tramalia" / ".cuarentena-habilidades").exists()
+    assert not list((raiz / ".tramalia" / "habilidades").glob("*.respaldo-*"))
+
+
+@pytest.mark.skipif(not habilidades.git_disponible(), reason="requiere git")
+def test_interrupcion_despues_de_staging_no_hace_visible_contenido_no_validado(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    remoto = _remoto(tmp_path)
+    raiz = _proyecto(tmp_path, remoto)
+    inspeccionadas: list[Path] = []
+
+    def interrumpir(ruta: Path):
+        inspeccionadas.append(ruta)
+        assert ".cuarentena-habilidades" in ruta.parts
+        assert (ruta / "SKILL.md").is_file()
+        raise ErrorEntradaInsegura(
+            "Arbol no validado.",
+            "Corrige el contenido de la habilidad.",
+        )
+
+    monkeypatch.setattr(habilidades, "validar_arbol_habilidad", interrumpir, raising=False)
+
+    resultado = habilidades.sincronizar_habilidades(raiz, actualizar=True)
+
+    assert resultado.estado.estado == "fallido"
+    assert len(inspeccionadas) == 1
+    assert not (raiz / ".tramalia" / "habilidades" / "demo").exists()
+    assert not (raiz / ".tramalia" / ".cuarentena-habilidades").exists()
 
 
 def test_clonacion_no_cero_es_fallida_y_no_escribe_bloqueo(tmp_path: Path, monkeypatch) -> None:

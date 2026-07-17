@@ -24,3 +24,11 @@ Thumbs.db
 
 # permisos locales de Claude Code (por máquina/sesión, no compartido)
 .claude/settings.local.json
+
+# >>> tramalia:skills-externas >>>
+# Habilidades EXTERNAS: referencias reproducibles, no se suben al repo.
+# Las habilidades propias NN-* (numeradas) si se versionan.
+.tramalia/.cuarentena-habilidades/
+.tramalia/habilidades/*/
+!.tramalia/habilidades/[0-9][0-9]-*/
+# <<< tramalia:skills-externas <<<
