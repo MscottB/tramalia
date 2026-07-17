@@ -1,4 +1,4 @@
-"""Contrato estructural para la configuracion Semgrep local."""
+"""Contrato estructural para las configuraciones Semgrep y Gitleaks."""
 
 from __future__ import annotations
 
@@ -103,6 +103,17 @@ SUFIJOS_TEXTO_GITLEAKS = {
     ".yaml",
     ".yml",
 }
+PATRON_COMANDO_GITLEAKS_DIR = re.compile(
+    r"[^\s\"'`]*gitleaks(?:\.exe)?[\"']?\s+dir\b[^\r\n]*",
+    re.IGNORECASE,
+)
+PATRON_LIMITE_GITLEAKS_DIR = re.compile(
+    r"(?<!\S)--max-target-megabytes(?!\S)\s+([0-9]+)(?=$|\s|[\"'`;,\)\]}])"
+)
+PATRON_FINGERPRINT_GITLEAKS = re.compile(
+    r"(?P<commit>[0-9a-fA-F]{40}):(?P<ruta>.+):(?P<regla>[^:]+):"
+    r"(?P<linea>[1-9][0-9]*)"
+)
 
 
 def _cargar_configuracion() -> dict[str, object]:
@@ -152,6 +163,27 @@ def _filas_excepciones_gitleaks(contenido: str) -> dict[str, list[str]]:
         if len(celdas) == 5 and celdas[0] not in {"Fingerprint", "---"}:
             filas[celdas[0].strip("`")] = celdas
     return filas
+
+
+def _extraer_comandos_gitleaks_dir(archivo: Path) -> Iterator[str]:
+    contenido = archivo.read_text(encoding="utf-8", errors="ignore")
+    for linea in contenido.splitlines():
+        linea_activa = linea.lstrip()
+        if linea_activa.startswith(("#", "//", "<!--")):
+            continue
+        if archivo.suffix == ".md" and not re.match(
+            r"^(?:&\s+)?[^\s\"'`]*gitleaks(?:\.exe)?[\"']?\s+dir\b",
+            linea_activa,
+            re.IGNORECASE,
+        ):
+            continue
+        linea_activa = linea.split("#", maxsplit=1)[0]
+        linea_activa = re.split(r"\s//", linea_activa, maxsplit=1)[0]
+        linea_activa = linea_activa.split("<!--", maxsplit=1)[0]
+        yield from (
+            coincidencia.group(0)
+            for coincidencia in PATRON_COMANDO_GITLEAKS_DIR.finditer(linea_activa)
+        )
 
 
 def test_configuracion_es_local_y_parseable_con_ruamel() -> None:
@@ -268,27 +300,130 @@ def test_excepciones_gitleaks_son_individuales_y_documentadas() -> None:
     assert set(filas) == set(fingerprints)
 
     for fingerprint in fingerprints:
-        commit_y_ruta, regla, numero_linea = fingerprint.rsplit(":", maxsplit=2)
-        _commit, ruta = commit_y_ruta.split(":", maxsplit=1)
-        assert numero_linea.isdigit()
+        coincidencia = PATRON_FINGERPRINT_GITLEAKS.fullmatch(fingerprint)
+        assert coincidencia is not None
+        ruta = coincidencia.group("ruta")
+        regla = coincidencia.group("regla")
+        assert ruta.strip()
+        assert regla.strip()
         _, ruta_documentada, regla_documentada, razon, revision = filas[fingerprint]
         assert ruta_documentada.strip("`") == ruta
         assert regla_documentada.strip("`") == regla
-        assert razon
+        assert razon.strip("` ")
         assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", revision)
 
 
 def test_todos_los_comandos_dir_limitan_archivos_a_diez_megabytes() -> None:
-    patron_comando = re.compile(
-        r"gitleaks(?:\.exe)?\s+dir\b[^\r\n]*(?:--redact|--no-banner|--config|--exit-code)[^\r\n]*"
-    )
     comandos = [
-        coincidencia.group(0)
+        comando
         for archivo in _archivos_con_comandos_gitleaks()
-        for coincidencia in patron_comando.finditer(
-            archivo.read_text(encoding="utf-8", errors="ignore")
-        )
+        for comando in _extraer_comandos_gitleaks_dir(archivo)
     ]
 
     assert comandos
-    assert all("--max-target-megabytes 10" in comando for comando in comandos)
+    for comando in comandos:
+        valores = PATRON_LIMITE_GITLEAKS_DIR.findall(comando)
+        assert valores == ["10"]
+
+
+def _usar_archivo_comandos_temporal(
+    monkeypatch: pytest.MonkeyPatch, ruta: Path, contenido: str
+) -> None:
+    ruta.write_text(contenido, encoding="utf-8")
+    monkeypatch.setitem(globals(), "_archivos_con_comandos_gitleaks", lambda: iter((ruta,)))
+
+
+@pytest.mark.parametrize(
+    "contenido",
+    (
+        "gitleaks dir . --redact --max-target-megabytes 100 --exit-code 1",
+        "gitleaks dir . --redact --max-target-megabytes 1024 --exit-code 1",
+        "gitleaks dir . --redact # --max-target-megabytes 10",
+        "\n".join(
+            (
+                "gitleaks dir . --redact --max-target-megabytes 10",
+                "gitleaks dir .",
+            )
+        ),
+    ),
+)
+def test_comandos_dir_con_limite_invalido_se_rechazan(
+    contenido: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _usar_archivo_comandos_temporal(monkeypatch, tmp_path / "comandos.md", contenido)
+
+    with pytest.raises(AssertionError):
+        test_todos_los_comandos_dir_limitan_archivos_a_diez_megabytes()
+
+
+def test_lineas_que_solo_son_comentarios_no_cuentan_como_comandos(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    contenido = "\n".join(
+        (
+            "gitleaks dir . --redact --max-target-megabytes 10",
+            "# gitleaks dir . --redact",
+            "// gitleaks dir . --exit-code 1",
+        )
+    )
+    _usar_archivo_comandos_temporal(monkeypatch, tmp_path / "comentarios.md", contenido)
+
+    test_todos_los_comandos_dir_limitan_archivos_a_diez_megabytes()
+
+
+@pytest.mark.parametrize(
+    ("fingerprint", "ruta", "regla"),
+    (
+        ("abc:ruta.py:generic-api-key:1", "ruta.py", "generic-api-key"),
+        (f"{'a' * 40}::generic-api-key:1", "", "generic-api-key"),
+        (f"{'a' * 40}:ruta.py::1", "ruta.py", ""),
+        (f"{'a' * 40}:ruta.py:generic-api-key:0", "ruta.py", "generic-api-key"),
+    ),
+)
+def test_fingerprints_invalidos_se_rechazan(
+    fingerprint: str,
+    ruta: str,
+    regla: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    ruta_ignore = tmp_path / ".gitleaksignore"
+    ruta_ignore.write_text(f"{fingerprint}\n", encoding="utf-8")
+    ruta_documento = tmp_path / "excepciones-gitleaks.md"
+    contenido = RUTA_EXCEPCIONES_GITLEAKS.read_text(encoding="utf-8").replace(
+        "No hay excepciones activas.",
+        f"| `{fingerprint}` | `{ruta}` | `{regla}` | falso positivo | 2026-07-17 |",
+    )
+    ruta_documento.write_text(contenido, encoding="utf-8")
+    monkeypatch.setitem(globals(), "RUTA_IGNORE_GITLEAKS", ruta_ignore)
+    monkeypatch.setitem(globals(), "RUTA_EXCEPCIONES_GITLEAKS", ruta_documento)
+
+    with pytest.raises(AssertionError):
+        test_excepciones_gitleaks_son_individuales_y_documentadas()
+
+
+def test_fingerprint_completo_y_documentado_se_admite(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fingerprint = f"{'a' * 40}:docs/ejemplo.md:generic-api-key:1"
+    ruta_ignore = tmp_path / ".gitleaksignore"
+    ruta_ignore.write_text(f"{fingerprint}\n", encoding="utf-8")
+    ruta_documento = tmp_path / "excepciones-gitleaks.md"
+    contenido = RUTA_EXCEPCIONES_GITLEAKS.read_text(encoding="utf-8").replace(
+        "No hay excepciones activas.",
+        f"| `{fingerprint}` | `docs/ejemplo.md` | `generic-api-key` | "
+        "falso positivo | 2026-07-17 |",
+    )
+    ruta_documento.write_text(contenido, encoding="utf-8")
+    monkeypatch.setitem(globals(), "RUTA_IGNORE_GITLEAKS", ruta_ignore)
+    monkeypatch.setitem(globals(), "RUTA_EXCEPCIONES_GITLEAKS", ruta_documento)
+
+    test_excepciones_gitleaks_son_individuales_y_documentadas()
+
+
+def test_docstring_describe_semgrep_y_gitleaks() -> None:
+    assert __doc__ == "Contrato estructural para las configuraciones Semgrep y Gitleaks."
