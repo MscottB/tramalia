@@ -4,11 +4,19 @@
 
 Tramalia usa **Apache-2.0** © 2026 Michael Jim Scott Bravo (ver [`LICENSE`](LICENSE) y [`NOTICE`](NOTICE)).
 
-## El principio clave
+## Alcance del inventario
 
-Tramalia **invoca** las herramientas externas como **programas separados** (subprocess CLI o servidores MCP). No enlaza sus librerías ni redistribuye su código. Bajo derecho de autor, ejecutar un programa separado **no crea una obra derivada**, así que **sus licencias no imponen condiciones a Tramalia** — ni siquiera las copyleft.
+Este archivo registra hechos técnicos y licencias identificadas; no determina por sí solo compatibilidad, obligaciones ni riesgo legal. La validación definitiva corresponde a la revisión legal prevista en Plan 04 o a asesoría profesional.
 
-Las únicas licencias que importan para la de Tramalia son las de sus **dependencias Python** (las que se instalan e importan):
+Tramalia invoca varias herramientas externas como procesos CLI o servidores MCP y no redistribuye aquí sus ejecutables. La documentación sí redistribuye una adaptación del parcial de búsqueda de Material for MkDocs 9.7.6; se conserva su aviso MIT en [`AVISOS_TERCEROS.md`](AVISOS_TERCEROS.md).
+
+## Código de terceros redistribuido
+
+| Componente | Archivo adaptado | Licencia | Aviso |
+|---|---|---|---|
+| Material for MkDocs 9.7.6 | `docs/overrides/partials/search.html` | MIT | [`AVISOS_TERCEROS.md`](AVISOS_TERCEROS.md) |
+
+Las dependencias Python importadas conocidas incluyen:
 
 | Dependencia | Licencia |
 |---|---|
@@ -17,21 +25,20 @@ Las únicas licencias que importan para la de Tramalia son las de sus **dependen
 | mcp (SDK) | MIT |
 | pytest (dev) | MIT |
 
-**Todas son MIT** → Tramalia es libre de usar cualquier licencia. Se eligió **Apache-2.0** (permisiva + concesión de patentes).
+La tabla es un inventario orientativo y debe actualizarse cuando cambien las dependencias o su forma de distribución.
 
-## Las copyleft del ecosistema (no afectan a Tramalia)
+## Herramientas externas del ecosistema
 
-| Herramienta | Licencia | ¿Afecta a Tramalia? |
+| Herramienta | Licencia identificada | Forma de uso actual |
 |---|---|---|
-| Semgrep (CE) | LGPL-2.1 | No — proceso separado |
-| pa11y | LGPL-3.0 | No — proceso separado |
-| axe-core | MPL-2.0 | No — proceso separado |
-| git | GPL-2.0 | No — proceso separado |
+| Semgrep (CE) | LGPL-2.1 | Proceso separado |
+| pa11y | LGPL-3.0 | Proceso separado |
+| axe-core | MPL-2.0 | Herramienta de pruebas instalada como dependencia de desarrollo |
+| git | GPL-2.0 | Proceso separado |
 
-Solo importarían si Tramalia **empaquetara o enlazara** su código. No lo hace. Si en el futuro se redistribuyen binarios de terceros dentro de Tramalia, habría que revisar caso por caso.
+Si cambia la forma de uso —por ejemplo, si se empaquetan binarios o se copian fuentes— se debe revisar el inventario y las condiciones aplicables antes de publicar.
 
 ## Por qué Apache-2.0 (y no otra)
 
-- **Apache-2.0 / MIT (permisivas):** máxima adopción, ideal para una capa de gobierno que quiere difundirse. Apache-2.0 añade concesión explícita de patentes y cláusula de marca. **← elegida.**
-- **AGPL-3.0 (copyleft fuerte):** obligaría a abrir derivados/servicios; reduce la adopción de una herramienta que busca esparcirse.
-- **Source-available (BSL/FSL):** permite restricciones comerciales pero no es open source OSI → menos confianza/adopción.
+- **Apache-2.0:** fue elegida para el código propio de Tramalia; su texto incluye una concesión expresa de patentes.
+- **MIT, copyleft y licencias source-available:** siguen siendo alternativas con condiciones diferentes que requieren revisión según el modo concreto de uso y distribución.

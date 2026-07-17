@@ -4,25 +4,21 @@ site_url: https://MscottB.github.io/tramalia/
 repo_url: https://github.com/MscottB/tramalia
 repo_name: tramalia
 docs_dir: docs
+exclude_docs: |
+  superpowers/**
+hooks:
+  - scripts/absolutizar_alternativas.py
 
 theme:
   name: material
+  custom_dir: docs/overrides
   language: es
   logo: assets/brand/tramalia-mark.webp
   favicon: assets/brand/favicon.png
   icon:
     repo: fontawesome/brands/github
-  font:
-    text: Manrope
-    code: JetBrains Mono
+  font: false
   palette:
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: custom
-      accent: custom
-      toggle:
-        icon: material/weather-sunny
-        name: Modo claro
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: custom
@@ -30,6 +26,13 @@ theme:
       toggle:
         icon: material/weather-night
         name: Modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
   features:
     - navigation.tabs
     - navigation.tabs.sticky
@@ -57,7 +60,7 @@ plugins:
           build: true
           nav_translations:
             Inicio: Home
-            Empezar: Get started
+            Primeros pasos: First steps
             Instalación: Installation
             Flujo completo: Full workflow
             Ejemplo completo: Full example
@@ -101,6 +104,9 @@ plugins:
 extra_css:
   - stylesheets/extra.css
 
+extra_javascript:
+  - javascripts/accesibilidad_teclado.js
+
 markdown_extensions:
   - admonition
   - attr_list
@@ -127,7 +133,7 @@ markdown_extensions:
 
 nav:
   - Inicio: index.md
-  - Empezar:
+  - Primeros pasos:
       - Instalación: instalacion.md
       - Flujo completo: flujo-completo.md
       - Ejemplo completo: ejemplo-completo.md

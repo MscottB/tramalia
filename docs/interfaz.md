@@ -116,7 +116,7 @@ Equivalentes CLI: `tramalia skills list` · `enable <nombre>` · `disable <nombr
 
 Se confunden fácil, pero son opuestos complementarios:
 
-| | **Cierre** (pestaña Cierre) | **Auditoría** (pestaña Auditoría) |
+| Aspecto | **Cierre** (pestaña Cierre) | **Auditoría** (pestaña Auditoría) |
 |---|---|---|
 | Qué es | una **acción**: cerrar una tarea | una **lectura**: el historial |
 | Qué hace | corre gates → escribe evidencia → handoff, y **bloquea** si un gate falla | muestra los cierres pasados (`tramalia log`) para inspeccionarlos |

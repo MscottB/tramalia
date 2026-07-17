@@ -117,7 +117,7 @@ CLI equivalents: `tramalia skills list` · `enable <name>` · `disable <name>` �
 
 Easy to confuse, but they're complementary opposites:
 
-| | **Close** (Close tab) | **Audit** (Audit tab) |
+| Aspect | **Close** (Close tab) | **Audit** (Audit tab) |
 |---|---|---|
 | What it is | an **action**: closing a task | a **read**: the history |
 | What it does | runs gates → writes evidence → handoff, and **blocks** if a gate fails | shows past closes (`tramalia log`) for inspection |

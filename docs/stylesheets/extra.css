@@ -65,6 +65,7 @@
   --tramalia-neon: #c0f64e;
   --tramalia-white: #f7f5ff;
   --tramalia-muted: #b7b3cb;
+  --tramalia-texto-hero-secundario: var(--tramalia-muted);
   --tramalia-border: #403a67;
   --tramalia-success: #7fe36a;
   --tramalia-warning: #f5c451;
@@ -80,6 +81,9 @@
 
 /* ---------- Dark mode (default del proyecto) ---------- */
 [data-md-color-scheme="slate"] {
+  --tramalia-color-foco: #b3e448;
+  --tramalia-fondo-foco: #05031c;
+  --tramalia-texto-hero-secundario: var(--tramalia-muted);
   --md-hue: 248;
   --md-default-bg-color: var(--tramalia-night);
   --md-default-bg-color--light: #0a0730;
@@ -102,6 +106,9 @@
 
 /* ---------- Light mode ---------- */
 [data-md-color-scheme="default"] {
+  --tramalia-color-foco: #5534ad;
+  --tramalia-fondo-foco: #f8f7fc;
+  --tramalia-texto-hero-secundario: #5f5a73;
   --md-default-bg-color: #f8f7fc;
   --md-default-fg-color: #17132f;
   --md-primary-fg-color: #321f78;
@@ -112,6 +119,8 @@
   --md-typeset-a-color: #5534ad;
   --md-code-bg-color: #efecf8;
   --md-code-fg-color: #17132f;
+  --md-code-hl-comment-color: #5f5d64;
+  --md-code-hl-variable-color: #5f5d64;
 }
 
 /* ---------- Header y tabs ---------- */
@@ -149,6 +158,10 @@
   text-decoration-color: rgba(179, 228, 72, 0.35);
   text-underline-offset: 0.18em;
 }
+.md-typeset a:not(.md-button):not(.headerlink) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.08em;
+}
 [data-md-color-scheme="slate"] .md-typeset a:hover {
   color: var(--tramalia-neon);
 }
@@ -164,7 +177,13 @@
   border-color: var(--tramalia-lime);
   box-shadow: var(--tramalia-glow);
 }
+.md-typeset .md-button:focus {
+  background: transparent;
+  color: var(--md-typeset-a-color);
+}
 .md-typeset .md-button--primary {
+  --tramalia-color-foco: #321f78;
+  --tramalia-fondo-foco: #b3e448;
   background: var(--tramalia-lime);
   border-color: var(--tramalia-lime);
   color: var(--tramalia-night);
@@ -172,6 +191,11 @@
 .md-typeset .md-button--primary:hover {
   background: var(--tramalia-neon);
   border-color: var(--tramalia-neon);
+  color: var(--tramalia-night);
+}
+.md-typeset .md-button--primary:focus {
+  background: var(--tramalia-lime);
+  border-color: var(--tramalia-lime);
   color: var(--tramalia-night);
 }
 
@@ -203,9 +227,83 @@
 }
 
 /* ---------- Accesibilidad ---------- */
-:focus-visible {
-  outline: 3px solid var(--tramalia-lime);
-  outline-offset: 3px;
+:focus-visible,
+.focus-visible {
+  outline: 3px solid var(--tramalia-color-foco) !important;
+  outline-offset: -3px;
+  scroll-margin: 0.5rem;
+}
+
+.md-header__button,
+.md-source,
+.md-tabs__link,
+.md-footer__link {
+  --tramalia-color-foco: #b3e448;
+  --tramalia-fondo-foco: #05031c;
+}
+
+.md-skip {
+  --tramalia-color-foco: #b3e448;
+  --tramalia-fondo-foco: #321f78;
+}
+
+button[data-tramalia-control] {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+@media screen and (min-width: 60em) {
+  button.md-header__button[data-tramalia-control="__search"] {
+    display: none;
+  }
+}
+
+@media screen and (min-width: 76.25em) {
+  button.md-header__button[data-tramalia-control="__drawer"] {
+    display: none;
+  }
+}
+
+.md-option:focus-visible,
+.md-option.focus-visible {
+  outline: none !important;
+}
+
+.md-option:focus-visible + label,
+.md-option.focus-visible + label {
+  outline: 3px solid var(--tramalia-color-foco) !important;
+  outline-offset: -3px;
+}
+
+.md-search__output {
+  right: 0;
+  left: auto;
+  width: min(36rem, calc(100vw - 1rem));
+}
+
+.md-search__scrollwrap:focus-visible {
+  min-height: 2.5rem;
+}
+
+[data-md-color-scheme="default"] .md-nav__title,
+[data-md-color-scheme="default"] .md-search-result__meta {
+  color: #5f5a73;
+}
+
+[data-md-color-scheme="slate"] .md-nav__title,
+[data-md-color-scheme="slate"] .md-search-result__meta {
+  color: #b7b3cb;
+}
+
+@media screen and (min-width: 60em) {
+  .md-search__input {
+    --tramalia-color-foco: #b3e448;
+    --tramalia-fondo-foco: #1c1060;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -229,7 +327,7 @@
 .tramalia-hero::before {
   content: "";
   position: absolute;
-  inset: -4rem -10vw;
+  inset: -4rem 0;
   z-index: -1;
   pointer-events: none;
   background:
@@ -254,7 +352,7 @@
 .tramalia-hero p {
   max-width: 42rem;
   margin-bottom: 1.5rem;
-  color: var(--tramalia-muted);
+  color: var(--tramalia-texto-hero-secundario);
   font-size: clamp(1.02rem, 1.6vw, 1.15rem);
   line-height: 1.65;
 }
@@ -274,6 +372,20 @@
   max-height: 26rem;
   object-fit: contain;
   filter: drop-shadow(0 0 2.5rem rgba(98, 58, 191, 0.45)) drop-shadow(0 0 1rem rgba(179, 228, 72, 0.12));
+}
+@media screen and (min-width: 901px) {
+  .tramalia-hero {
+    grid-template-columns: minmax(0, 1.25fr) minmax(17rem, 0.75fr);
+    gap: clamp(1.5rem, 3vw, 2.75rem);
+    padding: clamp(2rem, 4vw, 3rem) 0;
+  }
+  .tramalia-hero h1 {
+    max-width: 20ch;
+    font-size: clamp(2.5rem, 3.7vw, 3.1rem);
+  }
+  .tramalia-hero__visual img {
+    max-height: 22rem;
+  }
 }
 @media screen and (max-width: 900px) {
   .tramalia-hero {

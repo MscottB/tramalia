@@ -1,0 +1,46 @@
+{# Material 9.7.6 no nombra el role="dialog"; este override conserva su parcial
+   fijado y añade el nombre localizado que requieren lectores de pantalla. #}
+{#-
+  Derivado de Material for MkDocs 9.7.6, material/templates/partials/search.html.
+  Copyright (c) 2016-2025 Martin Donath <martin.donath@squidfunk.com>
+  SPDX-License-Identifier: MIT. Texto completo en AVISOS_TERCEROS.md.
+-#}
+<div class="md-search" data-md-component="search" role="dialog" aria-label="{{ lang.t('search') }}">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="{{ lang.t('search.placeholder') }}" placeholder="{{ lang.t('search.placeholder') }}" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        {% set icono = config.theme.icon.search or "material/magnify" %}
+        {% include ".icons/" ~ icono ~ ".svg" %}
+        {% set icono = config.theme.icon.previous or "material/arrow-left" %}
+        {% include ".icons/" ~ icono ~ ".svg" %}
+      </label>
+      <nav class="md-search__options" aria-label="{{ lang.t('search') }}">
+        {% if "search.share" in features %}
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="{{ lang.t('search.share') }}" aria-label="{{ lang.t('search.share') }}" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            {% set icono = config.theme.icon.share or "material/share-variant" %}
+            {% include ".icons/" ~ icono ~ ".svg" %}
+          </a>
+        {% endif %}
+        <button type="reset" class="md-search__icon md-icon" title="{{ lang.t('search.reset') }}" aria-label="{{ lang.t('search.reset') }}" tabindex="-1">
+          {% set icono = config.theme.icon.close or "material/close" %}
+          {% include ".icons/" ~ icono ~ ".svg" %}
+        </button>
+      </nav>
+      {% if "search.suggest" in features %}
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      {% endif %}
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            {{ lang.t("search.result.initializer") }}
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

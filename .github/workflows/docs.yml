@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   deploy:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,3 +25,141 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements-docs.txt
       - run: mkdocs gh-deploy --force --clean
+
+  capturas_ux_temporales:
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "0.11.28"
+      - name: Instalar dependencias y construir la documentacion
+        shell: bash
+        run: |
+          uv venv
+          uv pip install -r requirements-docs.txt
+          uv run --no-sync mkdocs build --strict
+          npm ci --ignore-scripts
+      - name: Demostrar RED por ausencia exclusiva de cuatro baselines
+        shell: bash
+        run: |
+          mkdir -p .artefactos/ux
+          set +e
+          CI=1 TRAMALIA_COMPARAR_CAPTURAS=1 npm run prueba:ux 2>&1 | tee .artefactos/ux/primer-ciclo-red.log
+          codigo_prueba=${PIPESTATUS[0]}
+          set -e
+          test "$codigo_prueba" -ne 0
+          test "$(grep -c "A snapshot doesn't exist at" .artefactos/ux/primer-ciclo-red.log)" -eq 4
+          grep -Eq "43 passed" .artefactos/ux/primer-ciclo-red.log
+          grep -Eq "4 failed" .artefactos/ux/primer-ciclo-red.log
+      - name: Aprobar y comparar las capturas en la imagen fijada
+        shell: bash
+        run: |
+          CI=1 TRAMALIA_IMAGEN_PLAYWRIGHT=1.61.1-noble TRAMALIA_COMPARAR_CAPTURAS=1 npm run aprobar:capturas:ux
+          CI=1 TRAMALIA_COMPARAR_CAPTURAS=1 npm run prueba:ux
+      - name: Subir solo los cuatro candidatos para revision
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidatos-ux-${{ github.run_id }}
+          path: pruebas/ux/documentacion.spec.mjs-snapshots/*.png
+          if-no-files-found: error
+          retention-days: 3
+
+  lighthouse_temporal:
+    if: github.event_name == 'workflow_dispatch'
+    needs: capturas_ux_temporales
+    permissions:
+      contents: read
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.18.0"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "0.11.28"
+      - name: Instalar dependencias y construir la documentacion
+        shell: bash
+        run: |
+          uv venv
+          uv pip install -r requirements-docs.txt
+          uv run --no-sync mkdocs build --strict
+          npm ci --ignore-scripts
+          npm run instalar:navegador:ci
+      - name: Auditar Lighthouse con Chromium fijado
+        run: npm run prueba:lighthouse
+      - name: Diagnosticar los LHR si falla la auditoria
+        if: failure()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { existsSync, readdirSync, readFileSync } = require("node:fs");
+          const rutaInformes = ".artefactos/ux/lighthouse";
+          if (!existsSync(rutaInformes)) {
+            console.log("No se generaron LHR; la auditoria fallo antes de medir.");
+            process.exit(0);
+          }
+          const nombres = readdirSync(rutaInformes).filter((nombre) => nombre.endsWith(".json"));
+          const urlsDiagnosticadas = new Set();
+          const auditoriasDetalle = [
+            "largest-contentful-paint-element",
+            "lcp-discovery-insight",
+            "lcp-phases-insight",
+            "render-blocking-insight",
+            "network-dependency-tree-insight",
+            "font-display-insight",
+            "bootup-time",
+            "mainthread-work-breakdown",
+            "long-tasks",
+          ];
+          for (const nombre of nombres) {
+            const informe = JSON.parse(readFileSync(`${rutaInformes}/${nombre}`, "utf8"));
+            if (!informe.categories || !informe.audits) continue;
+            const puntajes = Object.fromEntries(
+              Object.entries(informe.categories).map(([categoria, datos]) => [
+                categoria,
+                datos.score,
+              ]),
+            );
+            console.log(`LHR ${informe.finalDisplayedUrl}: ${JSON.stringify(puntajes)}`);
+            for (const categoria of ["performance", "seo"]) {
+              const referencias = informe.categories[categoria]?.auditRefs ?? [];
+              for (const referencia of referencias) {
+                const auditoria = informe.audits[referencia.id];
+                if (referencia.weight > 0 && auditoria?.score !== null && auditoria?.score < 1) {
+                  console.log(
+                    `  ${categoria}/${referencia.id}: score=${auditoria.score}; ${auditoria.displayValue ?? auditoria.title}`,
+                  );
+                }
+              }
+            }
+            if (!urlsDiagnosticadas.has(informe.finalDisplayedUrl)) {
+              urlsDiagnosticadas.add(informe.finalDisplayedUrl);
+              for (const identificador of auditoriasDetalle) {
+                const auditoria = informe.audits[identificador];
+                if (!auditoria) continue;
+                const detalle = JSON.stringify({
+                  details: auditoria.details,
+                  displayValue: auditoria.displayValue,
+                  score: auditoria.score,
+                });
+                console.log(`  detalle/${identificador}: ${detalle.slice(0, 6000)}`);
+              }
+            }
+          }
+          NODE

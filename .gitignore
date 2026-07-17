@@ -1,6 +1,7 @@
 # entornos y artefactos Python
 .venv/
 .artefactos/
+node_modules/
 .coverage
 .coverage.*
 __pycache__/
